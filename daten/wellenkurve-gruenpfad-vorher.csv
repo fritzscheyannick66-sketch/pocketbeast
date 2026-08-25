@@ -1,0 +1,41 @@
+welle;gesamt_hp;soll_hp;zaehigkeitsfaktor;boss;laune;arten
+1;192;240;0.80;;;Zippel(0.8)x8
+2;313;313;1.00;;;Voltschwinge(1)x9
+3;363;404;0.90;;;Irrlicht(0.9)x10
+4;506;562;0.90;;;Moosnipp(1)x6 + Zippel(0.8)x6
+5;1108;652;1.70;;Sturm;Pfützling(1.1)x6 + Knospling(2.3)x6
+6;926;882;1.05;;Erzhaut;Pfützling(1.1)x7 + Voltschwinge(1)x7
+7;1988;1169;1.70;;;Kieselklotz(1.9)x8 + Salzflosse(1.5)x8
+8;4595;2035;2.26;Vulkanox 1x2035;Brut;Kieselklotz(1.9)x12 + Salzflosse(1.5)x12
+9;3629;1770;2.05;;Hetze;Mesmirr(1.8)x9 + Knospling(2.3)x9
+10;4210;2054;2.05;;;Sturmhorn(2.2)x9 + Kieselklotz(1.9)x9
+11;5322;2331;2.28;;;Glutwelp(0.85)x6 + Sturzflut(3.4)x6 + Dornborst(2.6)x6
+12;2645;2939;0.90;;;Zippel(0.8)x10 + Voltschwinge(1)x10
+13;6239;3670;1.70;;;Enigmotte(2.4)x11 + Voltschwinge(1)x11
+14;7270;4544;1.60;;Hetze;Aschfalter(0.7)x8 + Dornborst(2.6)x8 + Schildling(1.5)x8
+15;7736;5157;1.50;;;Kieselklotz(1.9)x12 + Pfützling(1.1)x12
+16;13317;6341;2.10;Abyssgrund 1x6341;Erzhaut;Rankling(1.35)x13 + Glutwelp(0.85)x13
+17;18063;7474;2.42;;;Aschfalter(0.7)x9 + Monolithor(5.2)x9 + Rankling(1.35)x9
+18;17250;8483;2.03;;Sturm;Enigmotte(2.4)x9 + Schildling(1.5)x9 + Sturmhorn(2.2)x9
+19;15406;9629;1.60;;;Salzflosse(1.5)x9 + Knospling(2.3)x9 + Moosnipp(1)x9
+20;23072;12143;1.90;;;Schildling(1.5)x15 + Knospling(2.3)x15
+21;26262;20673;1.27;;Brut;Magmaul(3.1)x15 + Aschfalter(0.7)x15 + Rankling(1.35)x15
+22;13766;16686;0.83;;;Glutwelp(0.85)x16 + Zippel(0.8)x16
+23;50305;20122;2.50;;Sturm;Enigmotte(2.4)x17 + Dornborst(2.6)x17
+24;93006;14778;6.29;Titanwurz 1x20151;Koloss;Sturzflut(3.4)x11 + Enigmotte(2.4)x11
+25;97434;27446;3.55;;;Monolithor(5.2)x18 + Kieselklotz(1.9)x18
+26;46617;44997;1.04;;Brut;Irrlicht(0.9)x26 + Kieselklotz(1.9)x26
+27;39187;37321;1.05;;;Moosnipp(1)x19 + Pfützling(1.1)x19
+28;62313;43474;1.43;;;Kieselklotz(1.9)x13 + Irrlicht(0.9)x13 + Schildling(1.5)x13
+29;69587;50609;1.38;;;Glutwelp(0.85)x20 + Kieselklotz(1.9)x20
+30;87454;60313;1.45;;;Aschfalter(0.7)x21 + Sturmhorn(2.2)x21
+31;136910;68455;2.00;;;Zippel(0.8)x14 + Sturmhorn(2.2)x14 + Klippkralle(3)x14
+32;253809;81396;3.12;Fulmax 1x46248;Hetze;Schildling(1.5)x22 + Grimmborst(3.6)x22
+33;397255;92385;4.30;;;Monolithor(5.2)x22 + Sturzflut(3.4)x22
+34;235689;109623;2.15;;Reiche Ernte;Irrlicht(0.9)x23 + Sturzflut(3.4)x23
+35;142815;129832;1.10;;;Aschfalter(0.7)x24 + Schildling(1.5)x24
+36;130167;147359;0.88;;;Pfützling(1.1)x16 + Glutwelp(0.85)x16 + Aschfalter(0.7)x16
+37;292692;167253;1.75;;;Sturzflut(3.4)x16 + Glutwelp(0.85)x16 + Voltschwinge(1)x16
+38;305906;201696;1.52;;;Glutwelp(0.85)x17 + Sturmhorn(2.2)x17 + Schildling(1.5)x17
+39;420145;233414;1.80;;;Dornborst(2.6)x26 + Moosnipp(1)x26
+40;900642;305682;2.95;Gorgolith 2x173220;Brut;Magmaul(3.1)x30 + Mesmirr(1.8)x30

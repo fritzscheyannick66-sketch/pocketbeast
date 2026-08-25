@@ -1,0 +1,20 @@
+# Godot 4+ specific ignores
+.godot/
+/android/
+
+# macOS — entstehen beim Öffnen eines Ordners im Finder und enthalten
+# Ansichts- und Sortiereinstellungen des lokalen Rechners
+.DS_Store
+._*
+.Spotlight-V100
+.Trashes
+
+# Editoren
+.idea/
+.vscode/
+*.swp
+
+# Godot-Exporte
+/export/
+*.pck
+*.zip
