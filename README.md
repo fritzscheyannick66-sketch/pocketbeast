@@ -1,4 +1,4 @@
-# Wildwacht
+# PocketBeast
 
 Kreaturen-Tower-Defense. Eine einzelne HTML-Datei, kein Build, keine Abhängigkeiten,
 keine Asset-Dateien — Grafik ist prozedural auf Canvas gezeichnet, Sound prozedural
@@ -9,7 +9,7 @@ keine Asset-Dateien — Grafik ist prozedural auf Canvas gezeichnet, Sound proze
 Datei doppelklicken, oder:
 
 ```bash
-open wildwacht.html
+open pocketbeast.html
 ```
 
 Läuft direkt über `file://`. Die einzige Netzwerkanfrage ist Google Fonts —
@@ -19,8 +19,8 @@ ohne Internet greifen die Fallback-Schriften.
 
 | Datei | Inhalt |
 |---|---|
-| [wildwacht.html](wildwacht.html) | Das Spiel. ~2.900 Zeilen JS, 147 KB, standalone. |
-| [wildwacht.original.html](wildwacht.original.html) | Fassung vor dem Balance-Fix, zum Vergleich. |
+| [pocketbeast.html](pocketbeast.html) | Das Spiel. ~2.900 Zeilen JS, 147 KB, standalone. |
+| [pocketbeast.original.html](pocketbeast.original.html) | Fassung vor dem Balance-Fix, zum Vergleich. |
 | [ANALYSE.md](ANALYSE.md) | Review: Performance, Balance, gefundene Schwachstellen. |
 | [daten/](daten/) | Gemessene HP-Kurven aller 40 Wellen, vor und nach dem Fix. |
 | [tools/autoplay-bot.js](tools/autoplay-bot.js) | Bot, der eine komplette Runde ohne Zutun durchspielt. |
@@ -80,6 +80,7 @@ die Vorschau warnt jetzt rechtzeitig davor. Siehe „Befund 4" in [ANALYSE.md](A
 ## Speicherstand
 
 Talentpunkte und Fortschritt liegen in `localStorage` unter dem Schlüssel
-`wildwacht.v1`, getrennt pro Herkunft. Die Datei über `file://` zu öffnen ergibt
+`wildwacht.v1` — der Schlüssel trägt noch den früheren Namen, damit
+vorhandene Spielstände nach der Umbenennung erhalten bleiben. Getrennt pro Herkunft. Die Datei über `file://` zu öffnen ergibt
 also einen anderen Speicherstand als über einen lokalen Server. Zurücksetzen geht
 im Hauptmenü über „Fortschritt zurücksetzen".

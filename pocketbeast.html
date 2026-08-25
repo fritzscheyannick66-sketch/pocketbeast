@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Wildwacht</title>
+<title>PocketBeast</title>
 </head>
 <body>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -286,7 +286,7 @@ table.eff th{color:var(--muted);font-weight:700;font-size:9.5px;letter-spacing:.
 <div class="shell">
   <div class="topbar">
     <div class="brand">
-      <h1>Wildwacht</h1>
+      <h1>PocketBeast</h1>
       <span class="sub" id="mapname">Verdant Route</span>
     </div>
     <div class="stats">
@@ -354,7 +354,7 @@ table.eff th{color:var(--muted);font-weight:700;font-size:9.5px;letter-spacing:.
 <script>
 "use strict";
 /* ============================================================
-   WILDWACHT — Kreaturen-Tower-Defense
+   POCKETBEAST — Kreaturen-Tower-Defense
    Alle Kreaturen, Namen und Regeln sind eigenständig.
    ============================================================ */
 
@@ -623,6 +623,9 @@ const TALENTS = [
 const TAL_BY_ID = Object.fromEntries(TALENTS.map(t => [t.id, t]));
 
 /* ---------------- Speicher ---------------- */
+/* Der Schlüssel bleibt bewusst auf dem alten Namen: der Browser legt den
+   Spielstand darunter ab. Würde er mitumbenannt, fänden vorhandene Stände
+   keinen Anschluss mehr und alle Talentpunkte wären verloren. */
 const SAVE_KEY = "wildwacht.v1";
 const save = { points: 0, spent: 0, ranks: {}, cleared: {}, best: 0, run: null, tut: false, endless: 0, sound: true };
 function loadSave() {
@@ -3596,7 +3599,7 @@ function showMenu() {
 function menuHTML() {
   const left = talentPointsLeft();
   return `
-  <h2 class="big">Wildwacht</h2>
+  <h2 class="big">PocketBeast</h2>
   <p class="lead">Acht Elemente, drei Routen, vierzig Wellen. Stelle Wächter an den Weg, entwickle sie in drei Stufen
   und nutze Typenvorteile — ein Feuerwächter zerlegt Pflanzenwilde, prallt aber an Wasser ab.</p>
 
@@ -3760,7 +3763,7 @@ function showCodex() {
 
 function showHelp() {
   openVeil(`
-    <h2 class="big">So funktioniert Wildwacht</h2>
+    <h2 class="big">So funktioniert PocketBeast</h2>
     <p class="lead">Wilde Kreaturen ziehen von der Wildnis zum Dorf. Stelle Wächter an den Weg und lass keine durch.</p>
     <section class="helpgrid">
       <div class="kv" style="padding:10px"><div class="k">1 · Wächter rufen</div>

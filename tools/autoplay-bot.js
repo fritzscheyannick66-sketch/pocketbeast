@@ -1,8 +1,8 @@
 /* ============================================================
-   Wildwacht — Autoplay-Bot
+   PocketBeast — Autoplay-Bot
    Spielt eine komplette Runde ohne Zutun, um Balance zu messen.
 
-   Verwendung: wildwacht.html im Browser oeffnen, dann in der
+   Verwendung: pocketbeast.html im Browser oeffnen, dann in der
    Konsole den Inhalt dieser Datei einfuegen und ausfuehren:
 
      __B2.init(0, 20)     // Karte 0 (Gruenpfad), max. 20 Tuerme

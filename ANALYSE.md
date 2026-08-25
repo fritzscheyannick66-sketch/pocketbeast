@@ -1,6 +1,6 @@
-# Wildwacht — Analyse
+# PocketBeast — Analyse
 
-Stand: 25.08.2026 · Grundlage: [wildwacht.html](wildwacht.html) (Artifact-Version vom 24.08.2026)
+Stand: 25.08.2026 · Grundlage: [pocketbeast.html](pocketbeast.html) (Artifact-Version vom 24.08.2026)
 
 Methode: Code gelesen, im Browser gespielt, danach mit einem Autoplay-Bot mehrere
 komplette 40-Wellen-Runden auf allen drei Karten simuliert
