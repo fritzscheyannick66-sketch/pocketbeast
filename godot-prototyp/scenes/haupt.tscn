@@ -1,0 +1,6 @@
+[gd_scene load_steps=2 format=3 uid="uid://cpb0protoscene"]
+
+[ext_resource type="Script" path="res://scripts/haupt.gd" id="1_haupt"]
+
+[node name="Haupt" type="Node2D"]
+script = ExtResource("1_haupt")

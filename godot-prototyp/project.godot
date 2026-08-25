@@ -1,0 +1,21 @@
+; PocketBeast — Godot-Prototyp
+; Eigenes Projekt, damit das Hauptverzeichnis unberührt bleibt.
+
+config_version=5
+
+[application]
+
+config/name="PocketBeast Prototyp"
+run/main_scene="res://scenes/haupt.tscn"
+config/features=PackedStringArray("4.7", "Forward Plus")
+
+[display]
+
+window/size/viewport_width=1120
+window/size/viewport_height=672
+window/stretch/mode="canvas_items"
+window/stretch/aspect="expand"
+
+[rendering]
+
+renderer/rendering_method="forward_plus"
