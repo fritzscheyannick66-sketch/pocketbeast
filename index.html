@@ -132,6 +132,46 @@ canvas{display:block;width:100%;height:auto;touch-action:manipulation}
     font-family:var(--f-mono);font-size:9.5px;letter-spacing:.1em;text-transform:uppercase}
 }
 
+/* Steuerung direkt auf dem Spielfeld.
+   Vorher lagen "Welle starten", Pause und Tempo unter dem Feld — auf dem Handy
+   musste man für jeden Klick scrollen und verlor das Geschehen aus dem Blick.
+   Die Knöpfe schweben jetzt in den oberen Ecken, wo selten etwas Wichtiges
+   liegt (Bossbalken und Banner sitzen mittig). */
+.stagectl{position:absolute;top:8px;display:flex;gap:6px;z-index:7}
+.stagectl.links{left:8px}
+.stagectl.rechts{right:8px}
+.stagectl .btn{
+  background:rgba(13,20,26,.82);backdrop-filter:blur(4px);
+  border:1px solid var(--line);box-shadow:0 2px 10px rgba(0,0,0,.35);
+  padding:8px 12px;font-size:13px;
+}
+.stagectl .btn.primary{background:rgba(240,168,60,.94);border-color:var(--amber);color:#231502}
+.stagectl .btn.primary:hover{background:var(--amber)}
+.stagectl .btn:hover{background:rgba(29,47,60,.92)}
+@media (max-width:560px){
+  .stagectl{top:6px}
+  .stagectl.links{left:6px}
+  .stagectl.rechts{right:6px}
+  .stagectl .btn{padding:9px 10px;font-size:12.5px}
+  /* Auf schmalen Geräten nur "Welle": ausgeschrieben verdeckte der Knopf ein
+     Stück der Route, und dort laufende Gegner wären unsichtbar geworden. */
+  .stagectl .lang{display:none}
+  /* Pause als Zeichen — der Text kostete mehr Fläche, als der Knopf wert ist.
+     Die Bedeutung bleibt über aria-label für Vorleseprogramme erhalten. */
+  .stagectl #b-pause{font-size:0;padding:9px 12px}
+  .stagectl #b-pause::after{content:"⏸";font-size:15px;line-height:1}
+  .stagectl #b-pause[data-zustand="pausiert"]::after{content:"▶"}
+}
+/* Auf Grünpfad und Glutschlucht führt die Route durch den oberen Bereich; eine
+   Ecke, die auf allen drei Karten frei bleibt, gibt es nicht. Die Knöpfe sind
+   deshalb bewusst durchscheinend — ein Gegner darunter bleibt als Bewegung
+   erkennbar, statt ganz zu verschwinden. Beim Berühren werden sie deckend. */
+.stagectl .btn{opacity:.8}
+.stagectl .btn:hover,.stagectl .btn:active{opacity:1}
+.stagectl .btn.primary{opacity:.88}
+/* Die untere Zeile ist leer, sobald die Knöpfe oben sitzen */
+.row-main:empty{display:none}
+
 .controls{display:flex;flex-direction:column;gap:8px;margin-top:10px}
 .row-main{display:flex;gap:8px;align-items:center}
 .row-sub{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
@@ -283,6 +323,16 @@ table.eff th{color:var(--muted);font-weight:700;font-size:9.5px;letter-spacing:.
 .bossbar{position:absolute;left:50%;top:12px;transform:translateX(-50%);width:min(440px,86%);
   background:rgba(10,16,20,.82);border:1px solid #4A3418;border-radius:10px;padding:6px 10px 7px;z-index:6;pointer-events:none}
 .bossbar[hidden]{display:none}
+/* Bossbalken und Banner sitzen mittig oben — genau auf Höhe der Steuerknöpfe,
+   die dort seit deren Umzug ins Feld liegen. Ohne Versatz überdeckten die
+   Knöpfe den Namen des Bosses und seinen Lebensbalken. Beide rutschen deshalb
+   unter die Knopfreihe, sobald diese im Feld sitzt. */
+.bossbar{top:58px}
+.banner{top:62px}
+@media (min-width:1081px){
+  .bossbar{top:58px}
+  .banner{top:62px}
+}
 .bossbar .bn{display:flex;justify-content:space-between;font-family:var(--f-mono);font-size:10px;
   letter-spacing:.14em;text-transform:uppercase;color:var(--amber);font-weight:700;margin-bottom:4px}
 .bossbar .track{height:7px;background:#20140a;border-radius:99px;overflow:hidden}
@@ -321,11 +371,13 @@ table.eff th{color:var(--muted);font-weight:700;font-size:9.5px;letter-spacing:.
         </div>
         <div class="bossbar" id="bossbar" hidden><div class="bn"><span id="boss-name"></span><span id="boss-hp"></span></div><div class="track"><div class="fill" id="boss-fill"></div></div></div>
         <div class="banner" id="banner" role="status" aria-live="polite"></div>
+        <div class="stagectl links" id="ctl-links"></div>
+        <div class="stagectl rechts" id="ctl-rechts"></div>
       </div>
       <div class="drehhinweis">↻ Quer halten zeigt das Feld größer</div>
       <div class="controls">
         <div class="row-main">
-          <button class="btn primary big" id="b-wave">Welle starten</button>
+          <button class="btn primary big" id="b-wave">Welle<span class="lang"> starten</span></button>
           <button class="btn" id="b-pause" aria-label="Pause umschalten">Pause</button>
           <button class="btn" id="b-speed" aria-label="Spieltempo umschalten"><span class="spd">1×</span></button>
         </div>
@@ -3549,6 +3601,19 @@ $("b-target").addEventListener("click", () => {
   G.targetMode = n[0];
   $("b-target").textContent = "Ziel: " + n[1];
 });
+/* Die drei Steuerknöpfe wandern in die Ecken des Spielfelds.
+   Bewusst verschoben statt nachgebaut: es bleiben dieselben Elemente, damit
+   alle Ereignisbehandlungen und Beschriftungswechsel (Pause↔Weiter, 1×↔2×↔3×)
+   ohne Zutun weiterlaufen. */
+(() => {
+  const links = $("ctl-links"), rechts = $("ctl-rechts");
+  if (!links || !rechts) return;
+  // Aufgeteilt statt beide links: nebeneinander belegten Wellen- und
+  // Pauseknopf 44 % der Feldbreite und deckten auf zwei Karten die Route zu.
+  links.append($("b-wave"));
+  rechts.append($("b-pause"), $("b-speed"));
+})();
+
 $("b-codex").addEventListener("click", showCodex);
 $("b-help").addEventListener("click", showHelp);
 $("b-sound").addEventListener("click", () => {
@@ -3561,7 +3626,12 @@ $("b-menu").addEventListener("click", () => { G.paused = true; showMenu(); });
 
 function togglePause() {
   G.paused = !G.paused;
-  $("b-pause").textContent = G.paused ? "Weiter" : "Pause";
+  const b = $("b-pause");
+  b.textContent = G.paused ? "Weiter" : "Pause";
+  // Auf schmalen Geräten zeigt der Knopf nur ein Zeichen; ohne diesen Zustand
+  // bliebe dort ⏸ stehen, obwohl er fortsetzen würde.
+  b.dataset.zustand = G.paused ? "pausiert" : "laeuft";
+  b.setAttribute("aria-label", G.paused ? "Weiterspielen" : "Pause");
 }
 window.addEventListener("keydown", e => {
   if ($("veil").hidden === false) {
