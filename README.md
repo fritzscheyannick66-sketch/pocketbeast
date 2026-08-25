@@ -84,3 +84,23 @@ Talentpunkte und Fortschritt liegen in `localStorage` unter dem Schlüssel
 vorhandene Spielstände nach der Umbenennung erhalten bleiben. Getrennt pro Herkunft. Die Datei über `file://` zu öffnen ergibt
 also einen anderen Speicherstand als über einen lokalen Server. Zurücksetzen geht
 im Hauptmenü über „Fortschritt zurücksetzen".
+
+## Lizenz
+
+[MIT](LICENSE) — benutzen, verändern und weitergeben ist erlaubt, auch
+kommerziell. Einzige Bedingung: Der Copyright-Hinweis aus `LICENSE` bleibt
+erhalten.
+
+Zwei Dinge im Projekt stammen nicht von mir und fallen nicht unter diese
+Lizenz:
+
+- **`icon.svg`** ist das Standard-Projektsymbol von Godot, das die Engine in
+  jedes neue Projekt legt. Es gehört dem Godot-Projekt und steht unter
+  [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/).
+- **Die Schriften** (Fraunces, Sora, JetBrains Mono) werden zur Laufzeit von
+  Google Fonts geladen und liegen nicht in diesem Repository. Sie stehen unter
+  der SIL Open Font License beziehungsweise der Apache-Lizenz 2.0.
+
+Alles Übrige — Spielcode, Grafik, Klang, Dokumentation — ist eigenständig.
+Kreaturen, Namen und Regeln sind frei erfunden und haben keinen Bezug zu
+bestehenden Marken.
