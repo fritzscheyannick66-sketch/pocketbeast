@@ -6,20 +6,25 @@ keine Asset-Dateien — Grafik ist prozedural auf Canvas gezeichnet, Sound proze
 
 ## Spielen
 
-Datei doppelklicken, oder:
+**▶ [Im Browser spielen](https://fritzscheyannick66-sketch.github.io/pocketbeast/)**
+
+Oder lokal — Datei doppelklicken, beziehungsweise:
 
 ```bash
-open pocketbeast.html
+open index.html
 ```
 
-Läuft direkt über `file://`. Die einzige Netzwerkanfrage ist Google Fonts —
-ohne Internet greifen die Fallback-Schriften.
+Läuft direkt über `file://`, ohne Server. Die einzige Netzwerkanfrage ist
+Google Fonts — ohne Internet greifen die Fallback-Schriften.
+
+Der Spielstand hängt an der Herkunft: Die online gespielte Runde und die
+lokal geöffnete Datei führen getrennte Fortschritte.
 
 ## Dateien
 
 | Datei | Inhalt |
 |---|---|
-| [pocketbeast.html](pocketbeast.html) | Das Spiel. ~2.900 Zeilen JS, 147 KB, standalone. |
+| [index.html](index.html) | Das Spiel. Heißt `index.html`, damit GitHub Pages es direkt ausliefert. |
 | [pocketbeast.original.html](pocketbeast.original.html) | Fassung vor dem Balance-Fix, zum Vergleich. |
 | [ANALYSE.md](ANALYSE.md) | Review: Performance, Balance, gefundene Schwachstellen. |
 | [daten/](daten/) | Gemessene HP-Kurven aller 40 Wellen, vor und nach dem Fix. |

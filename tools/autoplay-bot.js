@@ -2,7 +2,7 @@
    PocketBeast — Autoplay-Bot
    Spielt eine komplette Runde ohne Zutun, um Balance zu messen.
 
-   Verwendung: pocketbeast.html im Browser oeffnen, dann in der
+   Verwendung: index.html im Browser oeffnen, dann in der
    Konsole den Inhalt dieser Datei einfuegen und ausfuehren:
 
      __B2.init(0, 20)     // Karte 0 (Gruenpfad), max. 20 Tuerme

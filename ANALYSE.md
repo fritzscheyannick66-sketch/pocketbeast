@@ -1,6 +1,6 @@
 # PocketBeast — Analyse
 
-Stand: 25.08.2026 · Grundlage: [pocketbeast.html](pocketbeast.html) (Artifact-Version vom 24.08.2026)
+Stand: 25.08.2026 · Grundlage: [index.html](index.html) (Artifact-Version vom 24.08.2026)
 
 Methode: Code gelesen, im Browser gespielt, danach mit einem Autoplay-Bot mehrere
 komplette 40-Wellen-Runden auf allen drei Karten simuliert
