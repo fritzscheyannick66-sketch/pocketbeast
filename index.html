@@ -533,6 +533,7 @@ const TYPES = {
   steel:    { name: "Stahl",   col: "#A9BECD" },
   fairy:    { name: "Fee",     col: "#FF9ED2" },
   dark:     { name: "Unlicht", col: "#8C7BB8" },
+  wind:     { name: "Wind",    col: "#9FE3D6" },
   /* Legendär steht bewusst NICHT in der Effektivitätstabelle. eff() gibt für
      fehlende Einträge 1.0 zurück — der legendäre Wächter trifft damit alles
      gleich stark: keine Schwäche, aber auch kein Typenvorteil. Seine Stärke
@@ -562,6 +563,10 @@ const CHART = {
      jedoch gegen Feen — die klassische Gegenrechnung zu Psycho. */
   fairy:    { dark: 2,    rock: 2,  psychic: 1.5, fairy: .5, fire: .5, steel: .5 },
   dark:     { psychic: 2, dark: 2,  fairy: .5, steel: .5 },
+  /* Wind fegt auf, was leicht ist, und prallt an allem ab, was schwer steht.
+     Gegen Gestein und Stahl bleibt ihm nur die Feuerrate — und die reicht
+     nicht, weil Panzerung von jedem einzelnen Treffer abgezogen wird. */
+  wind:     { grass: 2,   psychic: 1.5, fairy: 1.25, rock: .5, steel: .5, ice: .75 },
 };
 function eff(atk, def) {
   const r = CHART[atk];
@@ -571,6 +576,36 @@ function eff(atk, def) {
 }
 
 /* ---------------- Wächter (Türme) ----------------
+
+   REICHWEITE ALS CHARAKTER
+
+   Bisher lagen acht der zehn Familien im Band zwischen 158 und 186 — die
+   ganze Spanne betrug Faktor 1,32. Wo ein Wächter stand, machte damit kaum
+   einen Unterschied, und die Familien fühlten sich austauschbar an.
+
+   Jetzt reicht die Spanne von 120 bis 250, Faktor 2,08, und jede Zahl folgt
+   dem, was die Familie tut:
+
+     Feuer 120, Stahl 128   Draufgänger. Beide schlagen hart zu und müssen
+                            dafür nah heran. Feuer trägt Brand nach, Stahl
+                            durchschlägt Panzerung — beides wirkt erst,
+                            wenn der Gegner ohnehin vorbeikommt.
+     Pflanze 145            Günstig und nah, der Wächter der ersten Wellen.
+     Unlicht 155            Schlägt aus dem Hinterhalt, also aus der Nähe.
+     Elektro 168            Mittlere Sicht, dafür Ketten über den Weg.
+     Fee 180                Markiert Ziele für andere — braucht Übersicht.
+     Wasser 195             An Wasserstellen gebunden und kann sich den Platz
+                            nicht aussuchen. Die Reichweite gleicht aus, was
+                            die Bindung nimmt.
+     Eis 205                Verlangsamt aus der Ferne, bevor die Welle da ist.
+     Gestein 235            Artillerie. Trifft weit, aber keine Flieger.
+     Psycho 250             Seher und Feldgeber. Größere Sicht heißt hier
+                            zugleich mehr Nachbarn im Feld — dafür der
+                            niedrigste Eigenschaden im Spiel.
+
+   Der Durchschnitt bleibt fast gleich (173 auf 178), damit sich nicht die
+   Gesamtstärke verschiebt, sondern nur ihre Verteilung.
+
 
    Namensprinzip über alle Familien:
 
@@ -595,9 +630,9 @@ const TOWERS = [
     id: "fire", type: "fire", shape: "cat", air: true,
     blurb: "Schnelle Einzelziele, entzündet Gegner.",
     tiers: [
-      { name: "Zündling",    cost: 90,  dmg: 12, rate: 1.6, range: 130 },
-      { name: "Glutkatze",    cost: 130, dmg: 26, rate: 1.9, range: 146, burn: { dps: 9,  dur: 2 } },
-      { name: "Flammenkralle",   cost: 240, dmg: 48, rate: 2.2, range: 162, burn: { dps: 22, dur: 3 } },
+      { name: "Zündling",    cost: 90,  dmg: 12, rate: 1.6, range: 86 },
+      { name: "Glutkatze",    cost: 130, dmg: 26, rate: 1.9, range: 102, burn: { dps: 9,  dur: 2 } },
+      { name: "Flammenkralle",   cost: 240, dmg: 48, rate: 2.2, range: 120, burn: { dps: 22, dur: 3 } },
     ],
   },
   {
@@ -605,44 +640,44 @@ const TOWERS = [
     blurb: "Flächenschaden, verlangsamt alles im Umkreis.",
     tiers: [
       { name: "Tröpfling",   cost: 110, dmg: 14, rate: 1.0,  range: 140, splash: 36, slow: { amt: .2, dur: 1.2 } },
-      { name: "Flutwelpe",    cost: 165, dmg: 30, rate: 1.15, range: 156, splash: 48, slow: { amt: .3, dur: 1.5 } },
-      { name: "Wogenfürst",   cost: 300, dmg: 58, rate: 1.3,  range: 176, splash: 64, slow: { amt: .42, dur: 2 } },
+      { name: "Flutwelpe",    cost: 165, dmg: 30, rate: 1.15, range: 166, splash: 48, slow: { amt: .3, dur: 1.5 } },
+      { name: "Wogenfürst",   cost: 300, dmg: 58, rate: 1.3,  range: 195, splash: 64, slow: { amt: .42, dur: 2 } },
     ],
   },
   {
     id: "grass", type: "grass", shape: "sprout", air: true,
     blurb: "Günstig und verlässlich, fesselt mit Ranken.",
     tiers: [
-      { name: "Keimling",    cost: 65,  dmg: 10, rate: 1.3, range: 126 },
-      { name: "Dornbock",    cost: 105, dmg: 22, rate: 1.5, range: 142, root: { p: .12, dur: .6 } },
-      { name: "Rankenschlund", cost: 210, dmg: 40, rate: 1.7, range: 158, root: { p: .2, dur: 1.0 }, burn: { dps: 8, dur: 3 } },
+      { name: "Keimling",    cost: 65,  dmg: 10, rate: 1.3, range: 104 },
+      { name: "Dornbock",    cost: 105, dmg: 22, rate: 1.5, range: 123, root: { p: .12, dur: .6 } },
+      { name: "Rankenschlund", cost: 210, dmg: 40, rate: 1.7, range: 145, root: { p: .2, dur: 1.0 }, burn: { dps: 8, dur: 3 } },
     ],
   },
   {
     id: "electric", type: "electric", shape: "fox", air: true,
     blurb: "Feuert sehr schnell, Blitze springen weiter.",
     tiers: [
-      { name: "Blitzmilbe",   cost: 100, dmg: 7,  rate: 3.2, range: 116 },
-      { name: "Wetterfuchs",   cost: 150, dmg: 13, rate: 3.6, range: 132, chain: 2 },
-      { name: "Donnerrachen",cost: 275, dmg: 24, rate: 4.0, range: 148, chain: 3 },
+      { name: "Blitzmilbe",   cost: 100, dmg: 7,  rate: 3.2, range: 121 },
+      { name: "Wetterfuchs",   cost: 150, dmg: 13, rate: 3.6, range: 143, chain: 2 },
+      { name: "Donnerrachen",cost: 275, dmg: 24, rate: 4.0, range: 168, chain: 3 },
     ],
   },
   {
     id: "rock", type: "rock", shape: "ox", air: false,
     blurb: "Wuchtige Erschütterung — trifft keine Flieger.",
     tiers: [
-      { name: "Kiesling",      cost: 130, dmg: 34,  rate: .55, range: 150, splash: 52 },
-      { name: "Felsochse",   cost: 195, dmg: 76,  rate: .62, range: 166, splash: 68 },
-      { name: "Bergwucht",  cost: 350, dmg: 148, rate: .70, range: 186, splash: 88, root: { p: .1, dur: .5 } },
+      { name: "Kiesling",      cost: 130, dmg: 34,  rate: .55, range: 169, splash: 52 },
+      { name: "Felsochse",   cost: 195, dmg: 76,  rate: .62, range: 200, splash: 68 },
+      { name: "Bergwucht",  cost: 350, dmg: 148, rate: .70, range: 235, splash: 88, root: { p: .1, dur: .5 } },
     ],
   },
   {
     id: "psychic", type: "psychic", shape: "owl", air: true,
     blurb: "Stärkt benachbarte Wächter und markiert Ziele.",
     tiers: [
-      { name: "Traumflaum", cost: 150, dmg: 9,  rate: .9,  range: 152, aura: { dmg: .10, rng: .08 } },
-      { name: "Traumeule",     cost: 210, dmg: 20, rate: 1.0, range: 172, aura: { dmg: .18, rng: .12 }, mark: .14 },
-      { name: "Weitseher",        cost: 380, dmg: 38, rate: 1.1, range: 196, aura: { dmg: .28, rng: .18 }, mark: .26 },
+      { name: "Traumflaum", cost: 150, dmg: 9,  rate: .9,  range: 180, aura: { dmg: .10, rng: .08 } },
+      { name: "Traumeule",     cost: 210, dmg: 20, rate: 1.0, range: 213, aura: { dmg: .18, rng: .12 }, mark: .14 },
+      { name: "Weitseher",        cost: 380, dmg: 38, rate: 1.1, range: 250, aura: { dmg: .28, rng: .18 }, mark: .26 },
     ],
   },
   {
@@ -651,9 +686,9 @@ const TOWERS = [
     id: "ice", type: "ice", shape: "zottel", air: true,
     blurb: "Friert Gegner ein — die stärkste Verlangsamung.",
     tiers: [
-      { name: "Frostfell",   cost: 105, dmg: 9,  rate: 1.1, range: 134, splash: 30, slow: { amt: .3,  dur: 1.6 } },
-      { name: "Raureifer",    cost: 160, dmg: 19, rate: 1.2, range: 150, splash: 42, slow: { amt: .45, dur: 2.0 } },
-      { name: "Eisklamm",    cost: 290, dmg: 36, rate: 1.3, range: 168, splash: 58, slow: { amt: .6,  dur: 2.6 }, root: { p: .16, dur: .8 } },
+      { name: "Frostfell",   cost: 105, dmg: 9,  rate: 1.1, range: 147, splash: 30, slow: { amt: .3,  dur: 1.6 } },
+      { name: "Raureifer",    cost: 160, dmg: 19, rate: 1.2, range: 175, splash: 42, slow: { amt: .45, dur: 2.0 } },
+      { name: "Eisklamm",    cost: 290, dmg: 36, rate: 1.3, range: 205, splash: 58, slow: { amt: .6,  dur: 2.6 }, root: { p: .16, dur: .8 } },
     ],
   },
   {
@@ -662,9 +697,9 @@ const TOWERS = [
     id: "steel", type: "steel", shape: "bolzen", air: false,
     blurb: "Schwere Treffer, durchschlägt Panzerung — bodengebunden.",
     tiers: [
-      { name: "Nietling",    cost: 140, dmg: 40,  rate: .7,  range: 142, pierce: 6 },
-      { name: "Schmiedstier",cost: 205, dmg: 84,  rate: .78, range: 158, pierce: 14 },
-      { name: "Ambosswacht",      cost: 360, dmg: 158, rate: .86, range: 176, pierce: 26, splash: 40 },
+      { name: "Nietling",    cost: 140, dmg: 40,  rate: .7,  range: 92, pierce: 6 },
+      { name: "Schmiedstier",cost: 205, dmg: 84,  rate: .78, range: 109, pierce: 14 },
+      { name: "Ambosswacht",      cost: 360, dmg: 158, rate: .86, range: 128, pierce: 26, splash: 40 },
     ],
   },
   {
@@ -674,9 +709,9 @@ const TOWERS = [
     nurBei: "tag",
     blurb: "Markiert Ziele und bricht Unlicht — entwickelt sich nur am Tag.",
     tiers: [
-      { name: "Schimmerchen", cost: 120, dmg: 11, rate: 1.5, range: 140, mark: .10 },
-      { name: "Glanzfee",     cost: 175, dmg: 24, rate: 1.7, range: 158, mark: .18, splash: 32 },
-      { name: "Morgenwacht",  cost: 315, dmg: 46, rate: 1.9, range: 178, mark: .30, splash: 46 },
+      { name: "Schimmerchen", cost: 120, dmg: 11, rate: 1.5, range: 129, mark: .10 },
+      { name: "Glanzfee",     cost: 175, dmg: 24, rate: 1.7, range: 153, mark: .18, splash: 32 },
+      { name: "Morgenwacht",  cost: 315, dmg: 46, rate: 1.9, range: 180, mark: .30, splash: 46 },
     ],
   },
   {
@@ -686,9 +721,32 @@ const TOWERS = [
     nurBei: "nacht",
     blurb: "Schlägt hart aus dem Dunkel — entwickelt sich nur nachts.",
     tiers: [
-      { name: "Schattling",  cost: 125, dmg: 26, rate: .95, range: 146 },
-      { name: "Nachtzehrer", cost: 185, dmg: 54, rate: 1.05, range: 164, burn: { dps: 14, dur: 2.5 } },
-      { name: "Finsterwacht",cost: 330, dmg: 104, rate: 1.15, range: 184, burn: { dps: 30, dur: 3 }, chain: 2 },
+      { name: "Schattling",  cost: 125, dmg: 26, rate: .95, range: 111 },
+      { name: "Nachtzehrer", cost: 185, dmg: 54, rate: 1.05, range: 132, burn: { dps: 14, dur: 2.5 } },
+      { name: "Finsterwacht",cost: 330, dmg: 104, rate: 1.15, range: 155, burn: { dps: 30, dur: 3 }, chain: 2 },
+    ],
+  },
+  {
+    /* Wind — der Gegenentwurf zu Stahl.
+
+       Extreme Reichweite und eine Feuerrate, die alles andere im Spiel
+       hinter sich lässt: Auf Endstufe sechs Schuss je Sekunde über 325
+       Pixel. Der Einzeltreffer ist dafür winzig.
+
+       Darin liegt seine Schwäche, und sie ist keine aufgesetzte: Panzerung
+       wird von jedem einzelnen Treffer abgezogen. Fünfzehn Schaden gegen
+       einen Brocken mit Panzerung zwölf lassen drei übrig, gegen Monolithor
+       mit achtzehn gar nichts. Wer auf Wind setzt, deckt Massen ab und
+       braucht jemand anderen für die dicken Brocken.
+
+       Keine Fläche, keine Kette, kein Brand — reines Einzelziel. Seine
+       Stärke ist, dass er nie aufhört zu feuern. */
+    id: "wind", type: "wind", shape: "falke", air: true,
+    blurb: "Feuert unaufhörlich über große Weite — prallt aber an Panzerung ab.",
+    tiers: [
+      { name: "Windling",     cost: 105, dmg: 4,  rate: 4.2, range: 250 },
+      { name: "Sturmfalke",   cost: 160, dmg: 8,  rate: 5.0, range: 285 },
+      { name: "Wirbelwacht",  cost: 300, dmg: 15, rate: 6.0, range: 325 },
     ],
   },
   {
@@ -707,9 +765,9 @@ const TOWERS = [
     legendaer: true,
     blurb: "Kennt weder Schwäche noch Vorteil — trifft alles gleich hart.",
     tiers: [
-      { name: "Dämmerhüter", cost: 420, dmg: 70,  rate: 1.2, range: 168, splash: 40, pierce: 12 },
-      { name: "Firnwächter", cost: 620, dmg: 140, rate: 1.35, range: 188, splash: 56, pierce: 24, burn: { dps: 26, dur: 3 } },
-      { name: "Ewigwacht",   cost: 980, dmg: 265, rate: 1.5, range: 212, splash: 74, pierce: 42, burn: { dps: 52, dur: 3.5 }, chain: 3 },
+      { name: "Dämmerhüter", cost: 420, dmg: 70,  rate: 1.2, range: 194, splash: 40, pierce: 12 },
+      { name: "Firnwächter", cost: 620, dmg: 140, rate: 1.35, range: 230, splash: 56, pierce: 24, burn: { dps: 26, dur: 3 } },
+      { name: "Ewigwacht",   cost: 980, dmg: 265, rate: 1.5, range: 270, splash: 74, pierce: 42, burn: { dps: 52, dur: 3.5 }, chain: 3 },
     ],
   },
 ];
@@ -890,6 +948,10 @@ const BOON_BY_ID = Object.fromEntries(BOONS.map(b => [b.id, b]));
 /* ---------------- Karten ---------------- */
 const MAPS = [
   {
+    /* Ein zusammenhängender See statt vier verstreuter Tümpel. Vier einzelne
+       Pfützen mitten auf einer Waldlichtung sahen aus wie vergessene Löcher;
+       ein See ist eine Landschaftsform, um die herum man baut. */
+    sonderfelder: [["wasser", 6, "see"], ["kraft", 3], ["hoehe", 3]],
     name: "Grünpfad", diff: "Ruhig", mul: 1.25, gold: 280, lives: 20,
     himmel: ["#3E5C6B", "#7C9689"],
     ground: ["#1E3324", "#27422C"], accent: "#4A7350", foliage: "#4E9257",
@@ -922,7 +984,7 @@ const MAPS = [
        Anders als eine Wasserstelle fesselt der Schlot nicht: Feuer-Wächter
        dürfen weiterhin überall stehen, der Schlot ist ein besonders guter
        Platz, keine Bedingung. */
-    sonderfelder: [["vulkan", 4], ["kraft", 3]],
+    sonderfelder: [["vulkan", 4], ["kraft", 3], ["hoehe", 3]],
     name: "Glutschlucht", diff: "Fordernd", mul: 1.44, gold: 300, lives: 18,
     himmel: ["#3B1F1E", "#8F5238"],
     ground: ["#241310", "#331914"], accent: "#7A452E", foliage: "#8E5730",
@@ -959,6 +1021,9 @@ const MAPS = [
        ergaben beide Welle 20), mehr Leben ebenso wenig (15, 20 und 25 Leben
        ergaben Welle 20, 20 und 21). Beide setzen an der Zähigkeit an; das
        Problem saß im Anlauf. */
+    /* Mehr Erhöhungen als anderswo: In einer Ruine stehen überall Mauerreste,
+       und die Karte ist die schwerste — gute Stellungen sind hier am nötigsten. */
+    sonderfelder: [["wasser", 5], ["kraft", 4], ["hoehe", 5]],
     name: "Flutruine", diff: "Brutal", mul: 1.95, gold: 500, lives: 15,
     himmel: ["#33505F", "#7690A0"],
     ground: ["#1B2B3A", "#223447"], accent: "#3A5C78", foliage: "#4E8878",
@@ -1212,6 +1277,7 @@ const TIER_MARK = {
   fairy:    { c: "#FFD3EB", form: "funkel" },
   dark:     { c: "#C9BEE8", form: "sichel" },
   legend:   { c: "#FFE9A8", form: "krone" },
+  wind:     { c: "#CFF3EA", form: "boe" },
 };
 
 /* Hinter dem Körper: Kranz aus Stacheln und Reif am Boden.
@@ -1333,6 +1399,17 @@ function tierFront(g, s, col, tier, type, t) {
       g.globalCompositeOperation = "destination-out";
       g.beginPath(); g.arc(u * .5, -u * .18, u * .78, 0, 7); g.fill();
       g.restore(); break;
+    case "boe":
+      // drei versetzte Windstriche
+      g.lineCap = "round";
+      for (let i = 0; i < 3; i++) {
+        const yy = (i - 1) * u * .62;
+        g.beginPath();
+        g.moveTo(-u, yy);
+        g.quadraticCurveTo(u * .3, yy - u * .34, u * .9, yy);
+        g.stroke();
+      }
+      break;
     case "krone":
       g.beginPath();
       g.moveTo(-u, u * .7); g.lineTo(-u, -u * .3);
@@ -1603,6 +1680,77 @@ function drawCreature(g, x, y, s, col, shape, t, opts) {
       g.ellipse(0, -s * 1.62, s * .62, s * .2 + Math.sin(t * .9) * s * .05, 0, 0, 7);
       g.stroke();
       g.restore();
+      break;
+    }
+    /* Falke — allein für den Wind-Wächter.
+
+       Bewusst das Gegenteil der Eule: dort gedrungen und rund, hier schlank
+       und hoch, mit angelegten Schwingen und schmalem Kopf. Wer weit sieht
+       und schnell schlägt, darf nicht gemütlich aussehen.
+
+       Die Schwingen zittern leicht, statt zu schlagen — der Falke sitzt und
+       wartet, er fliegt nicht. */
+    case "falke": {
+      const zittern = Math.sin(t * 9 + s) * s * .04;
+
+      // angelegte Schwingen, hinten spitz auslaufend
+      g.fillStyle = rgba(dark, .9);
+      for (const sg of [-1, 1]) {
+        g.save();
+        g.translate(sg * s * .52, s * .1 + zittern);
+        g.rotate(sg * .18);
+        g.beginPath();
+        g.moveTo(0, -s * .7);
+        g.quadraticCurveTo(sg * s * .5, s * .1, sg * s * .18, s * 1.05);
+        g.quadraticCurveTo(-sg * s * .1, s * .3, 0, -s * .7);
+        g.fill(); g.stroke();
+        g.restore();
+      }
+
+      // Körper: hoch und schmal
+      bodyRR(s * 1.16, s * 1.94, s * .54);
+
+      // Brustzeichnung — waagerechte Bänder, wie bei einem Greifvogel
+      g.strokeStyle = rgba(deep, .28); g.lineWidth = Math.max(.8, s * .05);
+      for (let i = 0; i < 3; i++) {
+        g.beginPath();
+        g.arc(0, s * (.24 + i * .26), s * .3, .22 * Math.PI, .78 * Math.PI);
+        g.stroke();
+      }
+      g.strokeStyle = deep; g.lineWidth = Math.max(1, s * .085);
+
+      // schmaler Kopf, leicht vorgeneigt
+      g.fillStyle = light;
+      g.beginPath();
+      g.ellipse(s * .06, -s * .84, s * .5, s * .44, .1, 0, 7);
+      g.fill(); g.stroke();
+
+      // Augenstreif — der Zug, der einen Falken zum Falken macht
+      g.fillStyle = rgba(deep, .55);
+      g.beginPath();
+      g.moveTo(-s * .3, -s * 1.02);
+      g.quadraticCurveTo(s * .1, -s * 1.12, s * .42, -s * .86);
+      g.quadraticCurveTo(s * .1, -s * .92, -s * .3, -s * 1.02);
+      g.fill();
+
+      face(g, s * .04, -s * .82, s, .3, { blink, mouth: false });
+
+      // Hakenschnabel
+      g.fillStyle = "#E8B24A";
+      g.beginPath();
+      g.moveTo(s * .42, -s * .84);
+      g.quadraticCurveTo(s * .68, -s * .78, s * .5, -s * .6);
+      g.quadraticCurveTo(s * .44, -s * .72, s * .42, -s * .84);
+      g.fill(); g.stroke();
+
+      // Schwanzfedern, schmal nach unten
+      g.fillStyle = rgba(dark, .85);
+      g.beginPath();
+      g.moveTo(-s * .22, s * .9);
+      g.lineTo(-s * .12, s * 1.5);
+      g.lineTo(s * .12, s * 1.5);
+      g.lineTo(s * .22, s * .9);
+      g.closePath(); g.fill(); g.stroke();
       break;
     }
     case "owl": {
@@ -2329,8 +2477,13 @@ function statRange(t) {
   const modR = G.mod && G.mod.range ? G.mod.range : 1;
   // Kraftfelder erweitern die Sicht des Wächters, der darauf steht
   const art = feldArt(t.c, t.r);
-  const feld = art === "kraft" ? (1 + FELD_KRAFT_BONUS)
-             : art === "vulkan" ? (1 + FELD_VULKAN_BONUS) : 1;
+  let feld = 1;
+  if (art === "kraft") feld = 1 + FELD_KRAFT_BONUS;
+  else if (art === "vulkan") feld = 1 + FELD_VULKAN_BONUS;
+  else if (art === "hoehe") {
+    const voll = FELD_HOEHE_TYPEN.includes(t.def.type);
+    feld = 1 + FELD_HOEHE_BONUS * (voll ? 1 : 0.33);
+  }
   return tierOf(t).range * (1 + rank("weit") * .03) * (1 + (t.aRng || 0))
        * (1 + (t.train || 0) * .02) * (1 + boon("rng") * .08) * modR * feld
        * (1 + hainStufe("fern") * .02);
@@ -2476,6 +2629,18 @@ const FELD_KRAFT_BONUS = 0.30;
    weiter reichende Glut. Beides gleich stark, damit die Wirkung ohne
    Nachrechnen zu merken ist. */
 const FELD_VULKAN_BONUS = 0.18;
+/* Erhöhungen — Felsvorsprünge und alte Mauerreste.
+
+   Wer darauf steht, sieht weiter. Voll wirkt das für die beiden Familien,
+   die von oben herab arbeiten: Gestein wirft seine Brocken im Bogen, Wind
+   trägt über die Höhe. Alle anderen bekommen ein Drittel davon — eine
+   erhöhte Stellung nützt auch ihnen, nur eben nicht so viel.
+
+   Der erste Anlauf knüpfte den vollen Bonus an das Merkmal "trifft Flieger".
+   Das haben aber zehn der zwölf Familien, und ein Vorteil, den fast jeder
+   bekommt, zeichnet niemanden aus. */
+const FELD_HOEHE_BONUS = 0.32;
+const FELD_HOEHE_TYPEN = ["rock", "wind"];
 
 function baueFelder() {
   const felder = new Map();
@@ -2512,11 +2677,50 @@ function baueFelder() {
     }
     return gesetzt;
   };
-  /* Welche Sonderfelder eine Karte trägt, steht bei der Karte selbst.
-     Die Glutschlucht ist eine Feuerlandschaft — Tümpel wirkten dort
-     aufgesetzt. Sie bekommt stattdessen Vulkanschlote. */
-  for (const [art, n] of (G.map.sonderfelder || [["wasser", 4], ["kraft", 3]])) {
-    setze(n + Math.floor(rnd() * 2), art);
+  /* Ein zusammenhängender See statt verstreuter Tümpel.
+
+     setze() hält Sonderfelder auseinander, damit keine Nester entstehen —
+     für einen See ist genau das falsch. Hier wächst die Fläche stattdessen
+     von einem Startfeld aus: immer weiter an einen schon gesetzten Rand,
+     solange dort Platz ist. Das ergibt eine unregelmäßige, aber
+     zusammenhängende Form. */
+  const setzeSee = (n, art) => {
+    // Startfeld: mittlere Wegnähe — ein See direkt am Weg nähme zu viel Bauland
+    const kandidaten = tauglich.filter(f => f.naechste > 60 && f.naechste < 130
+      && !felder.has(f.c + "," + f.r));
+    if (!kandidaten.length) return 0;
+    const start = kandidaten[0];
+    felder.set(start.c + "," + start.r, art);
+    const drin = [start];
+    let gesetzt = 1;
+
+    while (gesetzt < n) {
+      // alle freien Nachbarn der bisherigen Seefläche sammeln
+      const rand = [];
+      for (const f of drin) {
+        for (const [dc, dr] of [[1,0],[-1,0],[0,1],[0,-1]]) {
+          const c2 = f.c + dc, r2 = f.r + dr;
+          const k = c2 + "," + r2;
+          if (felder.has(k)) continue;
+          const t = tauglich.find(x => x.c === c2 && x.r === r2);
+          if (t) rand.push(t);
+        }
+      }
+      if (!rand.length) break;
+      const w = rand[Math.floor(rnd() * rand.length)];
+      felder.set(w.c + "," + w.r, art);
+      drin.push(w);
+      gesetzt++;
+    }
+    return gesetzt;
+  };
+
+  /* Welche Sonderfelder eine Karte trägt, steht bei der Karte selbst. Die
+     Glutschlucht ist eine Feuerlandschaft — Tümpel wirkten dort aufgesetzt. */
+  for (const eintrag of (G.map.sonderfelder || [["wasser", 4], ["kraft", 3], ["hoehe", 3]])) {
+    const [art, n, form] = eintrag;
+    if (form === "see") setzeSee(n, art);
+    else setze(n + Math.floor(rnd() * 2), art);
   }
   return felder;
 }
@@ -2534,23 +2738,33 @@ function karteHatWasser() {
 
 /* Wer darf wohin.
 
-   Wasser-Wächter und Wasserstellen gehören zusammen: die einen dürfen nur
-   dorthin, die anderen nehmen nur sie auf. Trägt eine Karte gar keine
-   Wasserstellen — wie die Glutschlucht mit ihren Vulkanschloten —, dann
-   dürfen Wasser-Wächter überall stehen. Sonst stünde die Familie im Laden,
-   ohne dass sie sich setzen ließe.
+   Wasser-Wächter stehen ausschließlich auf Wasserstellen — ohne Ausnahme.
+   Trägt eine Karte keine, ist die Familie dort nicht spielbar; auf der
+   Glutschlucht mit ihren Vulkanschloten ist genau das gewollt. Der Laden
+   weist sie deshalb als nicht setzbar aus, statt sie stillschweigend
+   anzubieten.
 
    Der Vulkanschlot nimmt nur Feuer-Wächter auf, fesselt sie aber nicht:
-   Feuer darf weiterhin überall stehen, der Schlot ist ein guter Platz und
-   keine Bedingung. Wäre er beides, hinge die stärkste Familie der Karte an
-   vier Feldern. */
+   Feuer darf weiterhin überall stehen. Wäre er beides, hinge die stärkste
+   Familie der Karte an vier Feldern.
+
+   Erhöhungen nehmen jeden auf. Sie geben Flug- und Gestein-Wächtern mehr
+   Sicht — beides Familien, die von oben herab arbeiten. */
 function darfHier(id, c, r) {
   const def = TOWER_BY_ID[id];
   if (!def) return false;
   const art = feldArt(c, r);
   if (art === "vulkan") return def.type === "fire";
-  if (def.type === "water") return karteHatWasser() ? art === "wasser" : art !== "vulkan";
+  if (def.type === "water") return art === "wasser";
   return art !== "wasser";
+}
+
+/* Kann diese Familie auf dieser Karte überhaupt gesetzt werden? */
+function familieSetzbar(id) {
+  const def = TOWER_BY_ID[id];
+  if (!def) return false;
+  if (def.type === "water") return karteHatWasser();
+  return true;
 }
 
 function canPlace(c, r) {
@@ -4007,6 +4221,10 @@ function buildDecor() {
   const felder = [];
   for (let r = 0; r < ROWS; r++) for (let c = 0; c < COLS; c++) {
     if (blocked.has(c + "," + r)) continue;
+    /* Sonderfelder bleiben frei von Bewuchs. Ein Busch mitten im See oder
+       eine Tanne auf dem Vulkanschlot sieht nicht nur falsch aus, sie
+       verdeckt auch, dass dort ein besonderer Platz ist. */
+    if (feldArt(c, r)) continue;
     const mx = c * TILE + TILE / 2, my = r * TILE + TILE / 2;
     const dd = dichteAt(mx, my);
     felder.push({ c, r, d: dd.d, art: dd.art });
@@ -4175,25 +4393,84 @@ function drawPathStones(g) {
 /* Sonderfelder sichtbar machen. Ohne Kennzeichnung wäre die Bauregel eine
    unsichtbare Falle: Man tippt auf ein Feld und nichts geschieht.
    Wasserstellen als Tümpel mit Spiegelung, Kraftfelder als leuchtender Ring. */
+/* Wasser als zusammenhängende Fläche.
+
+   Jede Kachel einzeln mit eigenem Rand zu zeichnen ließ einen See aus sechs
+   Feldern wie sechs aneinandergelegte Pfützen aussehen. Deshalb zwei
+   Durchgänge: erst alle Flächen, die sich überlappen und dadurch verschmelzen,
+   dann nur der äußere Rand — also nur dort, wo keine weitere Wasserkachel
+   anschließt. */
+function zeichneWasser(g) {
+  if (!G.felder) return;
+  const wasser = [];
+  for (const [key, art] of G.felder) {
+    if (art !== "wasser") continue;
+    const [c, r] = key.split(",").map(Number);
+    wasser.push({ c, r, x: c * TILE + TILE / 2, y: r * TILE + TILE / 2 });
+  }
+  if (!wasser.length) return;
+
+  /* Kreisrund zeichnen, nicht als Ellipse.
+
+     Die Felder werden innerhalb der gekippten Bodenebene gezeichnet — die
+     Stauchung kommt also ohnehin dazu. Eine vorab abgeflachte Ellipse wird
+     dadurch ein zweites Mal gestaucht und liegt am Ende fast als Strich da.
+     Ein Kreis wird von der Kippung von selbst zur richtigen Ellipse.
+
+     Der Radius muss über eine halbe Kachel hinausreichen (56 / 2 = 28),
+     sonst berühren sich benachbarte Kacheln nicht und der See zerfällt in
+     einzelne Pfützen. */
+  const R = TILE * 0.62;
+
+  g.save();
+  // 1. Mulde darunter
+  g.fillStyle = "rgba(0,0,0,.28)";
+  for (const w of wasser) {
+    g.beginPath(); g.arc(w.x, w.y + 3, R, 0, 7); g.fill();
+  }
+  // 2. Heller Saum: etwas größer, wird gleich fast ganz überdeckt
+  g.fillStyle = "rgba(170,220,250,.6)";
+  for (const w of wasser) {
+    g.beginPath(); g.arc(w.x, w.y, R, 0, 7); g.fill();
+  }
+  // 3. Wasserfläche darüber — überlappend, damit die Kacheln verschmelzen
+  for (const w of wasser) {
+    const grd = g.createRadialGradient(w.x - 6, w.y - 6, 2, w.x, w.y, R);
+    grd.addColorStop(0, "#7FC4F5"); grd.addColorStop(.6, "#3E86C8"); grd.addColorStop(1, "#245A8E");
+    g.fillStyle = grd;
+    g.beginPath(); g.arc(w.x, w.y, R - 2.5, 0, 7); g.fill();
+  }
+  /* Der Rand entsteht nicht durch Stricheln, sondern durch Schichtung:
+     Jede Kachel einzeln zu umranden zöge auch mitten durch den See Linien,
+     wo zwei Kacheln aneinanderstoßen. Stattdessen liegt die helle Fläche
+     etwas größer darunter und schaut nur dort hervor, wo keine weitere
+     Wasserkachel anschließt — ein sauberer Saum um die ganze Form. */
+  // 4. Lichtreflexe, die über die Fläche wandern
+  for (let i = 0; i < wasser.length; i++) {
+    const w = wasser[i];
+    const t = G.time * .5 + i * 1.7;
+    g.fillStyle = "rgba(255,255,255,.34)";
+    g.beginPath();
+    g.ellipse(w.x + Math.sin(t) * TILE * .16, w.y - TILE * .12 + Math.cos(t * .7) * TILE * .06,
+      TILE * .15, TILE * .07, -.4, 0, 7);
+    g.fill();
+  }
+  g.restore();
+}
+
 function zeichneFelder(g) {
   if (!G.felder) return;
+  zeichneWasser(g);
   for (const [key, art] of G.felder) {
     const [c, r] = key.split(",").map(Number);
     const x = c * TILE + TILE / 2, y = r * TILE + TILE / 2;
     g.save();
     if (art === "wasser") {
-      // Mulde
-      g.fillStyle = "rgba(0,0,0,.34)";
-      g.beginPath(); g.ellipse(x, y + 2, TILE * .40, TILE * .30, 0, 0, 7); g.fill();
-      const grd = g.createRadialGradient(x - 5, y - 5, 2, x, y, TILE * .40);
-      grd.addColorStop(0, "#7FC4F5"); grd.addColorStop(.6, "#3E86C8"); grd.addColorStop(1, "#245A8E");
-      g.fillStyle = grd;
-      g.beginPath(); g.ellipse(x, y, TILE * .37, TILE * .27, 0, 0, 7); g.fill();
-      g.strokeStyle = "rgba(190,230,255,.5)"; g.lineWidth = 1.4;
-      g.beginPath(); g.ellipse(x, y, TILE * .37, TILE * .27, 0, 0, 7); g.stroke();
-      // Lichtreflex
-      g.fillStyle = "rgba(255,255,255,.42)";
-      g.beginPath(); g.ellipse(x - TILE * .12, y - TILE * .08, TILE * .1, TILE * .045, -.4, 0, 7); g.fill();
+      /* Wasser wird in zwei Durchgängen gezeichnet (siehe unten): erst alle
+         Flächen, dann alle Ränder. Einzeln gezeichnet zöge jede Kachel ihren
+         eigenen hellen Rand, und ein See sähe aus wie sechs aneinander
+         gelegte Pfützen. Hier passiert nichts — die Arbeit steckt in
+         zeichneWasser(). */
     } else if (art === "vulkan") {
       /* Vulkanschlot: ein aufgebrochener Kegel mit glühendem Schlund.
          Bewusst kantig gegen die runde Mulde der Wasserstelle und den
@@ -4248,6 +4525,46 @@ function zeichneFelder(g) {
         g.beginPath(); g.arc(fx2, fy2, (1 - t2) * 1.9 + .5, 0, 7); g.fill();
       }
     } else {
+      if (art === "hoehe") {
+        /* Erhöhung: ein Felsvorsprung, von schräg oben gesehen. Die
+           Oberseite liegt versetzt über der Grundfläche — daran liest man
+           die Höhe ab, ohne dass etwas dreidimensional gerechnet würde. */
+        const hoch = TILE * .17;
+        // Schattenwurf am Fuß
+        g.fillStyle = "rgba(0,0,0,.30)";
+        g.beginPath(); g.ellipse(x + 4, y + hoch + 3, TILE * .38, TILE * .22, 0, 0, 7); g.fill();
+        // Flanke
+        g.fillStyle = "rgba(58,48,40,.92)";
+        g.beginPath();
+        g.moveTo(x - TILE * .34, y + hoch * .2);
+        g.lineTo(x - TILE * .30, y + hoch);
+        g.lineTo(x + TILE * .30, y + hoch);
+        g.lineTo(x + TILE * .34, y + hoch * .2);
+        g.closePath(); g.fill();
+        // Oberseite, kantig
+        g.beginPath();
+        const ze = 7;
+        for (let i = 0; i <= ze; i++) {
+          const a = (i / ze) * Math.PI * 2 - Math.PI / 2;
+          const rr = TILE * (i % 2 ? .28 : .34);
+          const px = x + Math.cos(a) * rr, py = y - hoch * .5 + Math.sin(a) * rr * .62;
+          if (i) g.lineTo(px, py); else g.moveTo(px, py);
+        }
+        g.closePath();
+        const platte = g.createLinearGradient(x, y - hoch, x, y + hoch * .4);
+        platte.addColorStop(0, "rgba(126,112,96,.95)");
+        platte.addColorStop(1, "rgba(78,68,58,.95)");
+        g.fillStyle = platte; g.fill();
+        g.strokeStyle = "rgba(38,32,26,.8)"; g.lineWidth = 1.3; g.stroke();
+        // Lichtkante oben links
+        g.strokeStyle = "rgba(210,196,176,.5)"; g.lineWidth = 1.4;
+        g.beginPath();
+        g.moveTo(x - TILE * .26, y - hoch * .78);
+        g.lineTo(x + TILE * .04, y - hoch * .95);
+        g.stroke();
+        g.restore();
+        continue;
+      }
       // Kraftfeld: Ring mit Speichen, deutlich anders als ein Tümpel
       g.strokeStyle = "rgba(240,168,60,.75)"; g.lineWidth = 2;
       g.beginPath(); g.arc(x, y, TILE * .32, 0, 7); g.stroke();
@@ -4972,6 +5289,16 @@ function zeichneRune(g, typ, x, y) {
       break;
     case "dark":     // abnehmender Mond
       g.beginPath(); g.arc(x, y, r, .7, 5.6); g.stroke();
+      break;
+    case "wind":     // drei Windstriche
+      g.lineCap = "round";
+      for (let i = 0; i < 3; i++) {
+        const yy = y + (i - 1) * r * .72;
+        g.beginPath();
+        g.moveTo(x - r, yy);
+        g.quadraticCurveTo(x + r * .3, yy - r * .4, x + r, yy);
+        g.stroke();
+      }
       break;
     case "legend":   // Krone
       g.beginPath();

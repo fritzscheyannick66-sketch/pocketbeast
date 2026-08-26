@@ -139,7 +139,8 @@ function bewerteFelder(spiel) {
       /* Kraftfeld und Vulkanschlot sind die besten Plätze der Karte. Der
          Schlot zählt hier neutral mit; ob er sich lohnt, entscheidet sich
          bei der Turmwahl, weil nur Feuer-Wächter darauf dürfen. */
-      const bonus = art === "kraft" ? 1.9 : art === "vulkan" ? 1.7 : 1;
+      const bonus = art === "kraft" ? 1.9 : art === "vulkan" ? 1.7
+                  : art === "hoehe" ? 1.6 : 1;
       felder.push({ c, r, art, naeh, deckung, wert: deckung * bonus - naeh * 0.02 });
     }
   }
@@ -266,6 +267,8 @@ function waehleNeuenWaechter(spiel, gruppen, luft) {
   let bester = null, besterWert = 0;
   for (const def of spiel.TOWERS) {
     if (def.legendaer && !spiel.legendaerFrei(G.mapIdx)) continue;
+    // Wasser-Wächter brauchen Wasserstellen; ohne sie ist die Familie hier tot
+    if (spiel.familieSetzbar && !spiel.familieSetzbar(def.id)) continue;
     const kosten = def.tiers[0].cost;
     if (G.gold < kosten) continue;
 
@@ -298,9 +301,14 @@ function waehleNeuenWaechter(spiel, gruppen, luft) {
          Schaden und Reichweite sind mehr, als eine Stufe kostet. Ein Schlot,
          auf dem niemand steht, ist verschenkter Platz — außer Feuer darf ihn
          ohnehin niemand nutzen. */
-      if (def.type === "fire") {
+      /* Erst der Sonderplatz, der zur Familie passt: Feuer auf den Schlot,
+         Flieger und Gestein auf eine Erhöhung. Beides gibt mehr, als eine
+         Stufe kostet — und ein leerer Sonderplatz ist verschenktes Feld. */
+      const wunsch = def.type === "fire" ? "vulkan"
+                   : (def.type === "rock" || def.type === "wind") ? "hoehe" : null;
+      if (wunsch) {
         for (const f of felder) {
-          if (f.art !== "vulkan") continue;
+          if (f.art !== wunsch) continue;
           if (!spiel.darfHier(def.id, f.c, f.r)) continue;
           platz = f;
           break;
