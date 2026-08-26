@@ -4582,37 +4582,87 @@ function zeichneWasser(g) {
      Der Radius muss über eine halbe Kachel hinausreichen (56 / 2 = 28),
      sonst berühren sich benachbarte Kacheln nicht und der See zerfällt in
      einzelne Pfützen. */
-  /* Der See darf nicht über seine Kacheln hinausragen — sonst liegt er
-     halb auf dem Weg. Deshalb bleibt der Kreis je Kachel innerhalb der
-     Kachelgrenze, und die Lücken zwischen benachbarten Wasserkacheln
-     schließen zusätzliche Kreise auf halber Strecke. So verschmilzt die
-     Fläche, ohne irgendwo überzulaufen. */
-  const R = TILE * 0.48;                       // knapp innerhalb der Kachel
+  /* Uferlinie statt Kreisen.
+
+     Aus Kreisen zusammengesetzt sah der See aus wie aufgeklebte blaue
+     Kugeln — jede Kachel eine runde Blase, die Nahtstellen sichtbar. Ein
+     Ufer ist aber nie rund.
+
+     Jede Kachel bekommt deshalb ein Polygon mit sechzehn Stützpunkten. Der
+     Radius wechselt mit dem Winkel: Zeigt er auf eine Nachbarkachel, die
+     ebenfalls Wasser ist, reicht er weit hinaus und überlappt sie; zeigt er
+     ins Trockene, weicht er zurück. Dazu ein festes Rauschen aus der
+     Kachelposition — fest, damit die Uferlinie nicht Bild für Bild
+     flackert, sondern liegen bleibt wie eine Landschaft. */
   const ist = (c, r) => G.felder.get(c + "," + r) === "wasser";
 
-  // Alle Kreise, die die Fläche bilden: die Kacheln selbst und die Brücken
-  const kreise = wasser.map((w) => ({ x: w.x, y: w.y, r: R }));
-  for (const w of wasser) {
-    for (const [dc, dr] of [[1, 0], [0, 1]]) {
-      if (!ist(w.c + dc, w.r + dr)) continue;
-      kreise.push({ x: w.x + dc * TILE / 2, y: w.y + dr * TILE / 2, r: R * .82 });
+  /* Erzeugt einen Teilpfad für eine Kachel — bewusst ohne beginPath.
+
+     Jede Kachel einzeln zu füllen ließ ihre Ränder innerhalb der Fläche
+     sichtbar werden: Der See sah aus wie aneinandergelegte Beulen. Legt man
+     alle Teilpfade in EINEN Pfad und füllt einmal, verschmelzen sie zu einer
+     Fläche, und der Rand entsteht nur außen. */
+  const ufer = (w, wuchs) => {
+    const n = 22;
+    for (let i = 0; i <= n; i++) {
+      const a = (i / n) * Math.PI * 2;
+      const dx = Math.cos(a), dy = Math.sin(a);
+
+      /* Wie weit die Fläche in eine Richtung reicht, wird aus allen vier
+         Nachbarn zusammengesetzt und nach Winkelnähe gewichtet — nicht hart
+         umgeschaltet. Der erste Anlauf prüfte je Winkel genau einen Nachbarn
+         und sprang dadurch zwischen zwei Radien hin und her; heraus kam eine
+         Sternform statt eines Sees. */
+      let basis = TILE * .42;
+      for (const [dc, dr] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+        if (!ist(w.c + dc, w.r + dr)) continue;
+        const naehe = Math.max(0, dx * dc + dy * dr);   // 1 genau dorthin, 0 quer
+        basis += (TILE * .74 - TILE * .42) * naehe * naehe;
+      }
+      // festes Rauschen: hängt nur an Kachel und Winkel, nie an der Zeit
+      const rausch = Math.sin(a * 3 + w.c * 2.1 + w.r * 1.7) * .055
+                   + Math.sin(a * 5 - w.c * 1.3 + w.r * 2.9) * .03;
+      const rr2 = (basis + TILE * rausch) * wuchs;
+      const px = w.x + dx * rr2, py = w.y + dy * rr2;
+      if (i) g.lineTo(px, py); else g.moveTo(px, py);
     }
-  }
+    g.closePath();
+  };
+
+  // Mittelpunkt und Ausdehnung der ganzen Fläche — für den Verlauf gebraucht
+  let mx = 0, my = 0, weite = 0;
+  for (const w of wasser) { mx += w.x; my += w.y; }
+  mx /= wasser.length; my /= wasser.length;
+  for (const w of wasser) weite = Math.max(weite, Math.hypot(w.x - mx, w.y - my));
+  weite += TILE * .7;
+
+  const alsEins = (wuchs) => {
+    g.beginPath();
+    for (const w of wasser) ufer(w, wuchs);
+  };
 
   g.save();
-  // 1. Mulde darunter
-  g.fillStyle = "rgba(0,0,0,.28)";
-  for (const k of kreise) { g.beginPath(); g.arc(k.x, k.y + 3, k.r, 0, 7); g.fill(); }
-  // 2. Heller Saum: etwas größer, wird gleich fast ganz überdeckt
-  g.fillStyle = "rgba(170,220,250,.6)";
-  for (const k of kreise) { g.beginPath(); g.arc(k.x, k.y, k.r, 0, 7); g.fill(); }
-  // 3. Wasserfläche darüber
-  for (const k of kreise) {
-    const grd = g.createRadialGradient(k.x - 6, k.y - 6, 2, k.x, k.y, k.r);
-    grd.addColorStop(0, "#7FC4F5"); grd.addColorStop(.6, "#3E86C8"); grd.addColorStop(1, "#245A8E");
-    g.fillStyle = grd;
-    g.beginPath(); g.arc(k.x, k.y, k.r - 2.5, 0, 7); g.fill();
-  }
+  // 1. Mulde darunter — leicht versetzt, das gibt dem Ufer Tiefe
+  g.save(); g.translate(0, 3);
+  g.fillStyle = "rgba(0,0,0,.26)"; alsEins(1.0); g.fill();
+  g.restore();
+  // 2. Heller Saum, der nur am Rand hervorschaut
+  g.fillStyle = "rgba(150,205,238,.5)"; alsEins(1.0); g.fill();
+  /* 3. Wasserfläche mit einem Verlauf über die GANZE Fläche, nicht je
+     Kachel. Ein Verlauf je Kachel setzte in jeder einen eigenen hellen
+     Kern — sechs kleine Sonnen auf einem See. */
+  const grd = g.createRadialGradient(mx - weite * .25, my - weite * .3, weite * .1, mx, my, weite);
+  grd.addColorStop(0, "#5FA8DE"); grd.addColorStop(.5, "#2E6EA8"); grd.addColorStop(1, "#173D5F");
+  g.fillStyle = grd; alsEins(0.94); g.fill();
+  /* Flachwasser am Ufer: eine hellere Linie entlang des Randes. Als
+     ausgestanzter Ring gezeichnet riss sie Löcher in die Fläche darunter —
+     als Strich liegt sie einfach obenauf. */
+  g.save();
+  g.globalAlpha = .20;
+  g.strokeStyle = "#9FD6F0";
+  g.lineWidth = TILE * .12;
+  alsEins(0.87); g.stroke();
+  g.restore();
   /* Der Rand entsteht nicht durch Stricheln, sondern durch Schichtung:
      Jede Kachel einzeln zu umranden zöge auch mitten durch den See Linien,
      wo zwei Kacheln aneinanderstoßen. Stattdessen liegt die helle Fläche
