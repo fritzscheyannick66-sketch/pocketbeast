@@ -1311,18 +1311,77 @@ function drawCreature(g, x, y, s, col, shape, t, opts) {
   const dir = opts.dir === -1 ? -1 : 1;
   const ph = opts.walk !== undefined ? opts.walk : 0;
   const moving = opts.walk !== undefined;
-  const bob = Math.sin(t * 2.4 + s) * s * 0.05;
   const dark = shade(col, -0.4), light = shade(col, 0.36), deep = shade(col, -0.68), rim = shade(col, .62);
-  const blinkCycle = (t * 0.9 + s) % 5;
-  const blink = blinkCycle > 4.82;
+
+  /* ---------- Blinzeln ----------
+     Ein starrer Takt liest sich mechanisch. Deshalb zwei Rhythmen
+     übereinander: der lange bestimmt, wann geblinzelt wird, der kurze setzt
+     gelegentlich ein zweites Blinzeln hinterher. Der Versatz je Kreatur
+     kommt aus ihrer Größe — dadurch blinzelt nicht die halbe Welle im Takt. */
+  const bz = (t * 0.9 + s) % 5;
+  const blink = bz > 4.82 || (bz > 4.62 && bz < 4.70);
+
+  /* ---------- Schritt oder Atem ----------
+     Vorher lief derselbe glatte Sinus, ob eine Kreatur ging oder stand.
+     Beides sah nach Schweben aus. Jetzt sind es zwei getrennte Rhythmen:
+
+     Im Stand ein langsamer Atem — der Körper hebt und senkt sich kaum.
+
+     In Bewegung ein Schrittstoß. Er ist bewusst kein Sinus: Der Körper wird
+     die meiste Zeit getragen und sinkt nur kurz, wenn ein Fuß aufsetzt.
+
+     Die Potenz muss dafür GRÖSSER als eins sein — sie dehnt das Tal und
+     zieht die Spitze zusammen. Ein erster Anlauf mit 0,55 tat genau das
+     Gegenteil: gemessen stand der Stoß bei 30 Grad schon auf 0,68 statt
+     0,50, die Figur schwebte also noch weicher als mit dem Sinus zuvor. */
+  const atem = Math.sin(t * 1.5 + s * .7);
+  /* Schwere zählt: Ein Anführer setzt wuchtiger auf als ein Flöckling.
+     Ohne das bewegen sich alle gleich leicht, egal wie groß sie sind. */
+  const wucht = opts.boss ? 1.7 : 1;
+  const stoss = moving ? Math.pow(Math.abs(Math.sin(ph)), 2.2) : 0;
+
+  /* Fliegende gehen nicht, sie schweben. Sie bekamen bisher denselben
+     Atemrhythmus wie eine stehende Figur — sie hingen reglos in der Luft.
+     Jetzt tragen sie einen eigenen, weiteren Auf- und Abschwung, dem ein
+     zweiter, schnellerer überlagert ist: das leichte Zittern des Flügelschlags. */
+  const fliegt = !!opts.fliegt;
+  const schweben = fliegt
+    ? Math.sin(t * 1.9 + s * .4) * s * .11 + Math.sin(t * 7.5 + s) * s * .022
+    : 0;
+
+  const hub = fliegt
+    ? schweben
+    : (moving
+        ? stoss * s * .10 * wucht           // sinkt beim Aufsetzen
+        : atem * s * .035);                 // hebt und senkt sich im Atem
+
+  /* ---------- Zucken bei Treffer ----------
+     Ein Treffer war bisher nur ein weißer Schein über der Figur. Jetzt
+     staucht sie kurz zusammen und weicht zurück — der Körper reagiert, nicht
+     nur die Farbe. */
+  const zuck = opts.zuck || 0;
 
   g.save();
-  g.translate(x, y + bob);
+  g.translate(x, y + hub + zuck * s * .12);
   if (dir === -1) g.scale(-1, 1);
-  if (moving) {
-    const sq = Math.sin(ph * 2) * .045;
-    g.scale(1 - sq, 1 + sq);
-  }
+
+  /* ---------- Neigung ----------
+     Wer geht, lehnt sich in die Richtung, in die er will. Wer festgehalten
+     oder verlangsamt wird, stemmt sich dagegen. Ohne diese Neigung stehen
+     alle Figuren gleich senkrecht, egal was mit ihnen geschieht. */
+  const neigung = fliegt
+    ? Math.cos(t * 1.9 + s * .4) * 0.055    // kippt mit dem Schwebebogen
+    : (moving ? 0.05 + stoss * 0.03 : 0) - (opts.brems || 0) * 0.16;
+  if (neigung) g.rotate(neigung);
+
+  /* ---------- Stauchung ----------
+     Beim Aufsetzen breit und flach, dazwischen schmal und lang. Der Treffer
+     staucht zusätzlich. */
+  let sqx = 1, sqy = 1;
+  if (moving && !fliegt) { const q = (stoss - .28) * .10 * wucht; sqx = 1 + q; sqy = 1 - q; }
+  else { const q = atem * .018; sqx = 1 - q; sqy = 1 + q; }
+  if (zuck) { sqx += zuck * .16; sqy -= zuck * .13; }
+  g.scale(sqx, sqy);
   g.lineJoin = "round"; g.lineCap = "round";
   g.lineWidth = Math.max(1, s * 0.085);
   g.strokeStyle = deep;
@@ -1818,22 +1877,22 @@ function drawCreature(g, x, y, s, col, shape, t, opts) {
   if (opts.boss) {
     g.save();
     g.strokeStyle = "rgba(240,168,60,.8)"; g.lineWidth = Math.max(1.6, s * .075);
-    g.beginPath(); g.arc(x, y + bob, s * 1.7, 0, 7); g.stroke();
+    g.beginPath(); g.arc(x, y + hub, s * 1.7, 0, 7); g.stroke();
     for (let i = 0; i < 5; i++) {
       const a = -Math.PI/2 + i * (Math.PI*2/5) + t * .4;
       g.fillStyle = "#F0A83C";
-      g.beginPath(); g.arc(x + Math.cos(a) * s * 1.7, y + bob + Math.sin(a) * s * 1.7, s * .11, 0, 7); g.fill();
+      g.beginPath(); g.arc(x + Math.cos(a) * s * 1.7, y + hub + Math.sin(a) * s * 1.7, s * .11, 0, 7); g.fill();
     }
     // Krone
     g.fillStyle = "#F0A83C"; g.strokeStyle = "#8A6220"; g.lineWidth = Math.max(1, s * .05);
     g.beginPath();
-    g.moveTo(x - s * .55, y + bob - s * 1.55);
-    g.lineTo(x - s * .55, y + bob - s * 2.05);
-    g.lineTo(x - s * .2, y + bob - s * 1.75);
-    g.lineTo(x, y + bob - s * 2.2);
-    g.lineTo(x + s * .2, y + bob - s * 1.75);
-    g.lineTo(x + s * .55, y + bob - s * 2.05);
-    g.lineTo(x + s * .55, y + bob - s * 1.55);
+    g.moveTo(x - s * .55, y + hub - s * 1.55);
+    g.lineTo(x - s * .55, y + hub - s * 2.05);
+    g.lineTo(x - s * .2, y + hub - s * 1.75);
+    g.lineTo(x, y + hub - s * 2.2);
+    g.lineTo(x + s * .2, y + hub - s * 1.75);
+    g.lineTo(x + s * .55, y + hub - s * 2.05);
+    g.lineTo(x + s * .55, y + hub - s * 1.55);
     g.closePath(); g.fill(); g.stroke();
     g.restore();
   }
@@ -4739,6 +4798,17 @@ function drawTower(g, t) {
     g.beginPath(); g.arc(t.x, t.y, 26 + Math.sin(G.time * 2) * 3, 0, 7); g.stroke();
   }
   const rec = Math.max(0, t.recoil || 0);
+  /* Ausholen. Der Rückstoß kam bisher erst nach dem Schuss — die Figur
+     reagierte, kündigte aber nichts an. Ein Wächter, der kurz vorher in die
+     Knie geht, macht den Schuss lesbar, bevor er fällt.
+
+     Der Wert steigt in den letzten 0,14 Sekunden vor dem Schuss an. Bei sehr
+     schnellen Wächtern ist die Pause kürzer als das Fenster; dann wird das
+     Ausholen entsprechend gestaucht, statt dauerhaft zu ducken. */
+  const takt = 1 / Math.max(.2, tierOf(t).rate);
+  const fenster = Math.min(.14, takt * .45);
+  const ausholen = (t.cd > 0 && t.cd < fenster && !t.stunT)
+    ? 1 - t.cd / fenster : 0;
   if (t.stunT > 0) g.globalAlpha = .45;
   // Während der Verwandlung Größe modulieren und aufleuchten lassen
   const evoP = t.evo > 0 ? 1 - t.evo / EVO_DAUER : -1;
@@ -4753,10 +4823,14 @@ function drawTower(g, t) {
     g.beginPath(); g.arc(t.x, t.y - 9, gr * (1.7 + gl), 0, 7); g.fill();
     g.restore();
   }
-  drawCreature(g, t.x, t.y - 9 + rec * 2, gr, col, t.def.shape, G.time + t.x * .01, {
-    dir: (t.face !== undefined && Math.cos(t.face) < 0) ? -1 : 1,
-    tier: t.tier, type: t.def.type,
-  });
+  drawCreature(g, t.x, t.y - 9 + rec * 2 + ausholen * 1.6, gr, col, t.def.shape,
+    G.time + t.x * .01, {
+      dir: (t.face !== undefined && Math.cos(t.face) < 0) ? -1 : 1,
+      tier: t.tier, type: t.def.type,
+      // Ausholen wirkt wie ein Zucken, nur andersherum: erst ducken, dann Schuss
+      zuck: ausholen * .55,
+      brems: t.stunT > 0 ? 1 : 0,
+    });
   if (evoP >= 0) {
     const gl = evoLeuchten(evoP);
     g.save();
@@ -4818,6 +4892,12 @@ function drawEnemy(g, e) {
     boss: e.boss, dir: e.dir === -1 ? -1 : 1,
     walk: e.flying ? undefined : (e.walk || 0),
     tier: e.boss ? 2 : (e.spec.rang || 0), type: e.spec.type,
+    /* Der Trefferblitz dauert 0,12 Sekunden. Daraus wird ein Zucken, das
+       mit dem Blitz abklingt — Farbe und Bewegung gehören zusammen. */
+    fliegt: !!e.flying,
+    zuck: e.flash > 0 ? Math.min(1, e.flash / .12) : 0,
+    /* Festgehalten oder verlangsamt: die Figur stemmt sich dagegen. */
+    brems: e.rootT > 0 ? 1 : (e.slowT > 0 ? (e.slow || 0) : 0),
   });
   if (e.flash > 0) {
     g.globalCompositeOperation = "lighter";
