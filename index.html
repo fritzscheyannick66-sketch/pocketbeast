@@ -449,6 +449,54 @@ table.eff th{color:var(--muted);font-weight:700;font-size:9.5px;letter-spacing:.
 
 const TILE = 56, COLS = 20, ROWS = 12, W = COLS * TILE, H = ROWS * TILE;
 
+/* ============================================================
+   2,5D-Projektion
+   ============================================================
+   Das Spielfeld liegt nicht mehr flach vor der Kamera, sondern gekippt im
+   Raum. Umgesetzt als schräge Parallelprojektion: die Tiefe wird gestaucht,
+   alles was steht — Wächter, Kreaturen, Bäume — hebt die Stauchung an seiner
+   Stelle wieder auf und steht dadurch aufrecht auf dem Boden.
+
+   Bewusst ohne Fluchtpunkt: echte Perspektive ließe hintere Kacheln schmaler
+   werden als vordere. Ein Spielfeld mit unterschiedlich großen Kacheln ist
+   schwerer zu treffen — und Treffsicherheit wiegt hier schwerer als die
+   letzte Spur Realismus. Die Stauchung allein trägt den räumlichen Eindruck,
+   sobald Dinge darauf stehen und Schatten werfen.
+
+   KIPP ist bewusst mild gewählt. Bei starker Stauchung schrumpft das Feld,
+   und gerade auf dem Handy muss die ganze Karte lesbar bleiben. */
+const KIPP = 0.78;                       // Stauchung der Tiefe
+const HORIZONT = Math.round(H - 20 - H * KIPP);   // Bildhöhe, wo der Boden beginnt
+
+/* Weltpunkt -> Bildpunkt. Für Eingabe und alles, was außerhalb der
+   Bodentransformation rechnet. */
+function projX(x) { return x; }
+function projY(y) { return y * KIPP + HORIZONT; }
+function unprojY(sy) { return (sy - HORIZONT) / KIPP; }
+
+/* Hebt die Stauchung an einer Stelle auf, damit ein Objekt aufrecht steht.
+   Die Koordinaten bleiben absolut — gezeichnet wird wie bisher um (x, y),
+   nur eben ungestaucht. Dadurch braucht keine der Zeichenfunktionen
+   angefasst zu werden. */
+function aufrecht(g, x, y, zeichne) {
+  g.save();
+  g.translate(x, y);
+  g.scale(1, 1 / KIPP);
+  g.translate(-x, -y);
+  zeichne();
+  g.restore();
+}
+
+/* Schatten auf dem Boden. Er liegt flach, also gestaucht — deshalb wird er
+   außerhalb von aufrecht() gezeichnet. Ohne ihn schwebt jedes stehende
+   Objekt, und genau das verrät eine aufgeklebte Grafik. */
+function bodenSchatten(g, x, y, breite, staerke) {
+  g.fillStyle = "rgba(0,0,0," + (staerke === undefined ? .26 : staerke) + ")";
+  g.beginPath();
+  g.ellipse(x, y + breite * .12, breite, breite * .42, 0, 0, 7);
+  g.fill();
+}
+
 const TYPES = {
   fire:     { name: "Feuer",   col: "#FF6E45" },
   water:    { name: "Wasser",  col: "#48A6FF" },
@@ -768,6 +816,7 @@ const BOON_BY_ID = Object.fromEntries(BOONS.map(b => [b.id, b]));
 const MAPS = [
   {
     name: "Grünpfad", diff: "Ruhig", mul: 1.25, gold: 280, lives: 20,
+    himmel: ["#3E5C6B", "#7C9689"],
     ground: ["#1E3324", "#27422C"], accent: "#4A7350", foliage: "#4E9257",
     path: "#9C7B54", pathEdge: "#41301F", soil: "#BFA173",
     gras: "#5B9A5F", gras2: "#3C6E44", erde: "#6B5636",
@@ -792,6 +841,7 @@ const MAPS = [
   },
   {
     name: "Glutschlucht", diff: "Fordernd", mul: 1.44, gold: 300, lives: 18,
+    himmel: ["#3B1F1E", "#8F5238"],
     ground: ["#241310", "#331914"], accent: "#7A452E", foliage: "#8E5730",
     path: "#9E7359", pathEdge: "#241509", soil: "#C49170",
     gras: "#8A5A38", gras2: "#5E3A24", erde: "#8A6248",
@@ -803,6 +853,7 @@ const MAPS = [
   },
   {
     name: "Flutruine", diff: "Brutal", mul: 1.95, gold: 320, lives: 15,
+    himmel: ["#33505F", "#7690A0"],
     ground: ["#1B2B3A", "#223447"], accent: "#3A5C78", foliage: "#4E8878",
     path: "#6D7E8E", pathEdge: "#28323F", soil: "#93A5B6",
     gras: "#4A7A6A", gras2: "#31554C", erde: "#5A6773",
@@ -1722,8 +1773,10 @@ const TARGET_MODES = [
   ["first", "Erster"], ["last", "Letzter"], ["strong", "Stärkster"], ["close", "Nächster"],
 ];
 
+function dprJetzt() { return Math.min(2, window.devicePixelRatio || 1); }
+
 function fitCanvas() {
-  const dpr = Math.min(2, window.devicePixelRatio || 1);
+  const dpr = dprJetzt();
   cv.width = W * dpr; cv.height = H * dpr;
   cv.style.aspectRatio = W + " / " + H;
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
@@ -2538,9 +2591,30 @@ function draw() {
   g.save();
   if (G.shake > .2) g.translate((Math.random() - .5) * G.shake, (Math.random() - .5) * G.shake);
 
+  // Himmel und Ferne liegen hinter dem Boden und werden nicht mitgekippt
+  zeichneHimmel(g, m);
+
+  /* Ab hier gilt die Bodenebene: gestaucht und nach unten geschoben.
+     Alles, was flach auf dem Grund liegt — Weg, Felder, Reichweitenkreise —
+     landet dadurch von selbst richtig. Reichweiten werden zu Ellipsen, was
+     auf einer gekippten Fläche genau stimmt. */
+  g.translate(0, HORIZONT);
+  g.scale(1, KIPP);
+
   // Statische Kulisse (einmal pro Karte gerendert)
   const bg = getBackdrop();
   if (bg) g.drawImage(bg, 0, 0, W, H);
+
+  /* Luftperspektive auf dem Grund selbst: der hintere Rand nimmt die
+     Himmelfarbe an. Ohne das stößt dunkler Waldboden unvermittelt an hellen
+     Himmel, und die Naht liest sich als Bildkante statt als Ferne. */
+  const hf = (m.himmel || ["#3E5C6B", "#7C9689"])[1];
+  const fern = g.createLinearGradient(0, 0, 0, TILE * 4.2);
+  fern.addColorStop(0, rgba(hf, .62));
+  fern.addColorStop(.45, rgba(hf, .26));
+  fern.addColorStop(1, rgba(hf, 0));
+  g.fillStyle = fern;
+  g.fillRect(0, 0, W, TILE * 4.2);
 
   const pts = G.path.pts;
   g.lineCap = "round"; g.lineJoin = "round";
@@ -2566,8 +2640,9 @@ function draw() {
     }
   }
 
-  // Bewegte Deko
-  drawLiveDecor(g);
+  /* Bewegte Deko lief hier einmal. Sie ist in zeichneStehendes()
+     aufgegangen, weil sich Bäume und Wächter gegenseitig verdecken müssen:
+     Wer weiter vorn steht, deckt zu. Getrennte Durchgänge könnten das nicht. */
 
   // Start / Ziel
   const s0 = pts[0], s1 = pts[pts.length - 1];
@@ -2581,8 +2656,11 @@ function draw() {
     g.fillText(txt, sx, sy + .5);
     g.textBaseline = "alphabetic";
   };
-  sign("WILDNIS", Math.max(46, s0.x + 40), s0.y - TILE * .78, "#57CE7C");
-  sign("DORF", Math.min(W - 34, s1.x - 30), s1.y - TILE * .78, "#F0A83C");
+  // Schrift wird nicht gekippt — gestauchte Buchstaben liest niemand gern
+  const sx0 = Math.max(46, s0.x + 40), sy0 = s0.y - TILE * .78;
+  const sx1 = Math.min(W - 34, s1.x - 30), sy1 = s1.y - TILE * .78;
+  aufrecht(g, sx0, sy0, () => sign("WILDNIS", sx0, sy0, "#57CE7C"));
+  aufrecht(g, sx1, sy1, () => sign("DORF", sx1, sy1, "#F0A83C"));
   g.textAlign = "center";
   // Tor
   g.save();
@@ -2661,11 +2739,8 @@ function draw() {
     g.strokeRect(t.c * TILE + 2, t.r * TILE + 2, TILE - 4, TILE - 4);
   }
 
-  // Türme
-  for (const t of G.towers) drawTower(g, t);
-
-  // Gegner
-  for (const e of G.enemies) drawEnemy(g, e);
+  // Alles, was auf dem Boden steht — nach Tiefe sortiert
+  zeichneStehendes(g, m);
 
   // Auflösende Besiegte
   for (const p of G.poofs) {
@@ -2728,13 +2803,19 @@ function draw() {
   g.textAlign = "center";
   for (const f of G.floats) {
     const a = Math.min(1, f.life / f.max * 1.8);
-    g.font = "700 13px JetBrains Mono, monospace";
-    g.fillStyle = "rgba(0,0,0,.5)";
-    g.fillText(f.txt, f.x + 1, f.y + 1);
-    g.fillStyle = rgba(f.col, a);
-    g.fillText(f.txt, f.x, f.y);
+    aufrecht(g, f.x, f.y, () => {
+      g.font = "700 13px JetBrains Mono, monospace";
+      g.fillStyle = "rgba(0,0,0,.5)";
+      g.fillText(f.txt, f.x + 1, f.y + 1);
+      g.fillStyle = rgba(f.col, a);
+      g.fillText(f.txt, f.x, f.y);
+    });
   }
 
+  /* Bodenebene verlassen: Wetter und Nachtschleier legen sich über das
+     ganze Bild, nicht auf den Grund. Gestaucht hätten sie am oberen Rand
+     einen unbedeckten Streifen gelassen. */
+  g.setTransform(dprJetzt(), 0, 0, dprJetzt(), 0, 0);
   drawWeather(g);
   zeichneNacht(g);
 
@@ -3274,11 +3355,82 @@ function getBackdrop() {
   zeichneFelder(g);
 
   const fol = m.foliage || shade(m.accent, .2);
-  for (const it of decorCache.items) if (!LIVE_KINDS[it.k]) drawFlora(g, it, m, fol, 0);
+  /* Flora steht nicht mehr in der Kulisse.
+     Gebacken läge sie flach in der Bodenebene und würde mitgestaucht —
+     Bäume sähen aus wie auf den Grund gedruckt. Sie wird jetzt jedes Bild
+     aufrecht gezeichnet und in die Tiefensortierung einbezogen. */
   zeichneTiefe(g, m);
 
   bgCache = { map: G.mapIdx, cv: c, dpr: window.devicePixelRatio || 1 };
   return c;
+}
+
+/* Himmel und Ferne.
+
+   Durch die Kippung bleibt oben ein Streifen frei, den vorher der Boden
+   ausfüllte. Dort steht jetzt der Horizont: Himmel, dahinterliegende Hügel,
+   Dunstband. Das ist der Teil, der die Kippung überhaupt erst als Raum
+   lesbar macht — ohne ihn sähe das gestauchte Feld nur nach einem zu kurz
+   geratenen Spielbrett aus.
+
+   Die Farben stammen aus der Karte, damit Glutschlucht nicht denselben
+   Himmel bekommt wie Grünpfad. */
+function zeichneHimmel(g, m) {
+  const fern = m.foliage || shade(m.accent, .2);
+  /* Eigene Himmelfarben je Karte. Der erste Anlauf leitete den Himmel aus
+     der Bodenfarbe ab — ein aufgehelltes Waldgrün ergibt aber kein
+     Firmament, sondern einen grauen Balken. Himmel ist kein heller Boden. */
+  const hp = m.himmel || ["#7FA8C4", "#BFD4D0"];
+  const hell = hp[1];
+
+  const himmel = g.createLinearGradient(0, 0, 0, HORIZONT + 26);
+  himmel.addColorStop(0, hp[0]);
+  himmel.addColorStop(.70, shade(hp[1], .04));
+  himmel.addColorStop(1, shade(hp[1], .13));
+  g.fillStyle = himmel;
+  g.fillRect(0, 0, W, HORIZONT + 26);
+
+  /* Wolkenbänke: flache, sehr weiche Ellipsen. Ein leerer Verlauf liest sich
+     als Papier, sobald er groß genug ist. */
+  const wr = mulberry(G.mapIdx * 991 + 7);
+  for (let i = 0; i < 9; i++) {
+    const wx = wr() * W, wy = 8 + wr() * (HORIZONT - 40);
+    const ww = 40 + wr() * 110, wh = 5 + wr() * 9;
+    g.fillStyle = rgba(shade(hp[1], .30), .10 + wr() * .13);
+    g.beginPath(); g.ellipse(wx, wy, ww, wh, 0, 0, 7); g.fill();
+    g.beginPath(); g.ellipse(wx + ww * .3, wy + wh * .5, ww * .7, wh * .8, 0, 0, 7); g.fill();
+  }
+
+  /* Zwei Hügelzüge hintereinander. Der hintere ist blasser und flacher —
+     Luftperspektive: Entferntes verliert Kontrast, bevor es Form verliert. */
+  const zug = (basis, hoehe, farbe, phase, welle) => {
+    g.fillStyle = farbe;
+    g.beginPath();
+    g.moveTo(0, HORIZONT + 30);
+    for (let x = 0; x <= W; x += 8) {
+      const h = Math.sin(x * welle + phase) * hoehe
+              + Math.sin(x * welle * 2.7 + phase * 1.9) * hoehe * .38;
+      g.lineTo(x, basis - h);
+    }
+    g.lineTo(W, HORIZONT + 30);
+    g.closePath();
+    g.fill();
+  };
+  /* Drei Züge statt zwei, jeder dunkler und höher als der dahinter. Bei nur
+     zwei Zügen mit ähnlicher Helligkeit blieb die Ferne ein flacher Streifen. */
+  zug(HORIZONT - 20, 20, shade(fern, .52), 1.3, .0042);
+  zug(HORIZONT - 9,  26, shade(fern, .26), 3.1, .0031);
+  zug(HORIZONT + 1,  18, shade(fern, -.04), 5.7, .0038);
+
+  /* Dunstband genau auf der Nahtstelle. Ohne es träfen Hügel und Boden als
+     harte Kante aufeinander, und die Kante liest sich sofort als Bildrand
+     statt als Ferne. */
+  const dunst = g.createLinearGradient(0, HORIZONT - 30, 0, HORIZONT + 52);
+  dunst.addColorStop(0, rgba(shade(hell, .22), 0));
+  dunst.addColorStop(.42, rgba(shade(hell, .22), .52));
+  dunst.addColorStop(1, rgba(shade(hell, .22), 0));
+  g.fillStyle = dunst;
+  g.fillRect(0, HORIZONT - 30, W, 82);
 }
 
 /* Räumliche Wirkung für das fertige Gelände.
@@ -3329,6 +3481,41 @@ function zeichneTiefe(g, m) {
   g.fillStyle = vg;
   g.fillRect(0, 0, W, H);
   g.restore();
+}
+
+/* Alles, was auf dem Boden steht, in einem Durchgang.
+
+   Bäume, Wächter und Kreaturen teilen sich dieselbe Fläche. Zeichnete man
+   sie in getrennten Durchgängen, stünde jeder Baum entweder immer vor oder
+   immer hinter jedem Wächter — und beides ist mal richtig, mal falsch.
+   Entscheidend ist allein, wer weiter vorn steht: größeres y verdeckt.
+
+   Jedes Stück bekommt zwei Dinge: einen flachen Schatten auf dem Grund
+   (der bleibt gestaucht, denn er liegt) und den Körper selbst, der die
+   Stauchung an seiner Stelle aufhebt und dadurch aufragt. */
+function zeichneStehendes(g, m) {
+  if (!decorCache || decorCache.map !== G.mapIdx) buildDecor();
+  const fol = m.foliage || shade(m.accent, .2);
+  const liste = [];
+
+  for (const it of decorCache.items)
+    liste.push({ y: it.y, f: () => aufrecht(g, it.x, it.y, () => drawFlora(g, it, m, fol)) });
+
+  for (const t of G.towers)
+    liste.push({ y: t.y, f: () => {
+      bodenSchatten(g, t.x, t.y + TILE * .17, TILE * .28, .30);
+      aufrecht(g, t.x, t.y, () => drawTower(g, t));
+    } });
+
+  for (const e of G.enemies)
+    liste.push({ y: e.y, f: () => {
+      const br = (e.s || 12) * .82;
+      bodenSchatten(g, e.x, e.y + br * .5, br, .26);
+      aufrecht(g, e.x, e.y, () => drawEnemy(g, e));
+    } });
+
+  liste.sort((a, b) => a.y - b.y);
+  for (const p of liste) p.f();
 }
 
 function drawLiveDecor(g) {
@@ -4250,7 +4437,10 @@ function banner(txt) {
 function tileFromEvent(e) {
   const r = cv.getBoundingClientRect();
   const x = (e.clientX - r.left) / r.width * W;
-  const y = (e.clientY - r.top) / r.height * H;
+  /* Der Zeiger trifft einen Bildpunkt, gemeint ist aber eine Stelle auf dem
+     gekippten Boden. Ohne diese Umkehrung greift jeder Klick daneben — und
+     zwar nach unten hin immer weiter. */
+  const y = unprojY((e.clientY - r.top) / r.height * H);
   return { c: Math.floor(x / TILE), r: Math.floor(y / TILE), x, y };
 }
 cv.addEventListener("pointermove", e => {
