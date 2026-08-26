@@ -685,7 +685,7 @@ const TOWERS = [
        Bewusst ohne Tag- oder Nachtbindung: im Endlosmodus laufen die Wellen
        unbegrenzt weiter, und ein Wächter, der die halbe Zeit ruht, wäre dort
        kein Anker, sondern ein Ärgernis. */
-    id: "legend", type: "legend", shape: "owl", air: true,
+    id: "legend", type: "legend", shape: "hueter", air: true,
     legendaer: true,
     blurb: "Kennt weder Schwäche noch Vorteil — trifft alles gleich hart.",
     tiers: [
@@ -1156,6 +1156,12 @@ const TIER_MARK = {
   psychic:  { c: "#E7CCFF", form: "kugel" },
   ice:      { c: "#DFF6FF", form: "kristall" },
   steel:    { c: "#DCE6EC", form: "niete" },
+  /* Fee, Unlicht und Legendär kamen später dazu und fehlten hier. Sie fielen
+     alle auf den Gesteins-Eintrag zurück und trugen damit auf Stufe 2 und 3
+     eine beige Platte — sichtbar falsch, sobald ein Fee-Wächter aufsteigt. */
+  fairy:    { c: "#FFD3EB", form: "funkel" },
+  dark:     { c: "#C9BEE8", form: "sichel" },
+  legend:   { c: "#FFE9A8", form: "krone" },
 };
 
 /* Hinter dem Körper: Kranz aus Stacheln und Reif am Boden.
@@ -1262,6 +1268,28 @@ function tierFront(g, s, col, tier, type, t) {
       g.fillStyle = shade(mark.c, -.4);
       for (const sg of [-1, 1]) { g.beginPath(); g.arc(sg * u * .45, 0, u * .16, 0, 7); g.fill(); }
       break;
+    case "funkel":
+      // vierzackiger Stern, wie das Zeichen der Fee auf dem Podest
+      g.beginPath();
+      for (let i = 0; i < 8; i++) {
+        const a = i * Math.PI / 4, rr2 = i % 2 ? u * .3 : u * 1.15;
+        g[i ? "lineTo" : "moveTo"](Math.cos(a) * rr2, Math.sin(a) * rr2);
+      }
+      g.closePath(); g.fill(); g.stroke(); break;
+    case "sichel":
+      // abnehmender Mond: eine volle Scheibe, aus der eine zweite beißt
+      g.beginPath(); g.arc(0, 0, u * .95, 0, 7); g.fill(); g.stroke();
+      g.save();
+      g.globalCompositeOperation = "destination-out";
+      g.beginPath(); g.arc(u * .5, -u * .18, u * .78, 0, 7); g.fill();
+      g.restore(); break;
+    case "krone":
+      g.beginPath();
+      g.moveTo(-u, u * .7); g.lineTo(-u, -u * .3);
+      g.lineTo(-u * .5, u * .2); g.lineTo(0, -u * 1.05);
+      g.lineTo(u * .5, u * .2); g.lineTo(u, -u * .3);
+      g.lineTo(u, u * .7); g.closePath();
+      g.fill(); g.stroke(); break;
     case "kugel":
       for (let i = 0; i < 3; i++) {
         const a = t * 1.6 + i * 2.09;
@@ -1413,6 +1441,59 @@ function drawCreature(g, x, y, s, col, shape, t, opts) {
       g.fillStyle = "rgba(13,20,24,.6)";
       g.beginPath(); g.ellipse(-s * .14, s * .38, s * .07, s * .05, 0, 0, 7); g.fill();
       g.beginPath(); g.ellipse(s * .14, s * .38, s * .07, s * .05, 0, 0, 7); g.fill();
+      break;
+    }
+    /* Hüter — allein für den legendären Wächter.
+
+       Er teilte sich bisher die Eulenform mit Psycho: der seltenste Wächter
+       des Spiels, den man sich über hundert Wellen verdient, sah aus wie ein
+       gewöhnlicher. Diese Form soll neben den anderen fünfzehn älter wirken —
+       aufrecht, ruhig, mit gesenktem Kopf und einer Schleppe, die breiter ist
+       als der Körper. Keine Zähne, keine Krallen: Würde statt Drohung. */
+    case "hueter": {
+      // Schleppe hinter dem Körper, weit ausgestellt
+      g.fillStyle = rgba(dark, .8);
+      g.beginPath();
+      g.moveTo(0, -s * .5);
+      g.quadraticCurveTo(-s * 1.9, s * .1 + Math.sin(t * 1.1) * s * .09, -s * 1.25, s * 1.3);
+      g.quadraticCurveTo(-s * .4, s * 1.05, 0, s * 1.15);
+      g.closePath(); g.fill(); g.stroke();
+      g.fillStyle = rgba(dark, .8);
+      g.beginPath();
+      g.moveTo(0, -s * .5);
+      g.quadraticCurveTo(s * 1.9, s * .1 + Math.sin(t * 1.1 + 1) * s * .09, s * 1.25, s * 1.3);
+      g.quadraticCurveTo(s * .4, s * 1.05, 0, s * 1.15);
+      g.closePath(); g.fill(); g.stroke();
+
+      // aufrechter Körper, schmaler und höher als die Tierformen
+      bodyRR(s * 1.24, s * 2.0, s * .58);
+
+      // Mantelkanten als zwei senkrechte Falten
+      g.strokeStyle = rgba(deep, .34); g.lineWidth = Math.max(.9, s * .06);
+      for (const sg of [-1, 1]) {
+        g.beginPath();
+        g.moveTo(sg * s * .3, -s * .3);
+        g.quadraticCurveTo(sg * s * .46, s * .35, sg * s * .3, s * .95);
+        g.stroke();
+      }
+      g.strokeStyle = shade(col, -.72); g.lineWidth = Math.max(1, s * .08);
+
+      // Kapuze: gesenkter Kopf, Gesicht im Schatten
+      g.fillStyle = rgba(deep, .55);
+      g.beginPath();
+      g.ellipse(0, -s * .72, s * .78, s * .66, 0, 0, 7);
+      g.fill(); g.stroke();
+
+      face(g, 0, -s * .66, s, .3, { blink, mouth: false });
+
+      // Ring über dem Haupt, langsam kreisend — das einzige Zierstück
+      g.save();
+      g.strokeStyle = rgba(rim, .5 + Math.sin(t * 1.4) * .2);
+      g.lineWidth = Math.max(1, s * .07);
+      g.beginPath();
+      g.ellipse(0, -s * 1.62, s * .62, s * .2 + Math.sin(t * .9) * s * .05, 0, 0, 7);
+      g.stroke();
+      g.restore();
       break;
     }
     case "owl": {
@@ -1695,7 +1776,14 @@ function drawCreature(g, x, y, s, col, shape, t, opts) {
       rr(g, s * .14, -s * .06, s * .32, s * .13, s * .05); g.fill();
       break;
     }
-    default: { // blob
+    /* Quabbe. Vier Gegnerarten tragen diese Form — Moosnipp, Sturzflut,
+       Knospling und Graupler.
+
+       Sie stand bisher nur im Standardzweig. Gezeichnet wurde sie dadurch
+       richtig, aber jeder Tippfehler in einem Formnamen kam ebenfalls als
+       Quabbe heraus, still und unbemerkt. Jetzt hat sie einen eigenen Zweig,
+       und der Standardfall darunter fällt auf. */
+    case "blob": {
       const wob = Math.sin(t * 3.2) * s * .07;
       g.beginPath();
       g.ellipse(0, 0, s * 1.2 + wob, s * 1.06 - wob, 0, 0, 7);
@@ -1710,6 +1798,18 @@ function drawCreature(g, x, y, s, col, shape, t, opts) {
         g.beginPath(); g.ellipse(s * .4, s * .96 - Math.max(0, Math.sin(ph + Math.PI)) * s * .12, s * .26, s * .16, 0, 0, 7); g.fill();
       }
       face(g, 0, -s * .1, s, .33, { blink, blush: true });
+      break;
+    }
+    /* Notfall. Wird eine Form angefordert, die es nicht gibt, soll das
+       auffallen und nicht als beliebige Kreatur durchgehen. */
+    default: {
+      g.fillStyle = rgba("#FF3B30", .5);
+      g.strokeStyle = "#FF3B30"; g.lineWidth = Math.max(1.5, s * .12);
+      g.beginPath(); g.arc(0, 0, s, 0, 7); g.fill(); g.stroke();
+      g.beginPath();
+      g.moveTo(-s * .5, -s * .5); g.lineTo(s * .5, s * .5);
+      g.moveTo(s * .5, -s * .5); g.lineTo(-s * .5, s * .5);
+      g.stroke();
     }
   }
   if (tier) tierFront(g, s, col, tier, opts.type, t);
