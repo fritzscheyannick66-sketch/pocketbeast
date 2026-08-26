@@ -90,8 +90,30 @@ static func _quad(st: SurfaceTool, a: Vector3, b: Vector3, c: Vector3, d: Vector
 	]
 	for i in range(6):
 		st.set_uv(uvs[i])
-		st.set_color(Color(0.62, 0.49, 0.34))
+		st.set_color(farbe_bei(punkte[i]).srgb_to_linear())
 		st.add_vertex(punkte[i])
+
+
+## Farbe eines Punktes auf dem Weg.
+##
+## Ein einfarbiges Band liest sich als aufgeklebter Streifen. Ein getretener
+## Pfad ist stellenweise staubig ausgeblichen, in Senken feucht und dunkel.
+static func farbe_bei(p: Vector3) -> Color:
+	var erde := Color(0.46, 0.36, 0.25)
+	var staub := Color(0.72, 0.62, 0.46)
+	var feucht := Color(0.36, 0.29, 0.22)
+
+	# Wechsel über die Länge: mal staubig, mal festgetreten
+	var laengs := sin(p.x * 0.29 + p.z * 0.37) * 0.5 + 0.5
+	var c := erde.lerp(staub, laengs * 0.7 + 0.15)
+
+	# feuchte, dunklere Stellen in Senken
+	var senke := sin(p.x * 0.13 - p.z * 0.21 + 1.9)
+	c = c.lerp(feucht, clampf(senke * 1.3 - 0.45, 0.0, 1.0) * 0.55)
+
+	# grobe Körnung, gerade so fein, dass sie nicht zu Moiré führt
+	var korn := sin(p.x * 0.97 + p.z * 1.13) * 0.028
+	return Color(clampf(c.r + korn, 0, 1), clampf(c.g + korn, 0, 1), clampf(c.b + korn, 0, 1))
 
 
 ## Gesamtlänge der Strecke, für die Bewegung der Gegner.

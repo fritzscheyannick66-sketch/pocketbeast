@@ -17,6 +17,7 @@ extends Node3D
 # scheitern ließe.
 const Gelaende = preload("res://scripts/gelaende.gd")
 const Weg = preload("res://scripts/weg.gd")
+const Pflanzen = preload("res://scripts/pflanzen.gd")
 
 # Route des Grünpfads, in Kachelkoordinaten wie im Browserspiel
 const ROUTE := [
@@ -69,19 +70,33 @@ func _baue_umgebung() -> void:
 	umgebung.sky = Sky.new()
 	umgebung.sky.sky_material = himmel
 	umgebung.ambient_light_source = Environment.AMBIENT_SOURCE_SKY
-	umgebung.ambient_light_sky_contribution = 0.75
-	umgebung.ambient_light_energy = 1.0
+	umgebung.ambient_light_sky_contribution = 0.55
+	umgebung.ambient_light_energy = 0.55
 	# Weiche Verdunklung in Ecken und Ritzen — lässt Objekte aufsitzen
 	umgebung.ssao_enabled = true
 	umgebung.ssao_radius = 1.4
-	umgebung.ssao_intensity = 1.6
+	umgebung.ssao_intensity = 2.2
 	umgebung.tonemap_mode = Environment.TONE_MAPPER_FILMIC
-	umgebung.tonemap_white = 1.4
+	umgebung.tonemap_white = 2.0
 	# leichter Dunst in der Ferne, wie die Luftperspektive im Browserspiel
 	umgebung.fog_enabled = true
-	umgebung.fog_light_color = Color(0.66, 0.74, 0.82)
+	umgebung.fog_light_color = Color(0.58, 0.66, 0.72)
 	umgebung.fog_sky_affect = 0.0
-	umgebung.fog_density = 0.0022
+	umgebung.fog_density = 0.0011
+	# Höhen-Dunst greift NACH UNTEN von fog_height aus. Bei 6,0 lag das ganze
+	# Gelände darunter und bekam den vollen Nebel ab — ein grauer Schleier über
+	# der Fläche statt Tiefe in der Ferne. Deshalb bleibt es beim reinen
+	# Entfernungsnebel.
+	umgebung.fog_height = 0.0
+	umgebung.fog_height_density = 0.0
+
+	# Nachbearbeitung: Sättigung und Kontrast anheben. Ohne das bleibt eine
+	# prozedural gebaute Szene blass — es fehlen die satten Stellen, die ein
+	# Foto hat.
+	umgebung.adjustment_enabled = true
+	umgebung.adjustment_saturation = 1.15
+	umgebung.adjustment_contrast = 1.10
+	umgebung.adjustment_brightness = 0.98
 
 	var we := WorldEnvironment.new()
 	we.environment = umgebung
@@ -91,11 +106,19 @@ func _baue_umgebung() -> void:
 func _baue_licht() -> void:
 	var sonne := DirectionalLight3D.new()
 	sonne.rotation_degrees = Vector3(-52.0, -38.0, 0.0)
-	sonne.light_energy = 1.15
-	sonne.light_color = Color(1.0, 0.96, 0.88)
+	sonne.light_energy = 1.55
+	sonne.light_color = Color(1.0, 0.94, 0.82)
 	sonne.shadow_enabled = true
-	sonne.directional_shadow_max_distance = 90.0
-	sonne.shadow_bias = 0.04
+	# Die Schattenkarte über 90 Einheiten zu spannen machte sie in der Ferne so
+	# grob, dass sich das Gelände in regelmäßigen Bändern selbst beschattete
+	# (Schattenakne). Kürzere Reichweite plus Normalenversatz nimmt das heraus.
+	sonne.directional_shadow_max_distance = 55.0
+	sonne.directional_shadow_split_1 = 0.10
+	sonne.directional_shadow_split_2 = 0.28
+	sonne.directional_shadow_split_3 = 0.60
+	sonne.directional_shadow_blend_splits = true
+	sonne.shadow_bias = 0.06
+	sonne.shadow_normal_bias = 2.5
 	add_child(sonne)
 
 
@@ -135,61 +158,134 @@ func _baue_welt() -> void:
 	add_child(pfad)
 
 
-## Bäume aus Grundkörpern. Prozedural wie im Browserspiel — keine Modelldateien,
-## damit das Projekt eine einzelne Quelle bleibt.
+## Bewuchs.
+##
+## Statt 90 gleicher Nadelbäume stehen hier vier Arten in wechselnden Größen,
+## Farbtönen und Neigungen, dazu eine Bodenschicht aus Gras, Steinen und
+## Blumen. Die Verteilung folgt Ballungen: Ein Wald hat dichte Stellen und
+## Lichtungen, keine gleichmäßige Streuung.
 func _baue_bewuchs() -> void:
 	var rnd := RandomNumberGenerator.new()
 	rnd.seed = 20260826
-	var breite := Gelaende.SPALTEN * Gelaende.KACHEL
-	var tiefe := Gelaende.ZEILEN * Gelaende.KACHEL
+	var breite: float = Gelaende.SPALTEN * Gelaende.KACHEL
+	var tiefe: float = Gelaende.ZEILEN * Gelaende.KACHEL
 
-	var stamm_mat := StandardMaterial3D.new()
-	stamm_mat.albedo_color = Color(0.29, 0.20, 0.13)
-	stamm_mat.roughness = 1.0
-	var nadel_mat := StandardMaterial3D.new()
-	nadel_mat.albedo_color = Color(0.20, 0.42, 0.24)
-	nadel_mat.roughness = 0.9
+	# Ballungszentren, um die sich der Bewuchs sammelt
+	var zentren := []
+	for i in range(9):
+		zentren.append(Vector3(
+			rnd.randf_range(-breite * 0.55, breite * 0.55), 0.0,
+			rnd.randf_range(-tiefe * 0.55, tiefe * 0.55)))
+
+	var baeume := Node3D.new()
+	baeume.name = "Baeume"
+	add_child(baeume)
+
+	var gras_plaetze := []
+	var stein_plaetze := []
+	var blumen_plaetze := []
 
 	var gesetzt := 0
 	var versuche := 0
-	while gesetzt < 90 and versuche < 900:
+	# Kernbereich — das eigentliche Spielfeld. Hier bestimmt die Dichte, wie
+	# voll die Wiese wirkt; zu viel verdeckt den Weg.
+	while gesetzt < 150 and versuche < 4000:
 		versuche += 1
-		var x := rnd.randf_range(-breite * 0.5, breite * 0.5)
-		var z := rnd.randf_range(-tiefe * 0.5, tiefe * 0.5)
+		var x := rnd.randf_range(-breite * 0.62, breite * 0.62)
+		var z := rnd.randf_range(-tiefe * 0.62, tiefe * 0.62)
 		var p := Vector3(x, 0, z)
-		# Nicht auf den Weg pflanzen
-		var nah := 999.0
-		for i in range(weg_punkte.size() - 1):
-			nah = minf(nah, _abstand_strecke(p, weg_punkte[i], weg_punkte[i + 1]))
-		if nah < Weg.BREITE + 1.2:
+		var nah := _abstand_zum_weg(p)
+		if nah < Weg.BREITE + 1.0:
 			continue
+
+		# Dichte aus der Nähe zum nächsten Ballungszentrum
+		var d_zentrum := 999.0
+		for c in zentren:
+			d_zentrum = minf(d_zentrum, p.distance_to(c))
+		var dichte: float = clampf(1.0 - d_zentrum / 14.0, 0.0, 1.0)
+		if rnd.randf() > 0.18 + dichte * 0.82:
+			continue
+
 		gesetzt += 1
 		var y := Gelaende.hoehe_bei(x, z, nah)
-		var hoehe := rnd.randf_range(1.6, 3.2)
-		var baum := Node3D.new()
-		baum.position = Vector3(x, y, z)
-		# Stamm
-		var stamm := MeshInstance3D.new()
-		var zyl := CylinderMesh.new()
-		zyl.top_radius = 0.08
-		zyl.bottom_radius = 0.13
-		zyl.height = hoehe * 0.45
-		stamm.mesh = zyl
-		stamm.material_override = stamm_mat
-		stamm.position.y = hoehe * 0.225
-		baum.add_child(stamm)
-		# Krone aus drei Kegeln
-		for i in range(3):
-			var kegel := MeshInstance3D.new()
-			var km := CylinderMesh.new()
-			km.top_radius = 0.0
-			km.bottom_radius = (0.85 - i * 0.2) * (hoehe / 2.4)
-			km.height = (1.1 - i * 0.15) * (hoehe / 2.4)
-			kegel.mesh = km
-			kegel.material_override = nadel_mat
-			kegel.position.y = hoehe * (0.42 + i * 0.24)
-			baum.add_child(kegel)
-		add_child(baum)
+		var wahl := rnd.randf()
+		var pflanze: Node3D
+		if wahl < 0.46:
+			pflanze = Pflanzen.nadelbaum(rnd, rnd.randf_range(1.3, 2.6))
+		elif wahl < 0.74:
+			pflanze = Pflanzen.laubbaum(rnd, rnd.randf_range(1.2, 2.2))
+		elif wahl < 0.94:
+			pflanze = Pflanzen.busch(rnd, rnd.randf_range(0.35, 0.7))
+		else:
+			pflanze = Pflanzen.totholz(rnd, rnd.randf_range(1.1, 1.9))
+		pflanze.position = Vector3(x, y, z)
+		# Jede Pflanze eigene Drehung und leichte Neigung — nichts steht exakt
+		# senkrecht, das nimmt der Fläche das Aufgestellte.
+		pflanze.rotation = Vector3(
+			rnd.randf_range(-0.05, 0.05),
+			rnd.randf() * TAU,
+			rnd.randf_range(-0.05, 0.05))
+		baeume.add_child(pflanze)
+
+	# Randgürtel: außerhalb des Spielfelds, dichter Waldsaum. Ohne ihn endete
+	# der Bewuchs an einer geraden Linie, dahinter lag leerer Rasen bis zum
+	# Horizont — nichts verrät eine gebaute Szene schneller.
+	var rand_gesetzt := 0
+	var rand_versuche := 0
+	while rand_gesetzt < 420 and rand_versuche < 14000:
+		rand_versuche += 1
+		var x := rnd.randf_range(-breite * 1.55, breite * 1.55)
+		var z := rnd.randf_range(-tiefe * 1.9, tiefe * 1.9)
+		var draussen: float = maxf(absf(x) / (breite * 0.62), absf(z) / (tiefe * 0.62))
+		if draussen < 1.0:
+			continue   # Kern ist oben schon bepflanzt
+		# nach außen hin zuwachsend, mit Lücken für Lichtungen
+		var p_setz: float = clampf((draussen - 1.0) * 1.1 + 0.30, 0.0, 0.92)
+		if rnd.randf() > p_setz:
+			continue
+		rand_gesetzt += 1
+		var y := Gelaende.hoehe_bei(x, z, 99.0)
+		var w := rnd.randf()
+		var pf: Node3D
+		if w < 0.62:
+			pf = Pflanzen.nadelbaum(rnd, rnd.randf_range(1.6, 3.2))
+		elif w < 0.88:
+			pf = Pflanzen.laubbaum(rnd, rnd.randf_range(1.5, 2.6))
+		else:
+			pf = Pflanzen.busch(rnd, rnd.randf_range(0.4, 0.9))
+		pf.position = Vector3(x, y, z)
+		pf.rotation = Vector3(
+			rnd.randf_range(-0.05, 0.05), rnd.randf() * TAU, rnd.randf_range(-0.05, 0.05))
+		baeume.add_child(pf)
+
+	# Bodenschicht: dicht am Weg und in den Ballungen, dünn dazwischen
+	for i in range(16000):
+		var x := rnd.randf_range(-breite * 0.62, breite * 0.62)
+		var z := rnd.randf_range(-tiefe * 0.62, tiefe * 0.62)
+		var p := Vector3(x, 0, z)
+		var nah := _abstand_zum_weg(p)
+		if nah < Weg.BREITE + 0.15:
+			continue
+		var y := Gelaende.hoehe_bei(x, z, nah)
+		gras_plaetze.append(Vector3(x, y, z))
+		if rnd.randf() < 0.010:
+			stein_plaetze.append(Vector3(x, y, z))
+		if rnd.randf() < 0.012:
+			blumen_plaetze.append(Vector3(x, y, z))
+
+	add_child(Pflanzen.grasfeld(rnd, gras_plaetze))
+	add_child(Pflanzen.steinfeld(rnd, stein_plaetze))
+	add_child(Pflanzen.blumenfeld(rnd, blumen_plaetze))
+	print("Bewuchs: ", gesetzt, "+", rand_gesetzt, " Pflanzen, ", gras_plaetze.size(), " Gras, ",
+		stein_plaetze.size(), " Steine, ", blumen_plaetze.size(), " Blumen")
+
+
+## Kürzester Abstand eines Punktes zur Route.
+func _abstand_zum_weg(p: Vector3) -> float:
+	var nah := 999.0
+	for i in range(weg_punkte.size() - 1):
+		nah = minf(nah, _abstand_strecke(p, weg_punkte[i], weg_punkte[i + 1]))
+	return nah
 
 
 func _setze_turm(pos: Vector3, farbe: Color, reichweite: float, takt: float, schaden: float) -> void:

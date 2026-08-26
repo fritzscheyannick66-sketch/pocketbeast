@@ -21,9 +21,11 @@ const UNTERTEILUNG := 4      # Gittermaschen je Kachel — mehr = weichere Welle
 ## Höhe des Bodens an einer Stelle. Zwei überlagerte Wellen unterschiedlicher
 ## Frequenz ergeben ein unregelmäßiges Relief, ohne dass Rauschdaten nötig sind.
 static func hoehe_bei(x: float, z: float, weg_naehe: float) -> float:
-	var h := sin(x * 0.23) * cos(z * 0.19) * 0.55
-	h += sin(x * 0.07 + z * 0.11) * 0.9
-	h += cos(x * 0.41 + 1.7) * sin(z * 0.37) * 0.18
+	var h := sin(x * 0.231) * cos(z * 0.187) * 0.50
+	h += sin(x * 0.073 + z * 0.109) * 0.62
+	h += sin(x * 0.041 - z * 0.137 + 2.3) * 0.55
+	h += cos(x * 0.409 + 1.7) * sin(z * 0.371) * 0.16
+	h += sin(x * 0.617 + z * 0.443 - 0.8) * 0.07
 	# In Wegnähe abflachen: sonst läge die Route mal im Hügel, mal in der Luft.
 	var flach: float = clampf(weg_naehe / 3.0, 0.0, 1.0)
 	return h * flach
@@ -73,12 +75,47 @@ static func baue(weg_punkte: PackedVector3Array) -> ArrayMesh:
 
 
 static func _dreieck(st: SurfaceTool, a: Vector3, b: Vector3, c: Vector3) -> void:
-	# Farbe je Scheitel: höhere Stellen heller, als läge dort mehr Licht.
 	for p in [a, b, c]:
-		var t: float = clampf(p.y * 0.35 + 0.5, 0.0, 1.0)
-		st.set_color(Color(0.20, 0.34, 0.20).lerp(Color(0.36, 0.55, 0.31), t))
+		st.set_color(farbe_bei(p).srgb_to_linear())
 		st.set_uv(Vector2(p.x * 0.25, p.z * 0.25))
 		st.add_vertex(p)
+
+
+## Bodenfarbe an einer Stelle.
+##
+## Erste Fassung mischte nur nach Höhe — und weil das Gelände flach ist, kam
+## überall fast derselbe Ton heraus: eine einheitlich blassgrüne Fläche, die
+## wie Plastikfolie aussah. Jetzt überlagern sich drei Dinge:
+## Wiesenton, trockene Stellen und nackte Erde, jedes mit eigener Wellenlänge.
+static func farbe_bei(p: Vector3) -> Color:
+	var wiese := Color(0.22, 0.36, 0.19)
+	var satt := Color(0.15, 0.30, 0.14)
+	var trocken := Color(0.42, 0.44, 0.24)
+	var erde := Color(0.29, 0.25, 0.19)
+
+	# grobe Flecken: wo die Wiese satt steht und wo sie ausdünnt.
+	# Drei Frequenzen ohne einfaches Verhältnis — eine einzelne Welle malte
+	# regelmäßige Diagonalstreifen quer über die Wiese.
+	var g := sin(p.x * 0.131 + 2.1) * cos(p.z * 0.107 - 0.7)
+	g += sin(p.x * 0.313 - p.z * 0.271 + 1.4) * 0.55
+	g += cos(p.x * 0.077 + p.z * 0.223 - 2.6) * 0.40
+	g /= 1.95
+	var c := wiese.lerp(satt, clampf(g * 0.5 + 0.5, 0.0, 1.0))
+
+	# trockene Kuppen: höhere Stellen bekommen Sonne ab
+	var h: float = clampf(p.y * 0.42 + 0.5, 0.0, 1.0)
+	c = c.lerp(trocken, h * 0.35)
+
+	# vereinzelt durchscheinende Erde, kleinteiliger als die Flecken
+	var e := sin(p.x * 0.471 - 1.3) * sin(p.z * 0.533 + 0.9) * cos(p.x * 0.191 + p.z * 0.227)
+	c = c.lerp(erde, clampf(e * 1.6 - 0.60, 0.0, 1.0) * 0.60)
+
+	# Ein feines Rauschen stand hier einmal, um große Farbfelder aufzubrechen.
+	# Bei rund zwei Einheiten Wellenlänge fiel es in der Ferne unter die
+	# Pixelauflösung und erzeugte Moiré — Streifenbänder bis zum Horizont.
+	# Die Kleinteiligkeit übernimmt jetzt das Gras, das ohnehin darüber steht.
+	var f := sin(p.x * 0.83 + p.z * 0.61) * 0.018
+	return Color(clampf(c.r + f, 0, 1), clampf(c.g + f, 0, 1), clampf(c.b + f, 0, 1))
 
 
 static func _abstand_zum_weg(p: Vector3, weg: PackedVector3Array) -> float:
