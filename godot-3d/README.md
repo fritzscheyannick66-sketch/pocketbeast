@@ -31,17 +31,43 @@ sich nicht messen: VSync lässt sich auf diesem Mac weder zur Laufzeit noch
 (jeder Baum besteht aus Stamm und mehreren Kronenteilen) ist das der erste
 Punkt, an dem es später eng werden dürfte.
 
+## Spieldaten
+
+Alle Werte kommen aus dem Browserspiel und werden erzeugt, nicht
+abgeschrieben:
+
+```
+node tools/daten-nach-godot.js
+```
+
+Das schreibt `scripts/daten.gd` — zwölf Elementtypen mit
+Effektivitätstabelle, zwölf Wächterfamilien mit je drei Stufen und allen
+Sonderwirkungen, zweiunddreißig Gegnerarten, acht Anführer, die Wellenkurve
+als Tabelle und die drei Karten.
+
+**Diese Datei nicht von Hand ändern** — beim nächsten Lauf ist die Änderung
+weg. Werte gehören ins Browserspiel, hierher ziehen sie nach.
+
+Der Grund: An einem einzigen Abend wurden sämtliche Reichweiten neu gesetzt,
+eine zwölfte Familie kam dazu und die Panzerungsformel wurde umgestellt. Eine
+von Hand gepflegte zweite Fassung wäre binnen Tagen falsch gewesen, ohne dass
+es jemandem aufgefallen wäre.
+
 ## Was fehlt
 
-Der weitaus größere Teil:
+Der größere Teil:
 
 | Bereich | Browserspiel | Hier |
 |---|---|---|
-| Elementtypen | 10 mit Effektivitätstabelle | 0 |
-| Wächter | 10 Familien à 3 Stufen + Mega | 2 feste |
-| Gegnerarten | 32 plus 8 Bosse | 1 |
-| Wellen | 40, mit Launen und Segnungen | Dauerstrom |
-| Karten | 3, mit Gabelung und Sonderfeldern | 1 |
+| Elementtypen | 12 mit Effektivitätstabelle | ✓ übernommen |
+| Wächterwerte | 12 Familien à 3 Stufen | ✓ übernommen |
+| Gegnerarten | 32 plus 8 Anführer | ✓ übernommen, 1 Art je Welle |
+| Typenvorteil und Panzerung | ja | ✓ wirkt |
+| Flieger | ja | ✓ schweben, nur von Luftwächtern treffbar |
+| Wächter setzen | frei wählbar | vier feste beim Start |
+| Entwicklung, Mega, Training | ja | nein |
+| Wellen | 100, mit Launen und Segnungen | Dauerstrom, eine Art je Welle |
+| Sonderfelder | Wasser, Vulkan, Kraft, Höhe | nein |
 | Tag und Nacht | ja | nein |
 | Klang | 12 Arten, prozedural | keiner |
 | Bedienung, Menüs, Speicherstand | vollständig | nichts |

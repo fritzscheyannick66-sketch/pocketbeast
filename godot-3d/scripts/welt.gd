@@ -18,12 +18,16 @@ extends Node3D
 const Gelaende = preload("res://scripts/gelaende.gd")
 const Weg = preload("res://scripts/weg.gd")
 const Pflanzen = preload("res://scripts/pflanzen.gd")
+const Daten = preload("res://scripts/daten.gd")
 
 # Route des Grünpfads, in Kachelkoordinaten wie im Browserspiel
 const ROUTE := [
-	Vector2(-1, 6), Vector2(3, 6), Vector2(3, 3), Vector2(9, 3),
-	Vector2(9, 9), Vector2(5, 9), Vector2(5, 5), Vector2(13, 5),
-	Vector2(13, 10), Vector2(17, 10), Vector2(17, 4), Vector2(20, 5),
+	# Dieselbe Führung wie der Grünpfad im Browserspiel — Kachelkoordinaten,
+	# damit beide Fassungen dieselbe Karte zeigen. Wird die Route dort
+	# geändert, gehört sie auch hier nachgezogen.
+	Vector2(-1, 9), Vector2(4, 9), Vector2(4, 4), Vector2(9, 4),
+	Vector2(9, 10), Vector2(15, 10), Vector2(15, 4), Vector2(19, 4),
+	Vector2(19, 7), Vector2(12, 7), Vector2(12, 9), Vector2(20, 9),
 ]
 
 var weg_punkte: PackedVector3Array
@@ -37,6 +41,13 @@ var spawn_uhr := 0.0
 var erledigt := 0
 var durchgebrochen := 0
 
+## Welche Karte gespielt wird — bestimmt den Schwierigkeitsfaktor.
+var karte_idx := 0
+var welle := 1
+var welle_rest := 0          # wie viele Gegner dieser Welle noch kommen
+var welle_art: Dictionary = {}
+var welle_pause := 3.0
+
 @onready var _wurzel_gegner := Node3D.new()
 @onready var _wurzel_schuesse := Node3D.new()
 
@@ -49,9 +60,14 @@ func _ready() -> void:
 	_baue_kamera()
 	_baue_welt()
 	_baue_bewuchs()
-	# Zwei Wächter an den Weg, damit gleich nach dem Start etwas geschieht
-	_setze_turm(Vector3(-14.0, 0.0, 2.0), Color("ff6e45"), 7.0, 1.6, 14.0)
-	_setze_turm(Vector3(-2.0, 0.0, 1.0), Color("57ce7c"), 7.0, 1.3, 11.0)
+	# Vier Wächter mit echten Werten aus dem Browserspiel
+	_setze_waechter("fire", 2, Vector3(-14.0, 0.0, 2.0))
+	_setze_waechter("grass", 2, Vector3(-2.0, 0.0, 1.0))
+	_setze_waechter("rock", 2, Vector3(6.0, 0.0, -2.0))
+	_setze_waechter("wind", 2, Vector3(14.0, 0.0, 3.0))
+	print("Karte: ", Daten.KARTEN[karte_idx]["name"],
+		"   Wächterfamilien verfügbar: ", Daten.WAECHTER.size(),
+		"   Gegnerarten: ", Daten.ARTEN.size())
 
 
 ## Himmel und Umgebungslicht. Ohne beides wirken Körper wie ausgeschnitten:
@@ -288,7 +304,34 @@ func _abstand_zum_weg(p: Vector3) -> float:
 	return nah
 
 
-func _setze_turm(pos: Vector3, farbe: Color, reichweite: float, takt: float, schaden: float) -> void:
+## Setzt einen Wächter anhand seiner Kennung und Stufe.
+##
+## Die Werte kommen aus daten.gd, also aus dem Browserspiel — Reichweite,
+## Schaden und Feuerrate sind dieselben. Godot rechnet in Metern, das
+## Browserspiel in Pixeln: eine Kachel misst dort 56 Pixel und hier 2 Meter.
+const PIXEL_JE_METER := 28.0
+
+func _setze_waechter(id: String, stufe: int, pos: Vector3) -> void:
+	var def: Dictionary = {}
+	for w in Daten.WAECHTER:
+		if w["id"] == id:
+			def = w
+			break
+	if def.is_empty():
+		push_error("Unbekannte Wächterkennung: " + id)
+		return
+	var st: Dictionary = def["stufen"][clampi(stufe, 0, 2)]
+	var typ: String = def["typ"]
+	var farbe: Color = Daten.TYPEN[typ]["farbe"]
+	_setze_turm(pos, farbe,
+		float(st["reichweite"]) / PIXEL_JE_METER,
+		float(st["rate"]),
+		float(st["schaden"]),
+		typ, def["luft"])
+
+
+func _setze_turm(pos: Vector3, farbe: Color, reichweite: float, takt: float, schaden: float,
+		typ: String = "", luft: bool = true) -> void:
 	var y := Gelaende.hoehe_bei(pos.x, pos.z, 99.0)
 	var wurzel := Node3D.new()
 	wurzel.position = Vector3(pos.x, y, pos.z)
@@ -326,25 +369,75 @@ func _setze_turm(pos: Vector3, farbe: Color, reichweite: float, takt: float, sch
 	tuerme.append({
 		"knoten": wurzel, "koerper": koerper, "pos": wurzel.position,
 		"reichweite": reichweite, "takt": takt, "schaden": schaden, "abklingen": 0.0,
-		"farbe": farbe,
+		"farbe": farbe, "typ": typ, "luft": luft,
 	})
+
+
+## Stellt die Arten einer Welle zusammen.
+##
+## Vereinfacht gegenüber dem Browserspiel: Dort werden die Lebenspunkte
+## gegen die durchschnittliche Zähigkeit der gezogenen Arten normiert, damit
+## die Wellenstärke allein an der Kurve hängt. Hier genügt vorerst die
+## Kurve mal Kartenfaktor mal Artzähigkeit — der Feinschliff gehört ins
+## Browserspiel, solange dieses die spielbare Fassung ist.
+func _waehle_art() -> Dictionary:
+	# Nur Arten, deren Zähigkeit zur Welle passt
+	var stufe := 1.0 + float(welle) * 0.06
+	var moeglich: Array = []
+	for a in Daten.ARTEN:
+		if float(a["leben"]) <= stufe:
+			moeglich.append(a)
+	if moeglich.is_empty():
+		moeglich = Daten.ARTEN
+	return moeglich[randi() % moeglich.size()]
 
 
 func _spawne_gegner() -> void:
+	if welle_art.is_empty():
+		welle_art = _waehle_art()
+	var art: Dictionary = welle_art
+	var typ: String = art["typ"]
+	var farbe: Color = Daten.TYPEN[typ]["farbe"]
+	var fliegt: bool = art.get("fliegt", false)
+
 	var knoten := MeshInstance3D.new()
 	var kapsel := SphereMesh.new()
-	kapsel.radius = 0.42
-	kapsel.height = 0.84
+	var groesse := float(art["groesse"]) / 34.0        # 34 px entsprechen etwa 1 m
+	kapsel.radius = 0.32 * groesse + 0.16
+	kapsel.height = kapsel.radius * 2.0
 	knoten.mesh = kapsel
 	var mat := StandardMaterial3D.new()
-	mat.albedo_color = Color(0.76, 0.51, 1.0)
+	mat.albedo_color = farbe
 	mat.roughness = 0.6
+	# Flieger leuchten schwach, damit man sie von Läufern unterscheidet
+	if fliegt:
+		mat.emission_enabled = true
+		mat.emission = farbe
+		mat.emission_energy_multiplier = 0.35
 	knoten.material_override = mat
 	_wurzel_gegner.add_child(knoten)
+
+	var faktor: float = float(Daten.KARTEN[karte_idx]["faktor"])
+	var kurve: float = float(Daten.WELLE_LEBEN[clampi(welle - 1, 0, Daten.WELLE_LEBEN.size() - 1)])
+	# Zehn Gegner je Welle teilen sich das Lebensbudget
+	var leben: float = kurve * faktor * float(art["leben"]) / 10.0
+
 	gegner.append({
-		"knoten": knoten, "strecke": 0.0, "tempo": randf_range(2.2, 3.4),
-		"leben": 40.0, "max_leben": 40.0, "wackel": randf() * 6.0,
+		"knoten": knoten, "strecke": 0.0,
+		"tempo": 2.6 * float(art["tempo"]),
+		"leben": leben, "max_leben": leben,
+		"wackel": randf() * 6.0,
+		"typ": typ, "fliegt": fliegt,
+		"panzer": float(art.get("panzer", 0)) * (1.0 + float(welle - 1) * 0.038),
+		"name": art["name"],
+		"hoehe": 1.6 if fliegt else 0.0,
 	})
+	welle_rest -= 1
+	if welle_rest <= 0:
+		welle += 1
+		welle_art = {}
+		welle_rest = 10
+		print("Welle ", welle, "  Art: ", art["name"], "  Leben je Stück: ", int(leben))
 
 
 func _process(delta: float) -> void:
@@ -361,7 +454,13 @@ func _process(delta: float) -> void:
 		var strecke: float = g["strecke"]
 		var p := Weg.punkt_bei(weg_punkte, strecke)
 		var wackel: float = g["wackel"]
-		p.y += 0.42 + sin(zeit * 7.0 + wackel) * 0.08
+		# Läufer wippen dicht über dem Grund, Flieger schweben weiter oben
+		# und in einem weiteren Bogen — daran liest man die Flughöhe ab.
+		var hoehe: float = g.get("hoehe", 0.0)
+		if hoehe > 0.0:
+			p.y += 0.42 + hoehe + sin(zeit * 2.1 + wackel) * 0.28
+		else:
+			p.y += 0.42 + sin(zeit * 7.0 + wackel) * 0.08
 		var knoten: MeshInstance3D = g["knoten"]
 		knoten.position = p
 
@@ -372,6 +471,9 @@ func _process(delta: float) -> void:
 		var beste := -1.0
 		for g in gegner:
 			var kn: MeshInstance3D = g["knoten"]
+			# Wer nicht in die Luft trifft, sieht Flieger nicht als Ziel
+			if g.get("fliegt", false) and not t.get("luft", true):
+				continue
 			if kn.position.distance_to(t["pos"]) <= t["reichweite"] and g["strecke"] > beste:
 				beste = g["strecke"]
 				ziel = g
@@ -385,7 +487,7 @@ func _process(delta: float) -> void:
 		koerper.rotation.y = atan2(richtung.x, richtung.z)
 		if t["abklingen"] <= 0.0:
 			t["abklingen"] = 1.0 / t["takt"]
-			ziel["leben"] -= t["schaden"]
+			ziel["leben"] -= _schaden(t, ziel)
 			_blitz(t["pos"] + Vector3.UP * 0.95, zk.position, t["farbe"])
 
 	# Aufräumen
@@ -405,6 +507,30 @@ func _process(delta: float) -> void:
 
 ## Kurzer Lichtstrahl als Treffer. Ein eigener Körper statt einer gezeichneten
 ## Linie, damit der Schuss im Raum liegt und von der Perspektive erfasst wird.
+## Was ein Treffer wirklich anrichtet.
+##
+## Zwei Dinge stehen zwischen Angriff und Wirkung, und beide entscheiden das
+## Spiel: der Typenvorteil und die Panzerung.
+##
+## Der Typenvorteil vervielfacht — Feuer richtet gegen Pflanze das Doppelte
+## an und gegen Wasser die Hälfte. Die Panzerung wird dagegen von jedem
+## einzelnen Treffer ABGEZOGEN, nicht anteilig gemindert. Deshalb ist sie für
+## einen schnellen Kleinschützen tödlich und für einen schweren Schläger nur
+## lästig: Der Wind-Wächter macht fünfzehn Schaden je Treffer und kommt gegen
+## Panzerung achtzehn auf null, der Stahl-Wächter mit hundertachtundfünfzig
+## kaum ins Stocken.
+##
+## Ein Rest bleibt immer: Ein Treffer, der gar nichts bewirkt, sieht wie ein
+## Fehler aus, auch wenn er rechnerisch richtig ist.
+func _schaden(turm: Dictionary, ziel: Dictionary) -> float:
+	var roh: float = float(turm["schaden"])
+	var typ: String = turm.get("typ", "")
+	if typ != "":
+		roh *= Daten.wirksamkeit(typ, ziel.get("typ", ""))
+	var panzer: float = float(ziel.get("panzer", 0.0))
+	return maxf(roh * 0.06, roh - panzer)
+
+
 func _blitz(von: Vector3, nach: Vector3, farbe: Color) -> void:
 	var strahl := MeshInstance3D.new()
 	var box := BoxMesh.new()
