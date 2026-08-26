@@ -2495,18 +2495,416 @@ function fireTower(t, dt) {
     }
     let prev = { x: t.x, y: t.y - 12 };
     hit.forEach((e, i) => {
-      fx({ kind: "beam", x: prev.x, y: prev.y, x2: e.x, y2: e.y, col: TYPES[t.def.type].col, life: .16 });
+      /* Kettenschlag als Zackenlinie. Als gerader Strahl sah der Übersprung
+         aus wie ein Laser; Strom sucht sich einen krummen Weg. */
+      zacken(prev.x, prev.y, e.x, e.y, TYPES[t.def.type].col, .2);
       damage(e, dmg * Math.pow(.78, i), t.def.type, t);
       applyStatus(e, st);
+      einschlag(e.x, e.y, t.def.type);
       prev = e;
     });
   } else {
+    muendung(t, tgt);
     G.shots.push({
       x: t.x, y: t.y - 12, tgt, dmg, type: t.def.type, src: t,
       spd: 320 + st.rate * 40, splash: st.splash || 0, st, t: 0,
     });
   }
 }
+/* ============================================================
+   Typenanimationen
+   ============================================================
+   Vorher sah jeder Angriff gleich aus: eine farbige Ellipse flog zum Ziel,
+   beim Treffer stoben vier Punkte auseinander. Nur die Farbe verriet das
+   Element — bei zehn Typen ist das zu wenig, um im Gefecht zu erkennen, was
+   gerade wirkt.
+
+   Jeder Typ bekommt deshalb drei eigene Bilder: den Abschuss am Wächter, das
+   Geschoss im Flug und den Einschlag am Ziel. Alles wird gezeichnet, nichts
+   geladen — dieselbe Regel wie im übrigen Spiel.
+   ============================================================ */
+
+/* Ein Schwarm Teilchen. Die Form entscheidet, wie sie sich lesen: Kreise als
+   Funken, Splitter als Bruchstück, Rauch als aufsteigende Schwaden.
+   Schwerkraft zieht nach unten, Drehung macht Bruchstücke lebendig. */
+function teilchen(o) {
+  o.max = o.life;
+  o.kind = "teilchen";
+  o.parts = [];
+  const n = o.n || 10;
+  for (let i = 0; i < n; i++) {
+    const streu = o.kegel === undefined ? Math.PI * 2 : o.kegel;
+    const mitte = o.richtung === undefined ? 0 : o.richtung;
+    const a = mitte + (Math.random() - .5) * streu;
+    o.parts.push({
+      a, v: (o.v0 || 40) + Math.random() * (o.v1 || 90),
+      r: (o.r0 || 1.5) + Math.random() * (o.r1 || 2.5),
+      dreh: (Math.random() - .5) * 9,
+      ph: Math.random() * 7,
+    });
+  }
+  G.fx.push(o);
+}
+
+/* Aufsteigende Ranken: wachsen aus dem Boden und rollen sich wieder ein. */
+function ranken(x, y, col, n) {
+  const arme = [];
+  for (let i = 0; i < (n || 5); i++)
+    arme.push({ a: Math.random() * 7, l: 22 + Math.random() * 24, kr: (Math.random() - .5) * 2.4 });
+  G.fx.push({ kind: "ranke", x, y, col, arme, life: .55, max: .55 });
+}
+
+/* Zackenblitz zwischen zwei Punkten. Der Verlauf wird einmal gewürfelt und
+   bleibt stehen — ein je Bild neu gewürfelter Blitz flackert wie ein Fehler
+   statt wie Strom. */
+function zacken(x, y, x2, y2, col, life) {
+  const n = 5, pkt = [];
+  const dx = x2 - x, dy = y2 - y;
+  const len = Math.hypot(dx, dy) || 1;
+  const nx = -dy / len, ny = dx / len;
+  for (let i = 0; i <= n; i++) {
+    const k = i / n;
+    const ab = (i === 0 || i === n) ? 0 : (Math.random() - .5) * len * .22;
+    pkt.push({ x: x + dx * k + nx * ab, y: y + dy * k + ny * ab });
+  }
+  G.fx.push({ kind: "zacken", pkt, col, life: life || .18, max: life || .18 });
+}
+
+/* Einschlag: was am Ziel passiert, wenn ein Geschoss ankommt. */
+const EINSCHLAG = {
+  fire(x, y, col) {
+    teilchen({ x, y, col, n: 18, v0: 45.0, v1: 165.0, r0: 3.6, r1: 7.2, life: .42, form: "funke" });
+    teilchen({ x, y: y - 4, col: "#6B5B52", n: 8, v0: 12.0, v1: 39.0, r0: 7.2, r1: 12.6, life: .8, form: "rauch", auftrieb: 34 });
+    G.fx.push({ kind: "ring", x, y, r0: 7.2, r1: 54.0, life: .3, col });
+  },
+  water(x, y, col) {
+    // Spritzkrone: Tropfen fliegen schräg nach oben und fallen zurück
+    teilchen({ x, y, col, n: 16, v0: 60.0, v1: 150.0, r0: 3.2, r1: 6.1, life: .5, form: "tropfen", schwere: 190 });
+    G.fx.push({ kind: "ring", x, y, r0: 5.4, r1: 61.2, life: .42, col, flach: true });
+  },
+  grass(x, y, col) {
+    ranken(x, y, col, 6);
+    teilchen({ x, y, col, n: 10, v0: 37.5, v1: 105.0, r0: 3.6, r1: 6.5, life: .55, form: "blatt", schwere: 60 });
+  },
+  electric(x, y, col) {
+    for (let i = 0; i < 3; i++) {
+      const a = Math.random() * 7, l = 16 + Math.random() * 14;
+      zacken(x, y, x + Math.cos(a) * l, y + Math.sin(a) * l, col, .14);
+    }
+    teilchen({ x, y, col, n: 13, v0: 105.0, v1: 240.0, r0: 2.2, r1: 4.0, life: .22, form: "funke" });
+  },
+  rock(x, y, col) {
+    teilchen({ x, y, col: shade(col, -.25), n: 13, v0: 45.0, v1: 135.0, r0: 4.3, r1: 9.0, life: .55, form: "splitter", schwere: 240 });
+    teilchen({ x, y, col: "#9A8A78", n: 9, v0: 15.0, v1: 51.0, r0: 9.0, r1: 16.2, life: .6, form: "rauch", auftrieb: 8 });
+    G.fx.push({ kind: "ring", x, y, r0: 7.2, r1: 46.8, life: .26, col: "#9A8A78", flach: true });
+  },
+  psychic(x, y, col) {
+    // Drei versetzte Ringe: die Verzerrung läuft nach außen
+    for (let i = 0; i < 3; i++)
+      G.fx.push({ kind: "ring", x, y, r0: 5.4, r1: 39.6 + i * 13, life: .42 + i * .12, col, dünn: true });
+    teilchen({ x, y, col, n: 9, v0: 18.0, v1: 60.0, r0: 2.9, r1: 5.4, life: .6, form: "funke", auftrieb: 26 });
+  },
+  ice(x, y, col) {
+    teilchen({ x, y, col, n: 14, v0: 52.5, v1: 142.5, r0: 4.0, r1: 7.9, life: .5, form: "splitter", schwere: 120 });
+    G.fx.push({ kind: "eisblume", x, y, col, life: .5, max: .5, arme: 6 });
+  },
+  steel(x, y, col) {
+    teilchen({ x, y, col: "#FFE9A8", n: 18, v0: 135.0, v1: 300.0, r0: 1.8, r1: 3.6, life: .25, form: "funke", schwere: 200 });
+    G.fx.push({ kind: "ring", x, y, r0: 3.6, r1: 39.6, life: .2, col: "#FFE9A8" });
+    G.fx.push({ kind: "ring", x, y, r0: 10.8, r1: 61.2, life: .32, col, flach: true });
+  },
+  fairy(x, y, col) {
+    teilchen({ x, y, col, n: 17, v0: 30.0, v1: 112.5, r0: 3.2, r1: 6.5, life: .75, form: "stern", auftrieb: 22 });
+    G.fx.push({ kind: "ring", x, y, r0: 5.4, r1: 46.8, life: .4, col, dünn: true });
+  },
+  dark(x, y, col) {
+    G.fx.push({ kind: "wirbel", x, y, col, life: .5, max: .5 });
+    teilchen({ x, y, col: shade(col, -.4), n: 12, v0: 27.0, v1: 90.0, r0: 5.4, r1: 10.8, life: .55, form: "rauch", auftrieb: -6 });
+  },
+  legend(x, y, col) {
+    G.fx.push({ kind: "ring", x, y, r0: 5.4, r1: 72.0, life: .45, col });
+    G.fx.push({ kind: "ring", x, y, r0: 5.4, r1: 46.8, life: .3, col: "#FFF3C4" });
+    teilchen({ x, y, col, n: 21, v0: 75.0, v1: 225.0, r0: 2.9, r1: 6.1, life: .6, form: "stern" });
+    teilchen({ x, y, col: "#FFF3C4", n: 10, v0: 30.0, v1: 75.0, r0: 3.6, r1: 7.2, life: .8, form: "funke", auftrieb: 30 });
+  },
+};
+
+function einschlag(x, y, typ) {
+  const col = (TYPES[typ] || { col: "#FFF" }).col;
+  const f = EINSCHLAG[typ];
+  if (f) f(x, y, col);
+  else teilchen({ x, y, col, n: 6, v0: 40, v1: 90, life: .3, form: "funke" });
+}
+
+/* Mündung: der kurze Stoß am Wächter im Moment des Abschusses. */
+function muendung(t, ziel) {
+  const col = TYPES[t.def.type].col;
+  const x = t.x, y = t.y - 12;
+  const a = Math.atan2(ziel.y - y, ziel.x - x);
+  switch (t.def.type) {
+    case "fire":
+      teilchen({ x, y, col, n: 6, v0: 50, v1: 120, r0: 1.6, r1: 3, life: .22, form: "funke", richtung: a, kegel: .9 });
+      break;
+    case "water":
+      teilchen({ x, y, col, n: 5, v0: 30, v1: 70, r0: 1.4, r1: 2.6, life: .25, form: "tropfen", richtung: a, kegel: .7, schwere: 120 });
+      break;
+    case "grass":
+      teilchen({ x, y, col, n: 4, v0: 25, v1: 60, r0: 1.8, r1: 3, life: .3, form: "blatt", richtung: a, kegel: 1.1 });
+      break;
+    case "electric":
+      zacken(x, y, x + Math.cos(a) * 16, y + Math.sin(a) * 16, col, .1);
+      break;
+    case "rock": case "steel":
+      teilchen({ x, y, col: "#C9B79E", n: 4, v0: 14, v1: 40, r0: 2, r1: 4, life: .3, form: "rauch", richtung: a + Math.PI, kegel: 1.2 });
+      break;
+    case "ice":
+      teilchen({ x, y, col, n: 5, v0: 20, v1: 55, r0: 1.4, r1: 2.6, life: .3, form: "splitter", richtung: a, kegel: .8 });
+      break;
+    case "psychic": case "fairy": case "legend":
+      G.fx.push({ kind: "ring", x, y, r0: 2, r1: 13, life: .18, col, dünn: true });
+      break;
+    case "dark":
+      teilchen({ x, y, col: shade(col, -.3), n: 4, v0: 12, v1: 34, r0: 2.4, r1: 4.4, life: .32, form: "rauch", auftrieb: -4 });
+      break;
+  }
+}
+
+/* Flugbild. Jeder Typ trägt seine eigene Silhouette und seinen eigenen
+   Schweif — im Gefecht erkennt man am Flug, was unterwegs ist. */
+/* Einzelnes Teilchen. Die Form trägt den Charakter: Ein Funke ist ein
+   glühender Punkt, ein Splitter hat Kanten, Rauch ist weich und wächst. */
+function zeichneTeilchen(g, form, x, y, r, col, al, p, k) {
+  /* Leuchten um jedes Teilchen. Ohne das verschwinden die Einschläge auf dem
+     dunklen, kleinteiligen Waldboden — im Test war von einem Feuertreffer
+     nichts weiter zu sehen als ein paar Punkte, die man für Grasspitzen
+     halten konnte. Rauch bleibt matt, der leuchtet nicht. */
+  if (form !== "rauch") { g.shadowColor = col; g.shadowBlur = 9 * al; }
+  switch (form) {
+    case "rauch":
+      g.fillStyle = rgba(col, al * .34);
+      g.beginPath(); g.arc(x, y, r * (1 + k * 1.5), 0, 7); g.fill();
+      break;
+    case "splitter":
+      g.save(); g.translate(x, y); g.rotate(p.ph + p.dreh * k * 3);
+      g.fillStyle = rgba(col, al);
+      g.beginPath();
+      g.moveTo(r, 0); g.lineTo(r * .1, r * .8); g.lineTo(-r * .9, r * .2);
+      g.lineTo(-r * .3, -r * .7); g.closePath(); g.fill();
+      g.restore();
+      break;
+    case "blatt":
+      g.save(); g.translate(x, y); g.rotate(p.ph + p.dreh * k * 4);
+      g.fillStyle = rgba(col, al);
+      g.beginPath();
+      g.moveTo(r * 1.3, 0); g.quadraticCurveTo(0, r * .9, -r, 0);
+      g.quadraticCurveTo(0, -r * .9, r * 1.3, 0);
+      g.fill();
+      g.restore();
+      break;
+    case "tropfen":
+      g.save(); g.translate(x, y);
+      g.rotate(Math.atan2(1, 0) + Math.sin(p.ph) * .3);
+      g.fillStyle = rgba(col, al);
+      g.beginPath();
+      g.moveTo(0, -r * 1.4); g.quadraticCurveTo(r * .9, r * .5, 0, r);
+      g.quadraticCurveTo(-r * .9, r * .5, 0, -r * 1.4);
+      g.fill();
+      g.restore();
+      break;
+    case "stern": {
+      g.save(); g.translate(x, y); g.rotate(p.ph + p.dreh * k);
+      g.fillStyle = rgba(col, al);
+      g.beginPath();
+      for (let i = 0; i < 8; i++) {
+        const a = i * Math.PI / 4, rr = i % 2 ? r * .34 : r * 1.35;
+        g[i ? "lineTo" : "moveTo"](Math.cos(a) * rr, Math.sin(a) * rr);
+      }
+      g.closePath(); g.fill();
+      g.restore();
+      break;
+    }
+    default:   // funke
+      g.fillStyle = rgba(col, al);
+      g.beginPath(); g.arc(x, y, r, 0, 7); g.fill();
+      if (r > 1.6) {
+        g.fillStyle = rgba("#FFFFFF", al * .5);
+        g.beginPath(); g.arc(x, y, r * .42, 0, 7); g.fill();
+      }
+  }
+  g.shadowBlur = 0;
+}
+
+function zeichneGeschoss(g, s, zeit) {
+  const col = TYPES[s.type].col;
+  const hell = shade(col, .5), dunkel = shade(col, -.35);
+  g.save();
+  g.translate(s.x, s.y);
+  g.rotate(s.ang || 0);
+  const puls = Math.sin(zeit * 22 + s.t * 30);
+
+  switch (s.type) {
+    case "fire": {
+      // flackernder Kern mit Schweif, der hinter dem Ball zerfasert
+      for (let i = 1; i <= 4; i++) {
+        g.fillStyle = rgba(i > 2 ? "#6B4A32" : col, .34 - i * .06);
+        g.beginPath();
+        g.ellipse(-i * 6, Math.sin(zeit * 18 + i) * 1.6, 6 - i * .9, 3.4 - i * .5, 0, 0, 7);
+        g.fill();
+      }
+      g.fillStyle = col;
+      g.beginPath(); g.ellipse(0, 0, 7 + puls * .8, 5, 0, 0, 7); g.fill();
+      g.fillStyle = hell;
+      g.beginPath(); g.ellipse(1.4, 0, 3.4 + puls * .5, 2.4, 0, 0, 7); g.fill();
+      break;
+    }
+    case "water": {
+      // Tropfenform: vorn rund, hinten spitz
+      g.fillStyle = rgba(col, .32);
+      g.beginPath(); g.ellipse(-8, 0, 8, 2.4, 0, 0, 7); g.fill();
+      g.fillStyle = col;
+      g.beginPath();
+      g.moveTo(7, 0); g.quadraticCurveTo(2, 4.6, -6, 0); g.quadraticCurveTo(2, -4.6, 7, 0);
+      g.fill();
+      g.fillStyle = rgba("#FFFFFF", .55);
+      g.beginPath(); g.ellipse(2.6, -1.2, 1.8, 1.1, 0, 0, 7); g.fill();
+      break;
+    }
+    case "grass": {
+      // rotierendes Blatt mit Mittelrippe
+      g.rotate(zeit * 9);
+      g.fillStyle = col;
+      g.beginPath();
+      g.moveTo(8, 0); g.quadraticCurveTo(0, 5.4, -7, 0); g.quadraticCurveTo(0, -5.4, 8, 0);
+      g.fill();
+      g.strokeStyle = dunkel; g.lineWidth = 1;
+      g.beginPath(); g.moveTo(7, 0); g.lineTo(-6, 0); g.stroke();
+      break;
+    }
+    case "electric": {
+      // gezackter Strahl, kurz und hart
+      g.strokeStyle = col; g.lineWidth = 2.4;
+      g.shadowColor = col; g.shadowBlur = 8;
+      g.beginPath();
+      g.moveTo(-10, 0);
+      for (let i = 1; i <= 4; i++) g.lineTo(-10 + i * 5, (i % 2 ? 1 : -1) * 2.6);
+      g.stroke();
+      g.shadowBlur = 0;
+      g.strokeStyle = "#FFFCE8"; g.lineWidth = 1;
+      g.beginPath();
+      g.moveTo(-10, 0);
+      for (let i = 1; i <= 4; i++) g.lineTo(-10 + i * 5, (i % 2 ? 1 : -1) * 2.6);
+      g.stroke();
+      break;
+    }
+    case "rock": {
+      // kantiger Brocken, dreht sich im Flug
+      g.rotate(zeit * 6);
+      g.fillStyle = col;
+      g.beginPath();
+      g.moveTo(6, -1); g.lineTo(2, -5.5); g.lineTo(-4, -4); g.lineTo(-6, 1.5);
+      g.lineTo(-1, 5.5); g.lineTo(5, 3.5); g.closePath(); g.fill();
+      g.fillStyle = rgba(dunkel, .55);
+      g.beginPath();
+      g.moveTo(-6, 1.5); g.lineTo(-1, 5.5); g.lineTo(5, 3.5); g.lineTo(6, -1); g.closePath(); g.fill();
+      break;
+    }
+    case "psychic": {
+      // schwebende Sphäre mit umlaufenden Ringen
+      g.fillStyle = rgba(col, .3);
+      g.beginPath(); g.arc(0, 0, 8 + puls, 0, 7); g.fill();
+      g.fillStyle = col;
+      g.beginPath(); g.arc(0, 0, 4.2, 0, 7); g.fill();
+      g.strokeStyle = rgba(hell, .8); g.lineWidth = 1.2;
+      for (let i = 0; i < 2; i++) {
+        g.save(); g.rotate(zeit * (3 + i * 2));
+        g.beginPath(); g.ellipse(0, 0, 9, 3.2, 0, 0, 7); g.stroke();
+        g.restore();
+      }
+      break;
+    }
+    case "ice": {
+      // Kristallsplitter mit Frostspur
+      for (let i = 1; i <= 3; i++) {
+        g.fillStyle = rgba(hell, .22 - i * .05);
+        g.beginPath(); g.arc(-i * 5, 0, 3 - i * .5, 0, 7); g.fill();
+      }
+      g.rotate(zeit * 4);
+      g.fillStyle = col;
+      g.beginPath();
+      g.moveTo(7, 0); g.lineTo(1, 3.6); g.lineTo(-6, 0); g.lineTo(1, -3.6); g.closePath(); g.fill();
+      g.strokeStyle = "#FFFFFF"; g.lineWidth = .8;
+      g.beginPath(); g.moveTo(7, 0); g.lineTo(-6, 0); g.stroke();
+      break;
+    }
+    case "steel": {
+      // schwerer Bolzen mit Schaft
+      g.fillStyle = dunkel;
+      g.fillRect(-9, -1.4, 10, 2.8);
+      g.fillStyle = col;
+      g.beginPath();
+      g.moveTo(9, 0); g.lineTo(1, 3.6); g.lineTo(1, -3.6); g.closePath(); g.fill();
+      g.fillStyle = rgba("#FFFFFF", .5);
+      g.beginPath(); g.moveTo(9, 0); g.lineTo(3, -2.4); g.lineTo(3, -.4); g.closePath(); g.fill();
+      break;
+    }
+    case "fairy": {
+      // Glitzerkern mit vier Strahlen, dazu ein Staubschweif
+      for (let i = 1; i <= 4; i++) {
+        g.fillStyle = rgba(col, .3 - i * .05);
+        g.beginPath();
+        g.arc(-i * 5, Math.sin(zeit * 12 + i * 1.4) * 2.2, 2.6 - i * .35, 0, 7);
+        g.fill();
+      }
+      g.fillStyle = hell;
+      const r = 5.4 + puls * .7;
+      g.beginPath();
+      for (let i = 0; i < 8; i++) {
+        const a = i * Math.PI / 4, rr = i % 2 ? r * .38 : r;
+        g[i ? "lineTo" : "moveTo"](Math.cos(a) * rr, Math.sin(a) * rr);
+      }
+      g.closePath(); g.fill();
+      g.fillStyle = "#FFFFFF";
+      g.beginPath(); g.arc(0, 0, 1.8, 0, 7); g.fill();
+      break;
+    }
+    case "dark": {
+      // Schliere: vorn dicht, hinten aufgelöst
+      for (let i = 0; i < 5; i++) {
+        g.fillStyle = rgba(shade(col, -.15 - i * .06), .5 - i * .09);
+        g.beginPath();
+        g.ellipse(-i * 4.4, Math.sin(zeit * 9 + i) * 1.8, 7 - i * 1.1, 4.4 - i * .7, 0, 0, 7);
+        g.fill();
+      }
+      g.fillStyle = rgba("#1A1420", .8);
+      g.beginPath(); g.ellipse(1, 0, 3.6, 2.6, 0, 0, 7); g.fill();
+      break;
+    }
+    case "legend": {
+      // goldener Komet mit Doppelschweif
+      for (let i = 1; i <= 5; i++) {
+        g.fillStyle = rgba(i % 2 ? col : "#FFF3C4", .38 - i * .06);
+        g.beginPath();
+        g.ellipse(-i * 6, Math.sin(zeit * 14 + i) * 2.4, 7 - i * .9, 3 - i * .35, 0, 0, 7);
+        g.fill();
+      }
+      g.fillStyle = col;
+      g.beginPath(); g.arc(0, 0, 7 + puls * .9, 0, 7); g.fill();
+      g.fillStyle = "#FFF8DC";
+      g.beginPath(); g.arc(1, 0, 3.4, 0, 7); g.fill();
+      g.strokeStyle = rgba("#FFF3C4", .8); g.lineWidth = 1.2;
+      g.beginPath(); g.moveTo(-14, -5); g.lineTo(6, 0); g.lineTo(-14, 5); g.stroke();
+      break;
+    }
+    default: {
+      g.fillStyle = col;
+      g.beginPath(); g.ellipse(0, 0, 8, 3.2, 0, 0, 7); g.fill();
+      g.fillStyle = rgba(col, .3);
+      g.beginPath(); g.ellipse(-9, 0, 9, 2.4, 0, 0, 7); g.fill();
+    }
+  }
+  g.restore();
+}
+
 function applyStatus(e, st) {
   if (st.burn) {
     e.burn = Math.max(e.burn || 0, st.burn.dps * (1 + boon("burn") * .6));
@@ -2523,6 +2921,7 @@ function applyStatus(e, st) {
   if (st.mark) { e.mark = Math.max(e.mark || 0, st.mark); e.markT = 2.5; }
 }
 function splashHit(s) {
+  einschlag(s.x, s.y, s.type);
   const list = G.enemies.filter(e => !e.dead && (!e.flying || s.src.def.air) &&
     Math.hypot(e.x - s.x, e.y - s.y) <= s.splash);
   for (const e of list) {
@@ -2654,7 +3053,7 @@ function update(dt) {
       s.x = s.tgt.x; s.y = s.tgt.y;
       if (s.splash) splashHit(s);
       else { damage(s.tgt, s.dmg, s.type, s.src); applyStatus(s.tgt, s.st);
-             fx({ kind: "burst", x: s.x, y: s.y, col: TYPES[s.type].col, n: 4, life: .28 }); }
+             einschlag(s.x, s.y, s.type); }
       s.gone = true;
     } else {
       s.x += dx / d * step; s.y += dy / d * step;
@@ -2850,33 +3249,31 @@ function draw() {
     g.beginPath(); g.arc(p.x, p.y, p.s * (1 + k * 2.2), 0, 7); g.stroke();
   }
 
-  // Geschosse
+  /* Geschosse. Jeder Typ hat sein eigenes Flugbild — vorher unterschied sie
+     nur die Farbe, und bei zehn Elementen ließ sich im Gefecht nicht mehr
+     erkennen, was gerade unterwegs war. Sie fliegen aufrecht: ein Geschoss
+     bewegt sich über dem Grund, nicht auf ihm. */
   for (const s of G.shots) {
-    const col = TYPES[s.type].col;
-    g.save();
-    g.shadowColor = col; g.shadowBlur = 10;
-    if (s.splash) {
-      g.fillStyle = col;
-      g.beginPath(); g.arc(s.x, s.y, 6, 0, 7); g.fill();
-      g.fillStyle = rgba(col, .35);
-      g.beginPath(); g.arc(s.x, s.y, 11, 0, 7); g.fill();
-    } else {
-      g.translate(s.x, s.y); g.rotate(s.ang || 0);
-      g.fillStyle = col;
-      g.beginPath(); g.ellipse(0, 0, 8, 3.2, 0, 0, 7); g.fill();
-      g.fillStyle = rgba(col, .3);
-      g.beginPath(); g.ellipse(-9, 0, 9, 2.4, 0, 0, 7); g.fill();
-    }
-    g.restore();
+    aufrecht(g, s.x, s.y, () => zeichneGeschoss(g, s, G.time));
   }
 
   // Effekte
   for (const f of G.fx) {
     const k = 1 - f.life / f.max;
     if (f.kind === "ring") {
-      g.strokeStyle = rgba(f.col, (1 - k) * .8);
-      g.lineWidth = 3 * (1 - k) + 1;
-      g.beginPath(); g.arc(f.x, f.y, f.r0 + (f.r1 - f.r0) * k, 0, 7); g.stroke();
+      g.shadowColor = f.col; g.shadowBlur = 10 * (1 - k);
+      g.strokeStyle = rgba(f.col, (1 - k) * (f.dünn ? .8 : 1));
+      g.lineWidth = (f.dünn ? 2 : 4.4) * (1 - k) + (f.dünn ? .6 : 1.2);
+      const rr3 = f.r0 + (f.r1 - f.r0) * k;
+      g.beginPath();
+      /* "flach" heißt: der Ring liegt auf dem Grund statt aufrecht zu stehen.
+         Eine Spritzkrone breitet sich auf dem Boden aus, eine Druckwelle
+         steht im Raum — beide als Kreis zu zeichnen nähme der Kippung ihre
+         Wirkung. */
+      if (f.flach) g.ellipse(f.x, f.y, rr3, rr3 * .42, 0, 0, 7);
+      else g.arc(f.x, f.y, rr3, 0, 7);
+      g.stroke();
+      g.shadowBlur = 0;
     } else if (f.kind === "beam") {
       g.strokeStyle = rgba(f.col, (1 - k));
       g.lineWidth = 4 * (1 - k) + 1;
@@ -2891,6 +3288,104 @@ function draw() {
         g.fillStyle = rgba(f.col, 1 - k);
         g.beginPath(); g.arc(f.x + Math.cos(p.a) * d, f.y + Math.sin(p.a) * d, p.r * (1 - k) + .4, 0, 7); g.fill();
       }
+    } else if (f.kind === "teilchen") {
+      /* Ein Schwarm, dessen Form bestimmt, wie er sich liest. Schwerkraft und
+         Auftrieb wirken quadratisch mit der Zeit — linear sähen die Teilchen
+         aus, als würden sie gezogen statt fallen. */
+      const t = k * f.max;
+      for (const p of f.parts) {
+        const d = p.v * k * (1 - k * .45);
+        const px = f.x + Math.cos(p.a) * d;
+        const py = f.y + Math.sin(p.a) * d
+                 + (f.schwere || 0) * t * t * .5
+                 - (f.auftrieb || 0) * t;
+        const gr = p.r * (1 - k * .55) + .3;
+        const al = 1 - k;
+        zeichneTeilchen(g, f.form, px, py, gr, f.col, al, p, k);
+      }
+    } else if (f.kind === "zacken") {
+      const al = 1 - k;
+      g.strokeStyle = rgba(f.col, al);
+      g.lineWidth = 3 * al + .6;
+      g.shadowColor = f.col; g.shadowBlur = 9 * al;
+      g.beginPath();
+      g.moveTo(f.pkt[0].x, f.pkt[0].y);
+      for (let i = 1; i < f.pkt.length; i++) g.lineTo(f.pkt[i].x, f.pkt[i].y);
+      g.stroke();
+      g.shadowBlur = 0;
+      g.strokeStyle = rgba("#FFFCE8", al * .9); g.lineWidth = 1.1;
+      g.stroke();
+    } else if (f.kind === "ranke") {
+      /* Ranken wachsen erst schnell, dann langsamer, und welken zum Schluss.
+         Ein gleichmäßiges Wachsen sähe nach ausfahrender Mechanik aus. */
+      const w = Math.min(1, k * 2.6);
+      const welk = k > .6 ? (k - .6) / .4 : 0;
+      g.lineCap = "round";
+      for (const a of f.arme) {
+        g.strokeStyle = rgba(f.col, (1 - welk) * .9);
+        g.lineWidth = 3.8 * (1 - welk * .5);
+        g.beginPath();
+        const n = 6;
+        for (let i = 0; i <= n; i++) {
+          const kk = i / n * w;
+          const win = a.a + a.kr * kk;
+          const l = a.l * kk;
+          const px = f.x + Math.cos(win) * l;
+          const py = f.y + Math.sin(win) * l - kk * kk * 9;
+          g[i ? "lineTo" : "moveTo"](px, py);
+        }
+        g.stroke();
+        // Blattspitze
+        const win = a.a + a.kr * w, l = a.l * w;
+        g.fillStyle = rgba(shade(f.col, .28), (1 - welk) * .95);
+        g.save();
+        g.translate(f.x + Math.cos(win) * l, f.y + Math.sin(win) * l - w * w * 9);
+        g.rotate(win);
+        g.beginPath();
+        g.moveTo(4, 0); g.quadraticCurveTo(0, 2.8, -3.4, 0); g.quadraticCurveTo(0, -2.8, 4, 0);
+        g.fill();
+        g.restore();
+      }
+    } else if (f.kind === "eisblume") {
+      const al = 1 - k, r = 9 + k * 26;
+      g.shadowColor = f.col; g.shadowBlur = 8 * al;
+      g.strokeStyle = rgba(f.col, al); g.lineWidth = 3 * al + .7;
+      g.lineCap = "round";
+      for (let i = 0; i < f.arme; i++) {
+        const a = i * Math.PI * 2 / f.arme + k * .3;
+        g.beginPath();
+        g.moveTo(f.x, f.y);
+        g.lineTo(f.x + Math.cos(a) * r, f.y + Math.sin(a) * r);
+        // Seitenzacken, wie an einer Eiskristallnadel
+        for (const sz of [.45, .72]) {
+          const bx = f.x + Math.cos(a) * r * sz, by = f.y + Math.sin(a) * r * sz;
+          for (const vz of [-1, 1]) {
+            g.moveTo(bx, by);
+            g.lineTo(bx + Math.cos(a + vz * .9) * r * .26, by + Math.sin(a + vz * .9) * r * .26);
+          }
+        }
+        g.stroke();
+      }
+    } else if (f.kind === "wirbel") {
+      /* Schattenwirbel: zwei gegenläufige Spiralen, die sich zusammenziehen.
+         Zusammenziehend statt ausbreitend — Unlicht verschlingt, es stiebt
+         nicht auseinander. */
+      const al = 1 - k;
+      g.lineCap = "round";
+      for (let s2 = 0; s2 < 2; s2++) {
+        g.strokeStyle = rgba(shade(f.col, s2 ? -.3 : .1), al * .85);
+        g.lineWidth = 3.4 * al + .5;
+        g.beginPath();
+        for (let i = 0; i <= 22; i++) {
+          const kk = i / 22;
+          const a = kk * 5.4 * (s2 ? -1 : 1) + k * 7 * (s2 ? -1 : 1);
+          const r = (22 - kk * 16) * (1 - k * .55);
+          g[i ? "lineTo" : "moveTo"](f.x + Math.cos(a) * r, f.y + Math.sin(a) * r * .62);
+        }
+        g.stroke();
+      }
+      g.fillStyle = rgba("#100C16", al * .7);
+      g.beginPath(); g.ellipse(f.x, f.y, 7 * (1 - k), 4.4 * (1 - k), 0, 0, 7); g.fill();
     }
   }
 
