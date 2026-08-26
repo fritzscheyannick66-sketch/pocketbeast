@@ -731,3 +731,42 @@ kosmetisch — die Gesamtzahl der Gegner stimmt weiterhin.
   (`trainSpent`), und die Gratis-Trainingsstufen aus „Feldtraining" erhöhen es nicht.
 - **Rüstung** kann Schaden auf minimal 18 % drücken (`Math.max(d * .18, ...)`) —
   es gibt keine Immunität durch Stapeln.
+
+## Der Autoplay-Bot misst den aktuellen Stand nicht mehr (26.08.2026)
+
+Beim Umbau auf 100 Wellen wollte ich die neue Kurve messen. Der Bot starb
+verlässlich bei Welle 24–30, während er auf dem Stand vom Vortag alle 40
+Wellen hielt (5 von 5 Läufen). Das sah nach einer Verschlechterung durch die
+Kurvenänderung aus.
+
+Es war keine. Zwei Dinge kamen zusammen:
+
+**Der Vergleichsstand war ein anderes Spiel.** Commit 89a6f78 kannte weder
+Fee- noch Unlicht-Wächter, keine Megaentwicklung, keine Sonderfelder und
+keinen Tag-Nacht-Wechsel. Diese kamen alle in der Nachtarbeit dazu und waren
+zum Vergleichszeitpunkt noch nicht eingecheckt.
+
+**Der Bot kennt die neuen Regeln nicht.** Ein Lauf, aufgeschlüsselt:
+
+| Beobachtung | Wert |
+|---|---|
+| Megaentwicklungen | 0 von 20 Wächtern |
+| bespielte Typen | 5 von 10 |
+| Pflanzen-Wächter | 9 von 20 |
+| Wasser-Wächter | 0 (bei 4 Wasserfeldern auf der Karte) |
+
+Die Megaentwicklung ist der größte Machtzuwachs im Spiel — Schaden mal 1,75,
+dazu Reichweite und Feuerrate. Der Bot lässt sie vollständig liegen. Wasser,
+Eis, Stahl, Fee und Unlicht baut er nie. Und er fällt wieder auf den
+billigsten Wächter zurück, genau das Muster, das schon einmal auffiel.
+
+Was er misst, ist damit seine eigene veraltete Strategie, nicht die Balance
+des Spiels. Die Kurve für die Wellen 41 bis 100 wurde deshalb **nicht** nach
+diesen Zahlen gesetzt, sondern nach einer Obergrenze dessen, was die
+Verteidigung überhaupt zulegen kann, wenn alle Wächter auf Endstufe stehen.
+Die Wellen 1 bis 40 blieben unverändert.
+
+Das ist das dritte Mal, dass dieses Messinstrument einen Befund liefert, der
+sich beim Nachsehen auflöst. Solange der Bot Megaentwicklung, Sonderfelder
+und Tageszeit nicht kennt, taugt er nur noch als grober Rauchtest, nicht zur
+Kalibrierung.
