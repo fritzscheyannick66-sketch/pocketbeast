@@ -1465,6 +1465,22 @@ function drawCreature(g, x, y, s, col, shape, t, opts) {
   const dir = opts.dir === -1 ? -1 : 1;
   const ph = opts.walk !== undefined ? opts.walk : 0;
   const moving = opts.walk !== undefined;
+  /* Drei Erscheinungen je Familie.
+
+     Statt für zwölf Formen je drei Sonderfälle zu zeichnen — sechsunddreißig
+     Stück, die alle gepflegt werden müssten — liegen drei Merkmalssätze über
+     allen Formen. Jeder verschiebt den Farbton ein Stück und legt eine eigene
+     Zeichnung an:
+
+       0  Schlicht      — der Grundton, ungemustert
+       1  Gescheckt     — hellere Flecken auf dem Körper, wärmerer Ton
+       2  Gestreift     — dunkle Querbänder und ein Stirnkamm, kühlerer Ton
+
+     Der Versatz bleibt klein genug, dass die Familie erkennbar bleibt: Ein
+     gescheckter Feuer-Wächter ist immer noch eindeutig ein Feuer-Wächter. */
+  const variante = opts.variante || 0;
+  if (variante === 1) col = shade(col, .13);
+  else if (variante === 2) col = shade(col, -.13);
   const dark = shade(col, -0.4), light = shade(col, 0.36), deep = shade(col, -0.68), rim = shade(col, .62);
 
   /* ---------- Blinzeln ----------
@@ -1531,9 +1547,15 @@ function drawCreature(g, x, y, s, col, shape, t, opts) {
   /* ---------- Stauchung ----------
      Beim Aufsetzen breit und flach, dazwischen schmal und lang. Der Treffer
      staucht zusätzlich. */
-  let sqx = 1, sqy = 1;
-  if (moving && !fliegt) { const q = (stoss - .28) * .10 * wucht; sqx = 1 + q; sqy = 1 - q; }
-  else { const q = atem * .018; sqx = 1 - q; sqy = 1 + q; }
+  /* Proportion je Erscheinung. Bei Spielgröße — dreizehn bis neunzehn Pixel —
+     ist eine Musterung kaum zu erkennen, die Silhouette dagegen sofort. Die
+     gescheckte Erscheinung ist etwas gedrungener, die gestreifte schlanker
+     und höher. Sechs Prozent genügen: mehr ließe die Familien auseinander-
+     fallen, weniger sähe man nicht. */
+  let sqx = variante === 1 ? 1.06 : variante === 2 ? 0.94 : 1;
+  let sqy = variante === 1 ? 0.95 : variante === 2 ? 1.07 : 1;
+  if (moving && !fliegt) { const q = (stoss - .28) * .10 * wucht; sqx *= 1 + q; sqy *= 1 - q; }
+  else { const q = atem * .018; sqx *= 1 - q; sqy *= 1 + q; }
   if (zuck) { sqx += zuck * .16; sqy -= zuck * .13; }
   g.scale(sqx, sqy);
   g.lineJoin = "round"; g.lineCap = "round";
@@ -2096,6 +2118,49 @@ function drawCreature(g, x, y, s, col, shape, t, opts) {
       g.stroke();
     }
   }
+  /* Musterung der Erscheinung. Sie liegt über dem fertigen Körper und wird
+     an ihm beschnitten, damit sie nicht über die Silhouette hinausläuft. */
+  if (variante === 1) {
+    // Scheckung: unregelmäßige helle Flecken, aus der Größe abgeleitet
+    g.save();
+    g.globalAlpha = .42;
+    g.fillStyle = light;
+    for (let i = 0; i < 5; i++) {
+      const a = i * 2.39 + s * .3;
+      const fx2 = Math.cos(a) * s * .46;
+      const fy2 = Math.sin(a * 1.7) * s * .5 - s * .05;
+      g.beginPath();
+      g.ellipse(fx2, fy2, s * (.16 + (i % 3) * .05), s * (.12 + (i % 2) * .05), a, 0, 7);
+      g.fill();
+    }
+    g.restore();
+  } else if (variante === 2) {
+    // Bänderung: drei dunkle Querstreifen über den Rumpf
+    g.save();
+    g.globalAlpha = .38;
+    g.strokeStyle = deep;
+    g.lineWidth = Math.max(1.4, s * .14);
+    g.lineCap = "round";
+    for (let i = 0; i < 3; i++) {
+      const yy = s * (-.1 + i * .3);
+      g.beginPath();
+      g.moveTo(-s * .42, yy);
+      g.quadraticCurveTo(0, yy + s * .09, s * .42, yy);
+      g.stroke();
+    }
+    g.restore();
+    // Stirnkamm: drei kurze Zacken über der Kopflinie
+    g.fillStyle = dark;
+    g.strokeStyle = deep; g.lineWidth = Math.max(.8, s * .05);
+    for (let i = -1; i <= 1; i++) {
+      g.beginPath();
+      g.moveTo(i * s * .2 - s * .07, -s * .96);
+      g.lineTo(i * s * .2, -s * (1.24 - Math.abs(i) * .1));
+      g.lineTo(i * s * .2 + s * .07, -s * .96);
+      g.closePath(); g.fill(); g.stroke();
+    }
+  }
+
   if (tier) tierFront(g, s, col, tier, opts.type, t);
   g.restore();
 
@@ -2892,6 +2957,12 @@ function placeTower(id, c, r) {
     def, tier: 0, c, r, x: c * TILE + TILE/2, y: r * TILE + TILE/2,
     cd: 0, kills: 0, dealt: 0, born: G.time, aDmg: 0, aRng: 0, train: 0, trainSpent: 0,
     tm: null, stunT: 0,
+    /* Jede Familie hat drei Erscheinungen. Welche ein Wächter trägt,
+       entscheidet sich beim Rufen und bleibt für sein Leben gleich — zwei
+       Feuer-Wächter nebeneinander sehen dadurch verwandt, aber nicht gleich
+       aus. Aus der Position abgeleitet statt gewürfelt, damit ein geladener
+       Spielstand dieselben Gestalten zeigt wie vor dem Speichern. */
+    variante: (c * 7 + r * 13 + def.id.length) % 3,
   };
   G.towers.push(t);
   recalcAuras();
@@ -4092,6 +4163,7 @@ function resumeRun() {
     if (!def) continue;
     G.towers.push({
       def, tier: rec[1], c: rec[3], r: rec[4],
+      variante: (rec[3] * 7 + rec[4] * 13 + def.id.length) % 3,
       x: rec[3] * TILE + TILE/2, y: rec[4] * TILE + TILE/2,
       cd: 0, kills: 0, dealt: 0, born: 0, aDmg: 0, aRng: 0,
       train: rec[2] || 0, trainSpent: rec[5] || 0, tm: rec[6] || null, stunT: 0,
@@ -5461,7 +5533,7 @@ function drawTower(g, t) {
   drawCreature(g, t.x, t.y - 9 + rec * 2 + ausholen * 1.6, gr, col, t.def.shape,
     G.time + t.x * .01, {
       dir: (t.face !== undefined && Math.cos(t.face) < 0) ? -1 : 1,
-      tier: t.tier, type: t.def.type,
+      tier: t.tier, type: t.def.type, variante: t.variante || 0,
       // Ausholen wirkt wie ein Zucken, nur andersherum: erst ducken, dann Schuss
       zuck: ausholen * .55,
       brems: t.stunT > 0 ? 1 : 0,
