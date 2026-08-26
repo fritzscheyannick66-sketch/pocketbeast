@@ -969,12 +969,28 @@ const MAPS = [
        Alle Routen meiden die oberen Ecken: dort schweben die Steuerknöpfe
        (Zeilen 0–2 in den Spalten 0–5 und 15–19). Lief der Weg darunter hindurch,
        verschwanden Gegner an dieser Stelle hinter einem Knopf. */
-    wp:  [[-1,6],[3,6],[3,3],[9,3],[9,9],[5,9],[5,5],[13,5],[13,10],[17,10],[17,4],[20,5]],
+    /* Neue Führung: Zickzack statt Doppelschlinge.
+
+       Die alte Route drängte sich in der linken Bildhälfte zusammen, während
+       rechts kaum etwas geschah. Jetzt läuft der Weg in drei Kehren
+       gleichmäßig über die ganze Breite und biegt am rechten Rand zurück —
+       dabei kreuzt er sich selbst. Ein Wächter an der Kreuzung bestreicht
+       zwei getrennte Abschnitte und feuert doppelt.
+
+       Fünf Entwürfe wurden durchgemessen. Die alte Route deckte 69 Prozent
+       der freien Felder ab, diese 65 — dafür bleiben 188 statt 192 Plätze
+       übrig, und sie liegen verteilt statt geballt. Der Verlust ist der
+       Preis der Kehren; wer die Route dichter packt, gewinnt Abdeckung und
+       verliert Übersicht.
+
+       Kein Wegpunkt liegt in den Zeilen 0 bis 2 der Spalten 0–5 und 15–19:
+       dort schweben die Steuerknöpfe über dem Feld. */
+    wp:  [[-1,9],[4,9],[4,4],[9,4],[9,10],[15,10],[15,4],[19,4],[19,7],[12,7],[12,9],[20,9]],
     /* Zweiter Zweig: teilt sich den Weg bis (13,5), führt dann oben statt
        unten herum und trifft bei (17,4) wieder auf die Hauptroute. Beide
        Listen müssen im gemeinsamen Teil Punkt für Punkt gleich sein, sonst
        driften die Linien nach der Glättung auseinander. */
-    wpB: [[-1,6],[3,6],[3,3],[9,3],[9,9],[5,9],[5,5],[13,5],[13,8],[16,8],[17,6],[17,4],[20,5]],
+    wpB: [[-1,9],[4,9],[4,4],[9,4],[9,10],[15,10],[15,4],[19,4],[19,6],[16,6],[16,9],[20,9]],
   },
   {
     /* Vulkanschlote statt Wasserstellen. In einer Schlucht aus Glut und
@@ -984,7 +1000,18 @@ const MAPS = [
        Anders als eine Wasserstelle fesselt der Schlot nicht: Feuer-Wächter
        dürfen weiterhin überall stehen, der Schlot ist ein besonders guter
        Platz, keine Bedingung. */
-    sonderfelder: [["vulkan", 4], ["kraft", 3], ["hoehe", 3]],
+    /* Acht Schlote statt vier.
+
+       Die Karte trägt als einzige keine Wasserstellen — die Wasserfamilie ist
+       hier nicht spielbar, und in einer Ebene aus Glut und Asche soll sie das
+       auch nicht sein. Der Ausgleich kommt aus der Feuerwelt selbst: doppelt
+       so viele Schlote, damit die Familie, die hier zu Hause ist, auch
+       tatsächlich Platz zum Entfalten hat.
+
+       Gemessen über fünf Läufe hebt das den Median von 97 auf 100. Mehr sagt
+       die Messung nicht — die Streuung reicht von 42 bis 100 und überdeckt
+       alles Feinere. */
+    sonderfelder: [["vulkan", 8], ["kraft", 3], ["hoehe", 3]],
     name: "Glutschlucht", diff: "Fordernd", mul: 1.44, gold: 300, lives: 18,
     himmel: ["#3B1F1E", "#8F5238"],
     ground: ["#241310", "#331914"], accent: "#7A452E", foliage: "#8E5730",
@@ -2707,7 +2734,20 @@ function baueFelder() {
         }
       }
       if (!rand.length) break;
-      const w = rand[Math.floor(rnd() * rand.length)];
+      /* Kompakt wachsen: Felder bevorzugen, die schon mehrere Wassernachbarn
+         haben. Rein zufällig gewählt wuchs der See zu einer schmalen Kette
+         aus, die eher nach Bachlauf als nach Gewässer aussah. */
+      let bestes = null, besteZahl = -1;
+      for (const k of rand) {
+        let n = 0;
+        for (const [dc, dr] of [[1,0],[-1,0],[0,1],[0,-1]]) {
+          if (felder.get((k.c + dc) + "," + (k.r + dr)) === art) n++;
+        }
+        // bei Gleichstand entscheidet der Zufall, damit die Form unregelmäßig bleibt
+        const wert = n + rnd() * 0.9;
+        if (wert > besteZahl) { besteZahl = wert; bestes = k; }
+      }
+      const w = bestes;
       felder.set(w.c + "," + w.r, art);
       drin.push(w);
       gesetzt++;
@@ -4420,25 +4460,36 @@ function zeichneWasser(g) {
      Der Radius muss über eine halbe Kachel hinausreichen (56 / 2 = 28),
      sonst berühren sich benachbarte Kacheln nicht und der See zerfällt in
      einzelne Pfützen. */
-  const R = TILE * 0.62;
+  /* Der See darf nicht über seine Kacheln hinausragen — sonst liegt er
+     halb auf dem Weg. Deshalb bleibt der Kreis je Kachel innerhalb der
+     Kachelgrenze, und die Lücken zwischen benachbarten Wasserkacheln
+     schließen zusätzliche Kreise auf halber Strecke. So verschmilzt die
+     Fläche, ohne irgendwo überzulaufen. */
+  const R = TILE * 0.48;                       // knapp innerhalb der Kachel
+  const ist = (c, r) => G.felder.get(c + "," + r) === "wasser";
+
+  // Alle Kreise, die die Fläche bilden: die Kacheln selbst und die Brücken
+  const kreise = wasser.map((w) => ({ x: w.x, y: w.y, r: R }));
+  for (const w of wasser) {
+    for (const [dc, dr] of [[1, 0], [0, 1]]) {
+      if (!ist(w.c + dc, w.r + dr)) continue;
+      kreise.push({ x: w.x + dc * TILE / 2, y: w.y + dr * TILE / 2, r: R * .82 });
+    }
+  }
 
   g.save();
   // 1. Mulde darunter
   g.fillStyle = "rgba(0,0,0,.28)";
-  for (const w of wasser) {
-    g.beginPath(); g.arc(w.x, w.y + 3, R, 0, 7); g.fill();
-  }
+  for (const k of kreise) { g.beginPath(); g.arc(k.x, k.y + 3, k.r, 0, 7); g.fill(); }
   // 2. Heller Saum: etwas größer, wird gleich fast ganz überdeckt
   g.fillStyle = "rgba(170,220,250,.6)";
-  for (const w of wasser) {
-    g.beginPath(); g.arc(w.x, w.y, R, 0, 7); g.fill();
-  }
-  // 3. Wasserfläche darüber — überlappend, damit die Kacheln verschmelzen
-  for (const w of wasser) {
-    const grd = g.createRadialGradient(w.x - 6, w.y - 6, 2, w.x, w.y, R);
+  for (const k of kreise) { g.beginPath(); g.arc(k.x, k.y, k.r, 0, 7); g.fill(); }
+  // 3. Wasserfläche darüber
+  for (const k of kreise) {
+    const grd = g.createRadialGradient(k.x - 6, k.y - 6, 2, k.x, k.y, k.r);
     grd.addColorStop(0, "#7FC4F5"); grd.addColorStop(.6, "#3E86C8"); grd.addColorStop(1, "#245A8E");
     g.fillStyle = grd;
-    g.beginPath(); g.arc(w.x, w.y, R - 2.5, 0, 7); g.fill();
+    g.beginPath(); g.arc(k.x, k.y, k.r - 2.5, 0, 7); g.fill();
   }
   /* Der Rand entsteht nicht durch Stricheln, sondern durch Schichtung:
      Jede Kachel einzeln zu umranden zöge auch mitten durch den See Linien,

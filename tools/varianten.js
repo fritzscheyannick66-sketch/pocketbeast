@@ -47,14 +47,33 @@ function balken(anteil, breite) {
    Änderungen der vorigen mit sich. */
 function messe(spiel, kartenIdx, aenderung, laeufe) {
   const karte = spiel.MAPS[kartenIdx];
-  const alt = { mul: karte.mul, gold: karte.gold, lives: karte.lives };
-  Object.assign(karte, aenderung);
+  /* Auch Sonderfelder und einzelne Wächterwerte lassen sich durchmessen.
+     sonderfelder wird tief kopiert, sonst trüge die nächste Variante die
+     Änderung der vorigen mit sich. */
+  const alt = {
+    mul: karte.mul, gold: karte.gold, lives: karte.lives,
+    sonderfelder: karte.sonderfelder ? JSON.parse(JSON.stringify(karte.sonderfelder)) : undefined,
+  };
+  const towerAlt = [];
+  if (aenderung.tower) {
+    for (const [id, feld, wert] of aenderung.tower) {
+      const def = spiel.TOWER_BY_ID[id];
+      for (let i = 0; i < 3; i++) {
+        towerAlt.push([id, i, feld, def.tiers[i][feld]]);
+        def.tiers[i][feld] = Math.round(def.tiers[i][feld] * wert);
+      }
+    }
+  }
+  const kartenAend = Object.assign({}, aenderung);
+  delete kartenAend.tower;
+  Object.assign(karte, kartenAend);
 
   const ergebnisse = [];
   for (let i = 0; i < laeufe; i++) {
     ergebnisse.push(spieleRunde(spiel, kartenIdx, { maxTuerme: TUERME_MAX }));
   }
   Object.assign(karte, alt);
+  for (const [id, i, feld, wert] of towerAlt) spiel.TOWER_BY_ID[id].tiers[i][feld] = wert;
 
   return {
     welle: median(ergebnisse.map((r) => r.welle)),
@@ -78,9 +97,13 @@ const ist = { mul: karte.mul, gold: karte.gold, lives: karte.lives };
    ablesen lässt, dann Kombinationen. */
 const varianten = [
   ["wie jetzt", {}],
-  ["Multiplikator 1,75", { mul: 1.75 }],
-  ["Startbeeren 560", { gold: 560 }],
-  ["1,80 + 480 Beeren", { mul: 1.80, gold: 480 }],
+  ["8 Vulkanschlote", { sonderfelder: [["vulkan", 8], ["kraft", 3], ["hoehe", 3]] }],
+  ["6 Erhöhungen", { sonderfelder: [["vulkan", 4], ["kraft", 3], ["hoehe", 6]] }],
+  ["Multiplikator 1,32", { mul: 1.32 }],
+  ["Multiplikator 1,22", { mul: 1.22 }],
+  ["Startbeeren 420", { gold: 420 }],
+  ["Feuer Reichweite +40 %", { tower: [["fire", "range", 1.40]] }],
+  ["8 Schlote + Feuer +40 %", { sonderfelder: [["vulkan", 8], ["kraft", 3], ["hoehe", 3]], tower: [["fire", "range", 1.40]] }],
 ];
 
 console.log("");
