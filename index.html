@@ -83,6 +83,18 @@ button{font-family:inherit;color:inherit}
 /* ---------- layout ---------- */
 .main{display:grid;grid-template-columns:minmax(0,1fr) 330px;gap:12px;align-items:start}
 .right{display:flex;flex-direction:column;gap:12px}
+/* Hain der Ahnen — der Beeren-Abfluss des Endlosmodus */
+.hainrow{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--line)}
+.hainrow:last-child{border-bottom:none}
+.hainrow .hn{flex:1;min-width:0}
+.hainrow .hn b{display:block;font-size:13px;line-height:1.25}
+.hainrow .hn span{display:block;font-size:11px;color:var(--muted);line-height:1.35;margin-top:2px}
+.hainrow .hs{font:700 11px/1 "JetBrains Mono",monospace;color:var(--amber);white-space:nowrap;min-width:22px;text-align:right}
+.hainrow button{flex:none;font:700 11px/1 "JetBrains Mono",monospace;padding:8px 11px;border-radius:7px;
+  background:var(--amber);color:#1a1206;border:none;cursor:pointer;min-width:56px}
+.hainrow button:hover:not(:disabled){filter:brightness(1.1)}
+.hainrow button:disabled{background:var(--line);color:var(--muted);cursor:default}
+
 @media (max-width:1080px){
   .main{display:flex;flex-direction:column;gap:12px;min-width:0}
   .main > *,.panel,.controls{min-width:0;max-width:100%}
@@ -92,6 +104,7 @@ button{font-family:inherit;color:inherit}
   .controls{order:3}
   #panel-sel{order:4}
   #panel-boons{order:5}
+  #panel-hain{order:6}
   #panel-wave{order:6}
   #panel-log{order:7}
 }
@@ -422,6 +435,11 @@ table.eff th{color:var(--muted);font-weight:700;font-size:9.5px;letter-spacing:.
       <div class="panel" id="panel-sel">
         <h2>Auswahl</h2>
         <div id="selbox"><p class="empty">Tippe auf einen Wächter im Feld, um ihn zu entwickeln oder zu entlassen.</p></div>
+      </div>
+      <div class="panel" id="panel-hain" hidden>
+        <h2>Hain der Ahnen</h2>
+        <p class="empty" style="margin:0 0 10px">Beeren, die nichts mehr kaufen können, wachsen hier weiter. Ohne Obergrenze — jede Stufe kostet mehr.</p>
+        <div id="hainliste"></div>
       </div>
       <div class="panel" id="panel-boons" hidden>
         <h2>Segnungen</h2>
@@ -2007,7 +2025,7 @@ const G = {
   queue: [], waveActive: false, sent: 0,
   speed: 1, paused: false, running: false, over: false,
   place: null, sel: null, hover: null, ghost: null, targetMode: "first",
-  boons: {}, mod: null, nextMod: null,
+  boons: {}, hain: {}, mod: null, nextMod: null,
   time: 0, score: 0, leaked: 0, shake: 0, endless: false,
 };
 const TARGET_MODES = [
@@ -2250,6 +2268,7 @@ function endWave() {
   save.points += isBossWave(G.wave) ? 6 : 1;
   const neueSterne = G.endless ? 0 : sternVergeben(G.mapIdx, G.wave);
   writeSave();
+  if (G.endless) renderHain();
   addLog(`Welle ${G.wave} gehalten — <b>+${clearBonus + interest}</b> Beeren`
     + (neueSterne ? ` · <b>★</b> Stern ${sterne(G.mapIdx)}/${WELLEN_JE_KARTE}` : ""));
   if (neueSterne) {
@@ -2293,19 +2312,88 @@ function recalcAuras() {
 function boon(id) { return G.boons[id] || 0; }
 function trainMul(t) { return 1 + (t.train || 0) * .09; }
 function statDmg(t) {
-  return tierOf(t).dmg * (1 + rank("kraft") * .04) * (1 + (t.aDmg || 0)) * trainMul(t) * (1 + boon("dmg") * .12);
+  return tierOf(t).dmg * (1 + rank("kraft") * .04) * (1 + (t.aDmg || 0)) * trainMul(t)
+       * (1 + boon("dmg") * .12) * (1 + hainStufe("schliff") * .03);
 }
 function statRange(t) {
   const modR = G.mod && G.mod.range ? G.mod.range : 1;
   // Kraftfelder erweitern die Sicht des Wächters, der darauf steht
   const feld = feldArt(t.c, t.r) === "kraft" ? (1 + FELD_KRAFT_BONUS) : 1;
   return tierOf(t).range * (1 + rank("weit") * .03) * (1 + (t.aRng || 0))
-       * (1 + (t.train || 0) * .02) * (1 + boon("rng") * .08) * modR * feld;
+       * (1 + (t.train || 0) * .02) * (1 + boon("rng") * .08) * modR * feld
+       * (1 + hainStufe("fern") * .02);
 }
 const TRAIN_MAX = 15;
+
+/* ============================================================
+   Hain der Ahnen — der Beeren-Abfluss des Endlosmodus
+   ============================================================
+   Gemessen endete eine gehaltene Runde mit 327.000 bis 414.000 übrigen
+   Beeren. Ab einem Punkt gab es schlicht nichts mehr zu kaufen: alle
+   Wächter auf Endstufe, Megaentwicklung durch, Training am Anschlag, Feld
+   belegt. Die Währung verlor ihren Sinn, und mit ihr jede Entscheidung, die
+   an ihr hing.
+
+   Der Hain nimmt Beeren ohne Obergrenze an. Jeder Zweig lässt sich beliebig
+   oft ausbauen, und jeder Ausbau kostet mehr als der vorige — bei einem
+   Zuwachs von rund 30 Prozent je Stufe schluckt er auch sechsstellige
+   Vorräte, ohne dass ein einzelner Kauf die Runde entscheidet.
+
+   Die Wirkung bleibt für den Rest der Runde. Anders als ein Wächter, der
+   einen Platz belegt und entlassen werden kann, ist der Hain endgültig —
+   das ist der Preis dafür, dass er nie ausgeht.
+
+   Nur im Endlosmodus. In der Runde über hundert Wellen soll die Knappheit
+   knapp bleiben. */
+const HAIN = [
+  { id: "wehr",   name: "Wehrgang",     preis: 900,  wachstum: 1.34,
+    wirkung: "+1 Leben" },
+  { id: "schliff",name: "Schleifstein", preis: 1300, wachstum: 1.29,
+    wirkung: "+3 % Schaden aller Wächter" },
+  { id: "fern",   name: "Fernrohr",     preis: 1100, wachstum: 1.31,
+    wirkung: "+2 % Reichweite aller Wächter" },
+  { id: "futter", name: "Futterlager",  preis: 1000, wachstum: 1.27,
+    wirkung: "+4 % Beeren je Besiegtem" },
+];
+const HAIN_BY_ID = Object.fromEntries(HAIN.map(h => [h.id, h]));
+
+/* Stufe eines Zweigs. */
+function hainStufe(id) { return (G.hain && G.hain[id]) || 0; }
+
+/* Preis der nächsten Stufe. Wächst geometrisch — der zehnte Ausbau des
+   Schleifsteins kostet bereits das Zehnfache des ersten. */
+function hainPreis(id) {
+  const h = HAIN_BY_ID[id];
+  if (!h) return Infinity;
+  return Math.round(h.preis * Math.pow(h.wachstum, hainStufe(id)));
+}
+
+function hainKaufen(id) {
+  if (!G.endless) return false;              // nur im Endlosmodus
+  const preis = hainPreis(id);
+  if (G.gold < preis) { warnGold(); return false; }
+  G.gold -= preis;
+  if (!G.hain) G.hain = {};
+  G.hain[id] = hainStufe(id) + 1;
+  if (id === "wehr") G.lives += 1;
+  recalcAuras(); updateStats(); renderSel(); renderHain(); saveRun();
+  addLog(`<b>${HAIN_BY_ID[id].name}</b> auf Stufe ${G.hain[id]} — ${preis} Beeren.`);
+  sfxUpgrade();
+  return true;
+}
 function trainCost(t) { return Math.round(80 * Math.pow(1.24, t.train || 0)); }
+/* Im Endlosmodus fällt die Trainingsgrenze.
+
+   Sie hat ihren Sinn in der Runde über hundert Wellen: Ohne sie ließe sich
+   ein einzelner Wächter beliebig hochziehen, statt die Truppe zu verbreitern.
+   Im Endlosmodus gibt es aber kein Ende, an dem die Rechnung aufgehen müsste
+   — dort ist das Training der zweite Ort, an dem Beeren verschwinden. Die
+   Kosten wachsen um 24 Prozent je Stufe und ziehen davon: Stufe 30 kostet
+   rund 51.000 Beeren. */
+function trainGrenze() { return G.endless ? Infinity : TRAIN_MAX; }
+
 function trainTower(t) {
-  if (t.tier < 2 || (t.train || 0) >= TRAIN_MAX) return;
+  if (t.tier < 2 || (t.train || 0) >= trainGrenze()) return;
   const c = trainCost(t);
   if (G.gold < c) { warnGold(); return; }
   G.gold -= c; t.train = (t.train || 0) + 1; t.trainSpent = (t.trainSpent || 0) + c;
@@ -2570,7 +2658,8 @@ function damage(en, amount, type, src) {
 function kill(en, src) {
   if (en.dead) return;
   en.dead = true;
-  const g = Math.round(en.bounty * (1 + rank("kopfgeld") * .06) * (1 + boon("gold") * .18));
+  const g = Math.round(en.bounty * (1 + rank("kopfgeld") * .06) * (1 + boon("gold") * .18)
+    * (1 + hainStufe("futter") * .04));
   G.gold += g;
   G.score += en.boss ? 900 : 40;
   if (src) src.kills++;
@@ -3640,7 +3729,7 @@ function saveRun() {
   save.run = {
     m: G.mapIdx, gold: G.gold, lives: G.lives, sent: G.sent, score: G.score,
     leaked: G.leaked, endless: G.endless, tm: G.targetMode,
-    boons: G.boons,
+    boons: G.boons, hain: G.hain,
     t: G.towers.map(t => [t.def.id, t.tier, t.train || 0, t.c, t.r, t.trainSpent || 0, t.tm || null]),
   };
   writeSave();
@@ -3653,6 +3742,7 @@ function resumeRun() {
   G.gold = r.gold; G.lives = r.lives; G.sent = r.sent; G.wave = r.sent;
   G.score = r.score || 0; G.leaked = r.leaked || 0;
   G.endless = !!r.endless; G.targetMode = r.tm || "first"; G.boons = r.boons || {};
+  G.hain = r.hain || {};   // ältere Stände kennen den Hain noch nicht
   for (const rec of (r.t || [])) {
     const def = TOWER_BY_ID[rec[0]];
     if (!def) continue;
@@ -3665,7 +3755,7 @@ function resumeRun() {
   }
   recalcAuras();
   addLog(`Runde fortgesetzt — <b>Welle ${G.sent}</b> auf ${G.map.name}.`);
-  renderShop(); renderSel(); renderWaveList(); renderBoons(); updateStats();
+  renderShop(); renderSel(); renderWaveList(); renderBoons(); renderHain(); updateStats();
   banner("Runde fortgesetzt");
   return true;
 }
@@ -5146,9 +5236,9 @@ function renderSel() {
       ${t.aDmg ? `<div class="empty">Verstärkt durch ein Psycho-Feld: +${Math.round(t.aDmg * 100)}% Schaden, +${Math.round(t.aRng * 100)}% Reichweite.</div>` : ""}
       <div style="display:flex;gap:7px;flex-wrap:wrap">
         ${nx ? `<button class="btn primary" id="b-up" style="flex:1;min-width:150px" ${G.gold < nx.cost ? "disabled" : ""}>Entwickeln · ${nx.cost}</button>`
-             : (t.train >= TRAIN_MAX
+             : (t.train >= trainGrenze()
                 ? `<button class="btn" style="flex:1;min-width:150px" disabled>Training am Limit</button>`
-                : `<button class="btn primary" id="b-train" style="flex:1;min-width:150px" ${G.gold < trainCost(t) ? "disabled" : ""}>Training ${t.train + 1}/${TRAIN_MAX} · ${trainCost(t)}</button>`)}
+                : `<button class="btn primary" id="b-train" style="flex:1;min-width:150px" ${G.gold < trainCost(t) ? "disabled" : ""}>Training ${t.train + 1}${G.endless ? "" : "/" + TRAIN_MAX} · ${trainCost(t)}</button>`)}
         <button class="btn" id="b-sell">Entlassen · ${sellValue(t)}</button>
       </div>
       <button class="btn ghost sm" id="b-tm" style="width:100%">Ziel dieses Wächters: ${
@@ -5307,6 +5397,28 @@ function lageHTML(est) {
 }
 
 /* --- Segnungen --- */
+/* Der Hain steht nur im Endlosmodus. Vorher gäbe es nichts anzuzeigen, und
+   eine leere Tafel in der Leiste ist schlechter als keine. */
+function renderHain() {
+  const pan = $("panel-hain"), box = $("hainliste");
+  if (!pan) return;
+  if (!G.endless) { pan.hidden = true; return; }
+  pan.hidden = false;
+  box.innerHTML = HAIN.map(h => {
+    const stufe = hainStufe(h.id);
+    const preis = hainPreis(h.id);
+    const reicht = G.gold >= preis;
+    return `<div class="hainrow">
+      <span class="hn"><b>${h.name}</b><span>${h.wirkung}</span></span>
+      <span class="hs">${stufe > 0 ? "×" + stufe : "—"}</span>
+      <button data-hain="${h.id}" ${reicht ? "" : "disabled"}>${preis}</button>
+    </div>`;
+  }).join("");
+  box.querySelectorAll("button[data-hain]").forEach(b => {
+    b.addEventListener("click", () => { hainKaufen(b.dataset.hain); sfxUI(); });
+  });
+}
+
 function renderBoons() {
   const pan = $("panel-boons"), box = $("boonlist");
   if (!pan) return;
@@ -5353,13 +5465,13 @@ function takeBoon(b) {
   if (b.id === "cash") { G.gold += 300; }
   if (b.id === "train") {
     let n = 0;
-    for (const t of G.towers) if (t.tier >= 2 && (t.train || 0) < TRAIN_MAX) { t.train++; n++; }
+    for (const t of G.towers) if (t.tier >= 2 && (t.train || 0) < trainGrenze()) { t.train++; n++; }
     addLog(`Feldtraining: <b>${n}</b> Wächter verstärkt.`);
   }
   sfxWaveClear();
   addLog(`Segnung erhalten: <b>${b.name}</b>.`);
   banner(b.name);
-  recalcAuras(); renderBoons(); renderSel(); updateStats(); saveRun();
+  recalcAuras(); renderBoons(); renderHain(); renderSel(); updateStats(); saveRun();
 }
 
 const logLines = [];
@@ -5721,15 +5833,43 @@ function showHelp() {
   $("b-closehelp").addEventListener("click", closeVeil);
 }
 
+/* Was von den Beeren bleibt.
+
+   Eine gehaltene Runde endete gemessen mit 327.000 bis 414.000 übrigen
+   Beeren. Sie verfielen restlos — und damit auch jeder Grund, in der zweiten
+   Hälfte noch zu haushalten.
+
+   Der Hain fängt das im Endlosmodus auf. In der Runde über hundert Wellen
+   bleibt der Rest übrig, also wird er zu Trainerpunkten: einer je 2.500
+   Beeren, höchstens zwölf. Der Deckel ist Absicht — ohne ihn machte ein
+   einziger guter Lauf den ganzen Trainerpfad auf einmal auf, und das
+   Sammeln über mehrere Runden hätte keinen Sinn mehr.
+
+   Zwölf entsprechen etwa dem, was zwei Bosswellen einbringen. Ein spürbarer
+   Nachschlag, kein Ersatz fürs Spielen. */
+const BEEREN_JE_PUNKT = 2500;
+const BEEREN_PUNKTE_MAX = 12;
+
+function beerenAbrechnen() {
+  const punkte = Math.min(BEEREN_PUNKTE_MAX, Math.floor(G.gold / BEEREN_JE_PUNKT));
+  if (punkte > 0) {
+    save.points += punkte;
+    addLog(`<b>${G.gold}</b> übrige Beeren eingetauscht — <b>+${punkte}</b> Trainerpunkte.`);
+  }
+  return punkte;
+}
+
 function gameOver() {
   G.over = true; G.running = false;
+  const beerenPunkte = beerenAbrechnen();
   clearRun(); sfxLose();
   const bb = $("bossbar"); if (bb) bb.hidden = true;
   if (G.score > (save.best || 0)) { save.best = G.score; }
   writeSave();
   openVeil(`<h2 class="big">Das Dorf ist gefallen</h2>
-    <p class="lead">${G.sent - 1} Wellen gehalten auf ${G.map.name}. Beim nächsten Anlauf helfen Trainerpunkte —
-    du hast ${talentPointsLeft()} übrig.</p>
+    <p class="lead">${G.sent - 1} Wellen gehalten auf ${G.map.name}.${beerenPunkte
+      ? ` Deine ${G.gold} übrigen Beeren wurden zu <b>${beerenPunkte} Trainerpunkten</b>.` : ""}
+    Beim nächsten Anlauf helfen sie — du hast ${talentPointsLeft()} übrig.</p>
     <div class="grid2" style="max-width:420px;margin-bottom:16px">
       <div class="kv"><div class="k">Wellen</div><div class="v">${Math.max(0, G.sent - 1)}</div></div>
       <div class="kv"><div class="k">Punkte</div><div class="v">${G.score}</div></div>
@@ -5749,11 +5889,12 @@ function victory() {
   const bb = $("bossbar"); if (bb) bb.hidden = true;
   save.cleared[G.mapIdx] = true;
   save.points += 15;
+  const beerenPunkte = beerenAbrechnen();
   if (G.score > (save.best || 0)) save.best = G.score;
   writeSave();
   openVeil(`<h2 class="big">Route gehalten</h2>
     <p class="lead">Alle ${WELLEN_JE_KARTE} Wellen auf ${G.map.name} abgewehrt, mit ${G.lives} Leben übrig.
-    +15 Trainerpunkte. ${MAPS.filter((_, i) => !save.cleared[i]).length ? "Die härteren Routen warten." : "Alle drei Routen gemeistert."}</p>
+    +15 Trainerpunkte${beerenPunkte ? `, dazu ${beerenPunkte} aus ${G.gold} übrigen Beeren` : ""}. ${MAPS.filter((_, i) => !save.cleared[i]).length ? "Die härteren Routen warten." : "Alle drei Routen gemeistert."}</p>
     <div class="grid2" style="max-width:420px;margin-bottom:16px">
       <div class="kv"><div class="k">Punkte</div><div class="v">${G.score}</div></div>
       <div class="kv"><div class="k">Leben übrig</div><div class="v">${G.lives}</div></div>
@@ -5772,8 +5913,9 @@ function victory() {
     if (!legendaerFrei(G.mapIdx)) return;   // ohne legendären Wächter kein Endlos
     closeVeil();
     G.over = false; G.running = true; G.endless = true;
-    addLog("<b>Endlosmodus</b> — die Wildnis hört nicht auf.");
+    addLog("<b>Endlosmodus</b> — die Wildnis hört nicht auf. Der <b>Hain der Ahnen</b> nimmt jetzt Beeren an, und das Training kennt keine Grenze mehr.");
     banner("Endlosmodus"); saveRun(); updateStats(); renderWaveList();
+    renderHain(); renderSel();
   });
   $("b-tomenu2").addEventListener("click", showMenu);
 }
@@ -5803,7 +5945,7 @@ function newRun(mapIdx, quiet) {
   G.wave = 0; G.sent = 0; G.score = 0; G.leaked = 0;
   G.waveActive = false; G.paused = false; G.over = false; G.running = true;
   G.place = null; G.sel = null; G.ghost = null; G.speed = 1; G.time = 0; G.shake = 0; G.endless = false;
-  G.boons = {}; G.mod = null;
+  G.boons = {}; G.hain = {}; G.mod = null;
   clearRun();
   decorCache = null; bgCache = null; stoneCache = null;
   logLines.length = 0;
@@ -5815,7 +5957,7 @@ function newRun(mapIdx, quiet) {
     banner(G.map.name);
   }
   const bb = $("bossbar"); if (bb) bb.hidden = true;
-  renderShop(); renderSel(); renderWaveList(); renderBoons(); updateStats();
+  renderShop(); renderSel(); renderWaveList(); renderBoons(); renderHain(); updateStats();
 }
 
 let last = performance.now();

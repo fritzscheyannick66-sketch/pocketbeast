@@ -195,6 +195,8 @@ function ladeSpiel(datei) {
   save, offerBoon, takeBoon,
   pathAt, genWave, estimateDefense, pickMod, pathCoverage,
   BOONS, takeBoon,
+  HAIN, hainStufe, hainPreis, hainKaufen, trainGrenze,
+  beerenAbrechnen, BEEREN_JE_PUNKT, BEEREN_PUNKTE_MAX,
 };`;
 
   vm.runInContext(quelltext + anhang, welt, { filename: "index.html:script" });

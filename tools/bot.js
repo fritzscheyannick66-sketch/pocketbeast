@@ -171,11 +171,30 @@ function bauen(spiel, zustand) {
       }
     }
 
-    // --- 4. Training, wenn sonst nichts ansteht ---
+    /* --- 4. Hain der Ahnen ---
+       Nur im Endlosmodus vorhanden. Er nimmt Beeren ohne Obergrenze an und
+       ist damit der Ort, an dem ein Überschuss überhaupt noch etwas bewirkt.
+       Der Bot kauft, sobald ein Zweig weniger kostet als ein Achtel seines
+       Vorrats — so gibt er stetig aus, ohne sich leerzuräumen. */
+    if (G.endless && spiel.HAIN) {
+      let besterZweig = null, zweigWert = 0;
+      for (const h of spiel.HAIN) {
+        const preis = spiel.hainPreis(h.id);
+        if (preis > G.gold / 8) continue;
+        // Schaden und Reichweite wirken auf alle Wächter, Leben nur einmal
+        const nutzen = h.id === "schliff" ? 3 : h.id === "fern" ? 2
+                     : h.id === "futter" ? 2 : (G.lives < 10 ? 4 : 1);
+        const wert = nutzen / preis;
+        if (wert > zweigWert) { zweigWert = wert; besterZweig = h.id; }
+      }
+      if (besterZweig && spiel.hainKaufen(besterZweig)) { handelte = true; continue; }
+    }
+
+    // --- 5. Training, wenn sonst nichts ansteht ---
     let bestesTraining = null, trainWert = 0;
     for (const t of G.towers) {
       if (t.tier < 2) continue;                       // erst ausbauen
-      if ((t.train || 0) >= spiel.TRAIN_MAX) continue;
+      if ((t.train || 0) >= spiel.trainGrenze()) continue;
       const kosten = spiel.trainCost(t);
       // Reserve halten, damit nicht alles ins Training fließt
       if (G.gold < kosten + 260) continue;
