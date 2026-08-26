@@ -28,6 +28,8 @@
   --t-psychic:#C382FF;
   --t-ice:#7FDBF0;
   --t-steel:#A9BECD;
+  --t-fairy:#FF9ED2;
+  --t-dark:#8C7BB8;
   --good:#57CE7C;
   --warn:#F0A83C;
   --bad:#FF6E45;
@@ -171,6 +173,25 @@ canvas{display:block;width:100%;height:auto;touch-action:manipulation}
 .stagectl .btn.primary{opacity:.88}
 /* Die untere Zeile ist leer, sobald die Knöpfe oben sitzen */
 .row-main:empty{display:none}
+
+/* Megaentwicklung im Auswahlfeld */
+.megabox{background:var(--ground-2);border:1px solid var(--amber-dim);border-radius:10px;padding:9px 10px;margin-top:2px}
+.megakopf{font-family:var(--f-mono);font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--amber);font-weight:700;margin-bottom:6px}
+.megazeile{display:flex;justify-content:space-between;align-items:baseline;font-size:11.5px;color:var(--muted);margin-top:4px}
+.megazeile b{font-family:var(--f-mono);color:var(--ink);font-size:11.5px}
+.megabar{height:4px;background:rgba(0,0,0,.4);border-radius:99px;overflow:hidden;margin-top:3px}
+.megafill{height:100%;background:linear-gradient(90deg,var(--amber),#FFD08A);transition:width .3s ease}
+.megafertig{background:linear-gradient(90deg,rgba(240,168,60,.22),rgba(240,168,60,.06));
+  border:1px solid var(--amber);border-radius:10px;padding:8px 10px;
+  font-family:var(--f-mono);font-size:10.5px;letter-spacing:.08em;color:var(--amber);font-weight:700}
+
+/* Tageszeit der kommenden Welle — entscheidet, ob Feen oder Unlicht
+   aufsteigen können, muss also vor dem Bauen ablesbar sein. */
+.tageschip{display:inline-flex;align-items:center;gap:6px;width:100%;
+  border-radius:8px;padding:5px 9px;margin-bottom:6px;
+  font-family:var(--f-mono);font-size:10px;letter-spacing:.12em;text-transform:uppercase;font-weight:700}
+.tageschip.tag{background:rgba(240,200,120,.14);border:1px solid rgba(240,200,120,.45);color:#F0C878}
+.tageschip.nacht{background:rgba(140,160,230,.14);border:1px solid rgba(140,160,230,.45);color:#A9BEE8}
 
 .controls{display:flex;flex-direction:column;gap:8px;margin-top:10px}
 .row-main{display:flex;gap:8px;align-items:center}
@@ -437,6 +458,8 @@ const TYPES = {
   psychic:  { name: "Psycho",  col: "#C382FF" },
   ice:      { name: "Eis",     col: "#7FDBF0" },
   steel:    { name: "Stahl",   col: "#A9BECD" },
+  fairy:    { name: "Fee",     col: "#FF9ED2" },
+  dark:     { name: "Unlicht", col: "#8C7BB8" },
 };
 const TYPE_KEYS = Object.keys(TYPES);
 
@@ -455,7 +478,12 @@ const CHART = {
      oder ohnehin hart gefroren ist. Stahl zermalmt Eis und Gestein und steht
      gegen Psycho-Kräfte fest — schmilzt dafür unter Feuer. */
   ice:      { grass: 2,   rock: 2,  ice: .5,   fire: .5, water: .5, steel: .5 },
-  steel:    { ice: 2,     rock: 2,  steel: .5, fire: .5, water: .5, electric: .5 },
+  steel:    { ice: 2,     rock: 2,  fairy: 2,  steel: .5, fire: .5, water: .5, electric: .5 },
+  /* Fee bricht Unlicht und Gestein auf, prallt aber an Feuer, Stahl und Gift-
+     losem Metall ab. Unlicht trifft Psycho und die eigene Sippe hart, versagt
+     jedoch gegen Feen — die klassische Gegenrechnung zu Psycho. */
+  fairy:    { dark: 2,    rock: 2,  psychic: 1.5, fairy: .5, fire: .5, steel: .5 },
+  dark:     { psychic: 2, dark: 2,  fairy: .5, steel: .5 },
 };
 function eff(atk, def) {
   const r = CHART[atk];
@@ -542,7 +570,109 @@ const TOWERS = [
       { name: "Amboss",      cost: 360, dmg: 158, rate: .86, range: 176, pierce: 26, splash: 40 },
     ],
   },
+  {
+    /* Fee: heilt keine Wunden, sondern schwächt — markiert Ziele und trifft
+       Unlicht hart. Entwickeln nur bei Tag: nachts ruht die Kraft. */
+    id: "fairy", type: "fairy", shape: "wisp", air: true,
+    nurBei: "tag",
+    blurb: "Markiert Ziele und bricht Unlicht — entwickelt sich nur am Tag.",
+    tiers: [
+      { name: "Schimmerchen", cost: 120, dmg: 11, rate: 1.5, range: 140, mark: .10 },
+      { name: "Glanzfee",     cost: 175, dmg: 24, rate: 1.7, range: 158, mark: .18, splash: 32 },
+      { name: "Morgenlicht",  cost: 315, dmg: 46, rate: 1.9, range: 178, mark: .30, splash: 46 },
+    ],
+  },
+  {
+    /* Unlicht: schlägt aus dem Hinterhalt, hoher Einzelschaden mit Brandwirkung.
+       Entwickeln nur bei Nacht. */
+    id: "dark", type: "dark", shape: "eye", air: true,
+    nurBei: "nacht",
+    blurb: "Schlägt hart aus dem Dunkel — entwickelt sich nur nachts.",
+    tiers: [
+      { name: "Schattling",  cost: 125, dmg: 26, rate: .95, range: 146 },
+      { name: "Nachtzehrer", cost: 185, dmg: 54, rate: 1.05, range: 164, burn: { dps: 14, dur: 2.5 } },
+      { name: "Finsterwacht",cost: 330, dmg: 104, rate: 1.15, range: 184, burn: { dps: 30, dur: 3 }, chain: 2 },
+    ],
+  },
 ];
+/* ============================================================
+   Megaentwicklung
+   Eine vierte Stufe, die sich nicht kaufen lässt: Der Wächter muss sie sich
+   im Feld verdienen. Erst wenn er auf Endstufe steht, genug Gegner erledigt
+   und eine Trainingsschwelle erreicht hat, wird sie freigeschaltet.
+
+   Absicht: Gold allein soll nicht alles lösen. Wer einen Wächter über die
+   ganze Runde pflegt, bekommt etwas, das man nicht kaufen kann.
+   ============================================================ */
+const MEGA_KILLS = 40;      // erledigte Gegner durch diesen Wächter
+const MEGA_TRAIN = 6;       // Trainingsstufen
+const MEGA_KOSTEN = 650;
+
+/* Werte der Megastufe leiten sich aus der Endstufe ab, statt für jede der
+   zehn Familien eigene Zahlen zu pflegen — das hielte sonst niemand synchron. */
+function megaWerte(def) {
+  const e = def.tiers[2];
+  const m = Object.assign({}, e);
+  m.name = MEGA_NAMEN[def.id] || ("Mega-" + e.name);
+  m.dmg = Math.round(e.dmg * 1.75);
+  m.rate = +(e.rate * 1.15).toFixed(2);
+  m.range = Math.round(e.range * 1.18);
+  if (e.splash) m.splash = Math.round(e.splash * 1.3);
+  if (e.chain) m.chain = e.chain + 1;
+  if (e.pierce) m.pierce = Math.round(e.pierce * 1.5);
+  if (e.mark) m.mark = +(e.mark * 1.4).toFixed(2);
+  if (e.burn) m.burn = { dps: Math.round(e.burn.dps * 1.6), dur: e.burn.dur + 1 };
+  if (e.slow) m.slow = { amt: Math.min(.75, e.slow.amt * 1.25), dur: e.slow.dur + .6 };
+  if (e.aura) m.aura = { dmg: e.aura.dmg * 1.5, rng: e.aura.rng * 1.5 };
+  if (e.root) m.root = { p: Math.min(.4, e.root.p * 1.5), dur: e.root.dur + .3 };
+  m.cost = MEGA_KOSTEN;
+  return m;
+}
+
+const MEGA_NAMEN = {
+  fire: "Infernokralle", water: "Tiefenherr", grass: "Urwaldwächter",
+  electric: "Gewitterfang", rock: "Bergbrecher", psychic: "Allseher",
+  ice: "Ewigfrost", steel: "Titanamboss", fairy: "Sternenfee", dark: "Nachtfürst",
+};
+
+/* Fortschritt in Richtung Megaentwicklung — auch für die Anzeige gebraucht. */
+function megaStand(t) {
+  return {
+    endstufe: t.tier >= 2,
+    kills: Math.min(t.kills || 0, MEGA_KILLS),
+    killsNoetig: MEGA_KILLS,
+    train: Math.min(t.train || 0, MEGA_TRAIN),
+    trainNoetig: MEGA_TRAIN,
+    schonMega: !!t.mega,
+  };
+}
+
+function megaBereit(t) {
+  if (t.mega || t.tier < 2) return false;
+  if (!darfEntwickeln(t)) return false;
+  return (t.kills || 0) >= MEGA_KILLS && (t.train || 0) >= MEGA_TRAIN;
+}
+
+function megaEntwickeln(t) {
+  if (!megaBereit(t)) return;
+  if (G.gold < MEGA_KOSTEN) { warnGold(); return; }
+  G.gold -= MEGA_KOSTEN;
+  t.mega = true;
+  t.megaWerte = megaWerte(t.def);
+  t.evo = EVO_DAUER;
+  recalcAuras();
+  const c = TYPES[t.def.type].col;
+  fx({ kind: "ring", x: t.x, y: t.y, r0: 8, r1: 76, life: .8, col: "#F0A83C" });
+  fx({ kind: "ring", x: t.x, y: t.y - 9, r0: 4, r1: 58, life: .6, col: c });
+  fx({ kind: "burst", x: t.x, y: t.y - 9, col: c, n: 26, life: 1.0 });
+  float(t.x, t.y - 30, t.megaWerte.name + "!", "#F0A83C", 1.4);
+  banner("★ " + t.megaWerte.name);
+  sfxUpgrade(); sfxWin();
+  addLog(`<b>${t.megaWerte.name}</b> — Megaentwicklung vollzogen.`);
+  G.shake = 10;
+  updateStats(); renderShop(); renderSel();
+}
+
 const TOWER_BY_ID = Object.fromEntries(TOWERS.map(t => [t.id, t]));
 
 /* ---------------- Wilde (Gegner) ---------------- */
@@ -647,13 +777,17 @@ const MAPS = [
     smooth: 2,
     /* Der Weg schlingt sich einmal über sich selbst. Ein Wächter an der
        Kreuzung bestreicht zwei getrennte Abschnitte und feuert damit zweimal
-       auf denselben Gegner — die Stelle ist der wertvollste Bauplatz der Karte. */
-    wp:  [[-1,6],[3,6],[3,2],[9,2],[9,9],[5,9],[5,5],[13,5],[13,10],[17,10],[17,4],[20,5]],
+       auf denselben Gegner — die Stelle ist der wertvollste Bauplatz der Karte.
+
+       Alle Routen meiden die oberen Ecken: dort schweben die Steuerknöpfe
+       (Zeilen 0–2 in den Spalten 0–5 und 15–19). Lief der Weg darunter hindurch,
+       verschwanden Gegner an dieser Stelle hinter einem Knopf. */
+    wp:  [[-1,6],[3,6],[3,3],[9,3],[9,9],[5,9],[5,5],[13,5],[13,10],[17,10],[17,4],[20,5]],
     /* Zweiter Zweig: teilt sich den Weg bis (13,5), führt dann oben statt
        unten herum und trifft bei (17,4) wieder auf die Hauptroute. Beide
        Listen müssen im gemeinsamen Teil Punkt für Punkt gleich sein, sonst
        driften die Linien nach der Glättung auseinander. */
-    wpB: [[-1,6],[3,6],[3,2],[9,2],[9,9],[5,9],[5,5],[13,5],[13,1],[17,1],[17,4],[20,5]],
+    wpB: [[-1,6],[3,6],[3,3],[9,3],[9,9],[5,9],[5,5],[13,5],[13,8],[16,8],[17,6],[17,4],[20,5]],
   },
   {
     name: "Glutschlucht", diff: "Fordernd", mul: 1.44, gold: 300, lives: 18,
@@ -663,7 +797,7 @@ const MAPS = [
     flora: ["grass","rock","rock","deadtree","deadtree","deadtree","crystalrock","crystalrock","vent","vent","vent"],
     /* Schroffe Spalte: spitze Winkel und Diagonalen, bewusst ungeglättet —
        der Weg knickt, statt zu schwingen. */
-    wp: [[-1,3],[4,2],[7,7],[3,8],[3,5],[10,5],[8,1],[13,2],[15,7],[11,9],[20,9]],
+    wp: [[-1,5],[3,4],[7,8],[3,9],[4,6],[11,6],[8,3],[13,4],[16,8],[11,10],[20,8]],
   },
   {
     name: "Flutruine", diff: "Brutal", mul: 1.95, gold: 320, lives: 15,
@@ -1784,7 +1918,10 @@ function endWave() {
 /* ============================================================
    Türme
    ============================================================ */
-function tierOf(t) { return t.def.tiers[t.tier]; }
+/* Ein megaentwickelter Wächter liefert seine eigenen Werte statt der Stufe 3.
+   Da sämtliche Kampfrechnungen über tierOf() gehen — Schaden, Reichweite,
+   Feuerrate, Splash, Ketten —, wirkt die Megastufe damit überall auf einmal. */
+function tierOf(t) { return (t.mega && t.megaWerte) ? t.megaWerte : t.def.tiers[t.tier]; }
 
 function recalcAuras() {
   for (const t of G.towers) { t.aDmg = 0; t.aRng = 0; }
@@ -1809,8 +1946,10 @@ function statDmg(t) {
 }
 function statRange(t) {
   const modR = G.mod && G.mod.range ? G.mod.range : 1;
+  // Kraftfelder erweitern die Sicht des Wächters, der darauf steht
+  const feld = feldArt(t.c, t.r) === "kraft" ? (1 + FELD_KRAFT_BONUS) : 1;
   return tierOf(t).range * (1 + rank("weit") * .03) * (1 + (t.aRng || 0))
-       * (1 + (t.train || 0) * .02) * (1 + boon("rng") * .08) * modR;
+       * (1 + (t.train || 0) * .02) * (1 + boon("rng") * .08) * modR * feld;
 }
 const TRAIN_MAX = 15;
 function trainCost(t) { return Math.round(80 * Math.pow(1.24, t.train || 0)); }
@@ -1834,6 +1973,109 @@ function sellValue(t) {
   return Math.round(towerValue(t) * f);
 }
 
+/* ============================================================
+   Tag und Nacht
+   Der Zyklus hängt an der Wellennummer, nicht an der Uhr: So ist er
+   vorhersehbar, pausiert mit dem Spiel und liest sich in der Wellenvorschau
+   ab. Vier Wellen Tag, vier Wellen Nacht — kurz genug, dass niemand lange auf
+   die passende Zeit wartet, lang genug, um eine Bauphase zu prägen.
+
+   Der Übergang wird weich interpoliert, damit die Beleuchtung gleitet statt
+   umzuspringen.
+   ============================================================ */
+const ZYKLUS = 4;                    // Wellen je Tageshälfte
+
+function istNacht(welle) {
+  const w = welle === undefined ? Math.max(1, G.sent) : welle;
+  return Math.floor((w - 1) / ZYKLUS) % 2 === 1;
+}
+
+/* 0 = heller Tag, 1 = tiefe Nacht. Läuft über die letzte Welle einer Hälfte
+   weich hinüber, damit der Wechsel nicht hart einsetzt. */
+function nachtAnteil() {
+  const w = Math.max(1, G.sent);
+  const inHaelfte = (w - 1) % ZYKLUS;          // 0 … ZYKLUS-1
+  const nacht = istNacht(w);
+  let a = nacht ? 1 : 0;
+  if (inHaelfte === ZYKLUS - 1) {              // letzte Welle: Übergang
+    const k = G.waveActive ? Math.min(1, (G.time % 30) / 30) : 0;
+    a = nacht ? 1 - k * .5 : k * .5;
+  }
+  return a;
+}
+
+function tagesZeitName(welle) {
+  return istNacht(welle) ? "Nacht" : "Tag";
+}
+
+/* ============================================================
+   Besondere Felder
+   Neben freien Bauplätzen gibt es zwei Sorten Sonderfeld:
+
+     wasser  — nur Wasser-Wächter dürfen hier stehen, und Wasser-Wächter
+               dürfen ausschließlich hier stehen. Das macht die Familie zu
+               einem Standortproblem statt zu einer freien Wahl.
+     kraft   — verstärkt die Reichweite des Wächters darauf um 30 %.
+
+   Die Felder liegen fest pro Karte (aus der Kartennummer abgeleitet), damit
+   eine Route wiedererkennbar bleibt und nicht bei jedem Start anders aussieht.
+   ============================================================ */
+const FELD_KRAFT_BONUS = 0.30;
+
+function baueFelder() {
+  const felder = new Map();
+  const rnd = mulberry(G.mapIdx * 6151 + 97);
+  // Nur Plätze, die auch bebaubar sind und nah genug am Weg liegen, um zu zählen
+  const tauglich = [];
+  for (let c = 0; c < COLS; c++) for (let r = 0; r < ROWS; r++) {
+    if (G.blocked.has(c + "," + r)) continue;
+    const x = c * TILE + TILE / 2, y = r * TILE + TILE / 2;
+    let naechste = 1e9;
+    for (const rt of G.routes) for (let d = 0; d < rt.len; d += 24) {
+      const p = pathAt(rt, d);
+      naechste = Math.min(naechste, Math.hypot(p.x - x, p.y - y));
+    }
+    if (naechste < 170) tauglich.push({ c, r, naechste });
+  }
+  // durchmischen, damit die Auswahl nicht dem Rasterlauf folgt
+  for (let i = tauglich.length - 1; i > 0; i--) {
+    const j = Math.floor(rnd() * (i + 1));
+    [tauglich[i], tauglich[j]] = [tauglich[j], tauglich[i]];
+  }
+  const setze = (n, art) => {
+    let gesetzt = 0;
+    for (const f of tauglich) {
+      if (gesetzt >= n) break;
+      if (felder.has(f.c + "," + f.r)) continue;
+      // Sonderfelder nicht direkt aneinander, sonst entstehen Nester
+      let nachbar = false;
+      for (let dc = -1; dc <= 1 && !nachbar; dc++) for (let dr = -1; dr <= 1; dr++)
+        if (felder.has((f.c + dc) + "," + (f.r + dr))) { nachbar = true; break; }
+      if (nachbar) continue;
+      felder.set(f.c + "," + f.r, art);
+      gesetzt++;
+    }
+    return gesetzt;
+  };
+  setze(4 + Math.floor(rnd() * 2), "wasser");   // 4–5 Wasserstellen
+  setze(3 + Math.floor(rnd() * 2), "kraft");    // 3–4 Kraftfelder
+  return felder;
+}
+
+function feldArt(c, r) {
+  return (G.felder && G.felder.get(c + "," + r)) || null;
+}
+
+/* Wasser-Wächter und Wasserstellen gehören zusammen: die einen dürfen nur
+   dorthin, die anderen nehmen nur sie auf. */
+function darfHier(id, c, r) {
+  const def = TOWER_BY_ID[id];
+  if (!def) return false;
+  const art = feldArt(c, r);
+  if (def.type === "water") return art === "wasser";
+  return art !== "wasser";
+}
+
 function canPlace(c, r) {
   if (c < 0 || c >= COLS || r < 0 || r >= ROWS) return false;
   if (G.blocked.has(c + "," + r)) return false;
@@ -1855,6 +2097,13 @@ function placeTower(id, c, r) {
   const cost = def.tiers[0].cost;
   if (G.gold < cost) { warnGold(); return; }
   if (!canPlace(c, r)) return;
+  if (!darfHier(id, c, r)) {
+    // Ohne Hinweis wirkt ein wirkungsloser Tipp wie ein Fehler im Spiel
+    banner(def.type === "water" ? "Wasser-Wächter nur auf Wasserstellen"
+                                : "Auf Wasserstellen nur Wasser-Wächter");
+    sfxUI();
+    return;
+  }
   G.gold -= cost;
   const t = {
     def, tier: 0, c, r, x: c * TILE + TILE/2, y: r * TILE + TILE/2,
@@ -1884,8 +2133,23 @@ function evoLeuchten(p) {
   return Math.max(0, Math.sin(Math.min(1, p / .55) * Math.PI)) * (1 - p * .35);
 }
 
+/* Manche Familien entwickeln sich nur zur passenden Tageszeit. Gesetzt wird
+   ihr Grundling jederzeit — nur der Aufstieg wartet auf Tag oder Nacht. Das
+   macht den Zyklus zu einer Planungsfrage, statt Bauen zu blockieren. */
+function darfEntwickeln(t) {
+  const b = t.def.nurBei;
+  if (!b) return true;
+  return b === "nacht" ? istNacht() : !istNacht();
+}
+
 function upgradeTower(t) {
   if (t.tier >= 2) return;
+  if (!darfEntwickeln(t)) {
+    banner(t.def.nurBei === "nacht" ? "Entwickelt sich nur bei Nacht"
+                                    : "Entwickelt sich nur bei Tag");
+    sfxUI();
+    return;
+  }
   const next = t.def.tiers[t.tier + 1];
   if (G.gold < next.cost) { warnGold(); return; }
   G.gold -= next.cost;
@@ -2457,6 +2721,7 @@ function draw() {
   }
 
   drawWeather(g);
+  zeichneNacht(g);
 
   g.restore();
 
@@ -2736,6 +3001,49 @@ function drawPathStones(g) {
   }
 }
 
+/* Sonderfelder sichtbar machen. Ohne Kennzeichnung wäre die Bauregel eine
+   unsichtbare Falle: Man tippt auf ein Feld und nichts geschieht.
+   Wasserstellen als Tümpel mit Spiegelung, Kraftfelder als leuchtender Ring. */
+function zeichneFelder(g) {
+  if (!G.felder) return;
+  for (const [key, art] of G.felder) {
+    const [c, r] = key.split(",").map(Number);
+    const x = c * TILE + TILE / 2, y = r * TILE + TILE / 2;
+    g.save();
+    if (art === "wasser") {
+      // Mulde
+      g.fillStyle = "rgba(0,0,0,.34)";
+      g.beginPath(); g.ellipse(x, y + 2, TILE * .40, TILE * .30, 0, 0, 7); g.fill();
+      const grd = g.createRadialGradient(x - 5, y - 5, 2, x, y, TILE * .40);
+      grd.addColorStop(0, "#7FC4F5"); grd.addColorStop(.6, "#3E86C8"); grd.addColorStop(1, "#245A8E");
+      g.fillStyle = grd;
+      g.beginPath(); g.ellipse(x, y, TILE * .37, TILE * .27, 0, 0, 7); g.fill();
+      g.strokeStyle = "rgba(190,230,255,.5)"; g.lineWidth = 1.4;
+      g.beginPath(); g.ellipse(x, y, TILE * .37, TILE * .27, 0, 0, 7); g.stroke();
+      // Lichtreflex
+      g.fillStyle = "rgba(255,255,255,.42)";
+      g.beginPath(); g.ellipse(x - TILE * .12, y - TILE * .08, TILE * .1, TILE * .045, -.4, 0, 7); g.fill();
+    } else {
+      // Kraftfeld: Ring mit Speichen, deutlich anders als ein Tümpel
+      g.strokeStyle = "rgba(240,168,60,.75)"; g.lineWidth = 2;
+      g.beginPath(); g.arc(x, y, TILE * .32, 0, 7); g.stroke();
+      g.strokeStyle = "rgba(240,168,60,.35)"; g.lineWidth = 1.2;
+      g.beginPath(); g.arc(x, y, TILE * .20, 0, 7); g.stroke();
+      g.fillStyle = "rgba(240,168,60,.16)";
+      g.beginPath(); g.arc(x, y, TILE * .32, 0, 7); g.fill();
+      for (let i = 0; i < 4; i++) {
+        const a = i * Math.PI / 2 + Math.PI / 4;
+        g.strokeStyle = "rgba(255,205,120,.6)"; g.lineWidth = 1.6;
+        g.beginPath();
+        g.moveTo(x + Math.cos(a) * TILE * .2, y + Math.sin(a) * TILE * .2);
+        g.lineTo(x + Math.cos(a) * TILE * .32, y + Math.sin(a) * TILE * .32);
+        g.stroke();
+      }
+    }
+    g.restore();
+  }
+}
+
 const LIVE_KINDS = { pool: 1, vent: 1, grass: 1, flower: 1 };
 let bgCache = null;
 
@@ -2777,14 +3085,79 @@ function getBackdrop() {
   for (const rt of G.routes) zug(rt);
   g.strokeStyle = rgba(m.soil || shade(m.accent, .2), .3); g.lineWidth = TILE * .5;
   for (const rt of G.routes) zug(rt);
+  /* Der Weg soll eingesenkt wirken, nicht aufgemalt: eine dunkle Kante an der
+     Oberseite und ein heller Streifen an der Unterseite erzeugen den Eindruck
+     einer Mulde, in die Licht von oben fällt. */
+  g.save();
+  g.globalCompositeOperation = "multiply";
+  g.strokeStyle = "rgba(0,0,0,.30)"; g.lineWidth = TILE * .90;
+  for (const rt of G.routes) zug(rt, -3);
+  g.restore();
+  g.save();
+  g.globalCompositeOperation = "screen";
+  g.strokeStyle = "rgba(255,236,200,.10)"; g.lineWidth = TILE * .62;
+  for (const rt of G.routes) zug(rt, 4);
+  g.restore();
   drawPathFringe(g);
   drawPathStones(g);
+  zeichneFelder(g);
 
   const fol = m.foliage || shade(m.accent, .2);
   for (const it of decorCache.items) if (!LIVE_KINDS[it.k]) drawFlora(g, it, m, fol, 0);
+  zeichneTiefe(g, m);
 
   bgCache = { map: G.mapIdx, cv: c, dpr: window.devicePixelRatio || 1 };
   return c;
+}
+
+/* Räumliche Wirkung für das fertige Gelände.
+   Drei Mittel, die zusammen Tiefe erzeugen, ohne dass etwas dreidimensional
+   gerechnet werden müsste:
+
+     Relief   — weiche Licht- und Schattenflächen, als fiele Licht schräg von
+                oben auf eine leicht gewellte Landschaft.
+     Dunst    — der obere Bildbereich wird leicht aufgehellt und entsättigt.
+                Das ahmt Luftperspektive nach: Entferntes wirkt blasser, und
+                das Auge liest die obere Bildhälfte prompt als "weiter weg".
+     Vignette — abgedunkelte Ränder führen den Blick zur Mitte und geben dem
+                Bild eine Wölbung.
+   ============================================================ */
+function zeichneTiefe(g, m) {
+  // Relief: großflächige Hell-Dunkel-Verteilung
+  const rn = mulberry(G.mapIdx * 3313 + 5);
+  g.save();
+  g.globalCompositeOperation = "overlay";
+  for (let i = 0; i < 16; i++) {
+    const x = rn() * W, y = rn() * H;
+    const rx = 120 + rn() * 260, ry = 70 + rn() * 150;
+    const hell = rn() > .45;
+    const grd = g.createRadialGradient(x, y - ry * .3, 8, x, y, Math.max(rx, ry));
+    grd.addColorStop(0, hell ? "rgba(255,244,214,.16)" : "rgba(10,16,26,.20)");
+    grd.addColorStop(1, "rgba(0,0,0,0)");
+    g.fillStyle = grd;
+    g.beginPath(); g.ellipse(x, y, rx, ry, rn() * 3, 0, 7); g.fill();
+  }
+  g.restore();
+
+  // Dunst über der oberen Bildhälfte
+  g.save();
+  const dunst = g.createLinearGradient(0, 0, 0, H * .62);
+  const hf = shade(m.ground[1], .55);
+  dunst.addColorStop(0, rgba(hf, .20));
+  dunst.addColorStop(.55, rgba(hf, .07));
+  dunst.addColorStop(1, rgba(hf, 0));
+  g.fillStyle = dunst;
+  g.fillRect(0, 0, W, H * .62);
+  g.restore();
+
+  // Vignette
+  g.save();
+  const vg = g.createRadialGradient(W / 2, H / 2, Math.min(W, H) * .34, W / 2, H / 2, Math.max(W, H) * .78);
+  vg.addColorStop(0, "rgba(0,0,0,0)");
+  vg.addColorStop(1, "rgba(4,8,12,.44)");
+  g.fillStyle = vg;
+  g.fillRect(0, 0, W, H);
+  g.restore();
 }
 
 function drawLiveDecor(g) {
@@ -2967,6 +3340,55 @@ function drawFlora(g, it, m, fol, forceSway) {
 }
 
 /* --- Wetter & Stimmung --- */
+/* Nachtstimmung über das fertige Bild legen.
+   Bewusst am Ende und über allem: So verdunkelt sie Gelände, Wächter und
+   Gegner gleichermaßen, statt nur den Untergrund. Zwei Schichten — eine kühle
+   Abdunklung und ein warmer Lichtkegel um jeden Wächter, damit das Feld nachts
+   stimmungsvoll wird, ohne unlesbar zu werden. */
+function zeichneNacht(g) {
+  const a = nachtAnteil();
+  if (a <= 0.01) return;
+
+  // Wächter werfen Licht — erst sammeln, dann als Aussparung nutzen
+  g.save();
+  g.globalCompositeOperation = "multiply";
+  const grd = g.createLinearGradient(0, 0, 0, H);
+  // Maßvoll: bei .72/.80 war das Gelände nachts praktisch nicht mehr zu lesen.
+  grd.addColorStop(0, `rgba(74,92,140,${.46 * a})`);
+  grd.addColorStop(1, `rgba(44,56,92,${.54 * a})`);
+  g.fillStyle = grd;
+  g.fillRect(0, 0, W, H);
+  g.restore();
+
+  // Lichtkegel der Wächter
+  g.save();
+  g.globalCompositeOperation = "lighter";
+  for (const t of G.towers) {
+    const rr = statRange(t) * .55;
+    const lg = g.createRadialGradient(t.x, t.y - 6, 4, t.x, t.y - 6, rr);
+    const c = TYPES[t.def.type].col;
+    lg.addColorStop(0, rgba(c, .26 * a));
+    lg.addColorStop(.5, rgba(c, .10 * a));
+    lg.addColorStop(1, rgba(c, 0));
+    g.fillStyle = lg;
+    g.beginPath(); g.arc(t.x, t.y - 6, rr, 0, 7); g.fill();
+  }
+  g.restore();
+
+  // Sterne am oberen Rand, nur in tiefer Nacht
+  if (a > .6) {
+    const rn = mulberry(4242);
+    g.save();
+    for (let i = 0; i < 40; i++) {
+      const x = rn() * W, y = rn() * H * .55;
+      const fl = .35 + Math.sin(G.time * 1.6 + i) * .3;
+      g.fillStyle = `rgba(230,240,255,${Math.max(0, fl) * (a - .6) * 2.2})`;
+      g.beginPath(); g.arc(x, y, rn() * 1.2 + .5, 0, 7); g.fill();
+    }
+    g.restore();
+  }
+}
+
 function drawWeather(g) {
   const m = G.map, t = G.time;
   g.save();
@@ -3031,6 +3453,11 @@ function drawTower(g, t) {
   const st = tierOf(t);
   // Plattform
   g.save();
+  /* Schlagschatten schräg nach rechts unten, passend zum Licht, das im Relief
+     von oben links kommt. Ein Schatten direkt unter der Figur ließ sie flach
+     wirken; versetzt hebt er den Wächter sichtbar vom Boden ab. */
+  g.fillStyle = "rgba(0,0,0,.22)";
+  g.beginPath(); g.ellipse(t.x + 9, t.y + 19, 22, 7, .12, 0, 7); g.fill();
   g.fillStyle = "rgba(0,0,0,.32)";
   g.beginPath(); g.ellipse(t.x, t.y + 15, 19, 8, 0, 0, 7); g.fill();
   g.fillStyle = shade(col, -.62);
@@ -3117,8 +3544,15 @@ function drawTower(g, t) {
 function drawEnemy(g, e) {
   const col = TYPES[e.spec.type].col;
   g.save();
-  g.fillStyle = "rgba(0,0,0,.3)";
-  g.beginPath(); g.ellipse(e.x, e.y + e.rad * (e.flying ? 1.9 : 1.05), e.rad * .85, e.rad * .35, 0, 0, 7); g.fill();
+  /* Fliegende werfen einen kleineren, weiter entfernten und blasseren Schatten
+     als laufende — daran liest man die Flughöhe ab, ohne dass es erklärt wird. */
+  const hoehe = e.flying ? 1.9 : 1.05;
+  const weite = e.flying ? .62 : .85;
+  const kraft = e.flying ? .17 : .30;
+  g.fillStyle = `rgba(0,0,0,${kraft})`;
+  g.beginPath();
+  g.ellipse(e.x + e.rad * .28, e.y + e.rad * hoehe, e.rad * weite, e.rad * .33, .1, 0, 7);
+  g.fill();
   if (e.rootT > 0) {
     g.strokeStyle = "rgba(87,206,124,.85)"; g.lineWidth = 2.4;
     for (let i = 0; i < 4; i++) {
@@ -3274,6 +3708,43 @@ function renderShop() {
 }
 
 let lastSelKey = null;
+/* Reichweite der nächsten Stufe. Muss dieselben Faktoren berücksichtigen wie
+   statRange(), sonst zeigt die Vorschau einen Rückschritt an: Ein Wächter auf
+   einem Kraftfeld stand mit 164 da und die nächste Stufe mit 142, weil der
+   Feldbonus in der Vorschau fehlte. */
+function vorschauReichweite(t, nx) {
+  const modR = G.mod && G.mod.range ? G.mod.range : 1;
+  const feld = feldArt(t.c, t.r) === "kraft" ? (1 + FELD_KRAFT_BONUS) : 1;
+  return nx.range * (1 + rank("weit") * .03) * (1 + (t.aRng || 0))
+       * (1 + (t.train || 0) * .02) * (1 + boon("rng") * .08) * modR * feld;
+}
+
+/* Anzeige der Megaentwicklung: zeigt entweder den Fortschritt (damit man
+   weiß, worauf man hinarbeitet) oder den Knopf, sobald alles erfüllt ist.
+   Ohne sichtbare Bedingungen wäre die Stufe eine Überraschung statt ein Ziel. */
+function megaBlock(t) {
+  if (t.mega) {
+    return `<div class="megafertig">★ ${t.megaWerte.name} — Megaentwicklung vollzogen</div>`;
+  }
+  if (t.tier < 2) return "";
+  const m = megaStand(t);
+  const bereit = megaBereit(t);
+  const zeitSperre = !darfEntwickeln(t);
+  const bal = (ist, soll) => `<div class="megabar"><div class="megafill" style="width:${Math.min(100, ist / soll * 100)}%"></div></div>`;
+  return `<div class="megabox">
+    <div class="megakopf">★ Megaentwicklung${bereit ? "" : " — Bedingungen"}</div>
+    <div class="megazeile"><span>Erledigte Gegner</span><b>${m.kills}/${m.killsNoetig}</b></div>
+    ${bal(m.kills, m.killsNoetig)}
+    <div class="megazeile"><span>Training</span><b>${m.train}/${m.trainNoetig}</b></div>
+    ${bal(m.train, m.trainNoetig)}
+    ${bereit
+      ? `<button class="btn primary" id="b-mega" style="width:100%;margin-top:8px" ${G.gold < MEGA_KOSTEN ? "disabled" : ""}>★ Megaentwicklung · ${MEGA_KOSTEN}</button>`
+      : `<div class="empty" style="margin-top:6px">${zeitSperre
+          ? (t.def.nurBei === "nacht" ? "Wartet auf die Nacht." : "Wartet auf den Tag.")
+          : "Erfülle beide Bedingungen, um die vierte Stufe freizuschalten."}</div>`}
+  </div>`;
+}
+
 function renderSel() {
   const box = $("selbox");
   const t = G.sel;
@@ -3302,7 +3773,7 @@ function renderSel() {
       <div class="grid2">
         <div class="kv"><div class="k">Schaden</div><div class="v">${statDmg(t).toFixed(0)}${nx ? ` <span class="up">→${(nx.dmg * (1 + rank("kraft") * .04) * (1 + (t.aDmg || 0))).toFixed(0)}</span>` : ""}</div></div>
         <div class="kv"><div class="k">Tempo</div><div class="v">${st.rate.toFixed(2)}/s${nx ? ` <span class="up">→${nx.rate.toFixed(2)}</span>` : ""}</div></div>
-        <div class="kv"><div class="k">Reichweite</div><div class="v">${statRange(t).toFixed(0)}${nx ? ` <span class="up">→${(nx.range * (1 + rank("weit") * .03) * (1 + (t.aRng || 0))).toFixed(0)}</span>` : ""}</div></div>
+        <div class="kv"><div class="k">Reichweite</div><div class="v">${statRange(t).toFixed(0)}${nx ? ` <span class="up">→${vorschauReichweite(t, nx).toFixed(0)}</span>` : ""}</div></div>
         <div class="kv"><div class="k">Schaden/s</div><div class="v">${dps}${nxDps ? ` <span class="up">→${nxDps}</span>` : ""}</div></div>
         <div class="kv"><div class="k">Treffer</div><div class="v">${t.kills}</div></div>
         <div class="kv"><div class="k">Gesamt</div><div class="v">${Math.round(t.dealt)}</div></div>
@@ -3319,11 +3790,13 @@ function renderSel() {
       <button class="btn ghost sm" id="b-tm" style="width:100%">Ziel dieses Wächters: ${
         (TARGET_MODES.find(m => m[0] === (t.tm || G.targetMode)) || TARGET_MODES[0])[1]
       }${t.tm ? "" : " (folgt allen)"}</button>
-      ${t.tier >= 2 ? `<div class="empty">Training: +${Math.round((t.train || 0) * 9)}% Schaden, +${Math.round((t.train || 0) * 2)}% Reichweite. Endstufen lassen sich immer weiter trainieren — dein Beerenlager gehört ins Team.</div>` : ""}
+      ${megaBlock(t)}
+      ${t.tier >= 2 && !t.mega ? `<div class="empty">Training: +${Math.round((t.train || 0) * 9)}% Schaden, +${Math.round((t.train || 0) * 2)}% Reichweite. Endstufen lassen sich immer weiter trainieren — dein Beerenlager gehört ins Team.</div>` : ""}
     </div>`;
   iconInto(box.querySelector("canvas"), t.def.type, t.def.shape, 44);
   if ($("b-up")) $("b-up").addEventListener("click", () => upgradeTower(t));
   if ($("b-train")) $("b-train").addEventListener("click", () => trainTower(t));
+  if ($("b-mega")) $("b-mega").addEventListener("click", () => megaEntwickeln(t));
   $("b-tm").addEventListener("click", () => {
     const cur = t.tm || G.targetMode;
     const i = TARGET_MODES.findIndex(m => m[0] === cur);
@@ -3431,7 +3904,8 @@ function renderWaveList() {
         <span class="mn" style="color:var(--amber)">★ ${bossSpec.spec.name}</span>
         <span class="md">${bossSpec.spec.abText}</span></div>` : "") +
     lageHTML(est) +
-    `<p class="empty" style="width:100%;margin:0 0 2px">Welle ${next} — Leben je Wildem:</p>` +
+    `<div class="tageschip ${istNacht(next) ? "nacht" : "tag"}">${istNacht(next) ? "☾ Nacht" : "☀ Tag"} · Welle ${next}</div>` +
+    `<p class="empty" style="width:100%;margin:0 0 2px">Leben je Wildem:</p>` +
     est.map(({ g, quote }) => {
       const col = quote >= LAGE_GUT ? "var(--good)" : quote >= LAGE_KNAPP ? "var(--warn)" : "var(--bad)";
       const hinweis = quote >= LAGE_GUT ? "wird sicher gestellt"
@@ -3799,7 +4273,7 @@ function showCodex() {
     <div><div class="nm">${o.name}${boss ? " ★" : ""}</div>
     <div class="dd" style="color:${TYPES[o.type].col}">${TYPES[o.type].name}${tags(o) ? " · " + tags(o) : ""}</div>
     ${boss && o.abText ? `<div class="dd" style="margin-top:2px">${o.abText}</div>` : ""}</div></div>`;
-  const head = ["fire","water","grass","electric","rock","psychic","ice","steel"];
+  const head = ["fire","water","grass","electric","rock","psychic","ice","steel","fairy","dark"];
   openVeil(`
     <h2 class="big">Bestiarium</h2>
     <p class="lead">Typenvorteile entscheiden die Runde. Rot = doppelter Schaden, blass = halber Schaden.</p>
@@ -3866,6 +4340,12 @@ function showHelp() {
         <div style="font-size:13px;margin-top:4px;line-height:1.5">Alle fünf gehaltenen Wellen wählst du eine von drei Segnungen. Sie gilt für den Rest der Runde — die Wahl entscheidet, wie deine Truppe wächst.</div></div>
       <div class="kv" style="padding:10px"><div class="k">9 · Kreuzung und Gabelung</div>
         <div style="font-size:13px;margin-top:4px;line-height:1.5">Jede Route kreuzt sich einmal selbst — dort bestreicht ein Wächter zwei Abschnitte und feuert doppelt. Der <b>Grünpfad</b> gabelt sich zusätzlich: die Wilden verteilen sich abwechselnd auf beide Zweige, decke also beide.</div></div>
+      <div class="kv" style="padding:10px"><div class="k">10 · Besondere Felder</div>
+        <div style="font-size:13px;margin-top:4px;line-height:1.5">Blaue <b>Wasserstellen</b> nehmen ausschließlich Wasser-Wächter auf — und Wasser-Wächter dürfen nirgendwo sonst stehen. Goldene <b>Kraftfelder</b> erweitern die Reichweite des Wächters darauf um 30 %.</div></div>
+      <div class="kv" style="padding:10px"><div class="k">11 · Tag und Nacht</div>
+        <div style="font-size:13px;margin-top:4px;line-height:1.5">Alle vier Wellen wechselt die Tageszeit. <b>Feen</b> entwickeln sich nur bei Tag, <b>Unlicht</b> nur bei Nacht — setzen kannst du beide jederzeit, nur der Aufstieg wartet. Die kommende Tageszeit steht bei <b>Nächste Welle</b>.</div></div>
+      <div class="kv" style="padding:10px"><div class="k">12 · Megaentwicklung</div>
+        <div style="font-size:13px;margin-top:4px;line-height:1.5">Eine vierte Stufe, die sich nicht kaufen lässt. Ein Wächter auf Endstufe muss <b>40 Gegner</b> erledigt und <b>Training 6</b> erreicht haben. Dann erscheint der Knopf in seiner Auswahl. Wer einen Wächter über die Runde pflegt, bekommt etwas, das Gold allein nicht liefert.</div></div>
     </section>
     <p class="empty" style="margin:14px 0">Tastatur: <b style="color:var(--ink)">Leertaste</b> Welle · <b style="color:var(--ink)">P</b> Pause · <b style="color:var(--ink)">1–8</b> Wächter wählen ·
     <b style="color:var(--ink)">U</b> entwickeln · <b style="color:var(--ink)">V</b> entlassen · <b style="color:var(--ink)">Esc</b> abwählen</p>
@@ -3945,6 +4425,7 @@ function newRun(mapIdx, quiet) {
   G.path = G.routes[0];
   G.blocked = blockedTiles(G.map.wp, G.map.smooth);
   if (G.map.wpB) for (const k of blockedTiles(G.map.wpB, G.map.smooth)) G.blocked.add(k);
+  G.felder = baueFelder();
   G.towers = []; G.enemies = []; G.shots = []; G.fx = []; G.floats = []; G.queue = [];
   G.gold = G.map.gold + rank("vorrat") * 40;
   G.lives = G.map.lives + rank("zaeh") * 2;

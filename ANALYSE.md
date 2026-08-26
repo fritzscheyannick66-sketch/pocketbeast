@@ -1,6 +1,6 @@
 # PocketBeast — Analyse
 
-Stand: 25.08.2026 · Grundlage: [index.html](index.html) (Artifact-Version vom 24.08.2026)
+Stand: 26.08.2026 · Grundlage: [index.html](index.html) (Artifact-Version vom 24.08.2026)
 
 Methode: Code gelesen, im Browser gespielt, danach mit einem Autoplay-Bot mehrere
 komplette 40-Wellen-Runden auf allen drei Karten simuliert
@@ -16,8 +16,8 @@ gezeichnet, aller Sound prozedural über WebAudio erzeugt.
 
 | | |
 |---|---|
-| Elementtypen | 8, mit Effektivitätstabelle (`CHART`) — Eis und Stahl am 25.08. ergänzt |
-| Türme | 8 Familien à 3 Stufen + 15 Trainingsstufen |
+| Elementtypen | 10, mit Effektivitätstabelle (`CHART`) |
+| Türme | 10 Familien à 3 Stufen + Megaentwicklung + 15 Trainingsstufen |
 | Gegner | 32 Arten + 8 Bosse |
 | Karten | 3 (Grünpfad / Glutschlucht / Flutruine) |
 | Wellen | 40 pro Runde, Boss alle 8 |
@@ -372,6 +372,86 @@ Eine Gabelung, an der Gegner zwischen zwei Wegen wählen, wäre ein anderer Umba
 `G.path` ist ein linearer Streckenzug, `pathAt(d)` bildet eine einzelne Strecke ab.
 Verzweigungen bräuchten einen Wegegraph, eine Route pro Gegner und Anpassungen an
 Wellenvorschau, Kräfteschätzung und Bot. Machbar, aber ein eigener Arbeitsschritt.
+
+---
+
+## Feature-Paket vom 26.08.2026
+
+Sieben Anforderungen auf einmal. Was dabei bemerkenswert war:
+
+### Ein Messwerkzeug, das beinahe zu falschen Schlüssen geführt hätte
+
+Nach dem Einbau meldete der Bot einen Einbruch von Welle 40 auf **14 / 9 / 8**.
+Das sah nach einem schwer beschädigten Spiel aus.
+
+Die Ursache lag im Bot: Er wich bei knappem Gold auf den billigsten Wächter aus.
+Mit sechs Familien fiel das kaum auf — mit zehn baute er **17 von 20 Türmen als
+Keimling**. Nach der Reparatur (sparen statt ausweichen) und einem fairen
+Vergleich, bei dem *dieselbe* Botfassung beide Spielstände misst:
+
+| Route | vorher (8 Familien) | nachher (10 + alle Neuerungen) |
+|---|---|---|
+| Grünpfad | 40, 40, 40 | 40, 40, 40 |
+| Glutschlucht | 40, 40, 40 | 40, 40, 40 |
+| Flutruine | 27, 27, 27 | 22, 22, 27 |
+
+Die Balance ist praktisch unverändert. Der gemeldete Einbruch war vollständig
+ein Messfehler — hätte ich ihn geglaubt, wäre die Konsequenz gewesen, an einer
+gesunden Balance herumzudrehen.
+
+### Wasserstellen als Standortproblem
+
+Wasser-Wächter dürfen nur auf Wasserstellen, und Wasserstellen nehmen nur sie
+auf. Beide Richtungen sind nötig: Ohne die zweite wären die Felder ein reiner
+Bonus statt einer Einschränkung.
+
+Die Felder liegen fest pro Karte (aus der Kartennummer abgeleitet), damit eine
+Route wiedererkennbar bleibt. Sie werden nur dort gesetzt, wo sie auch etwas
+bedeuten — höchstens 170 px vom Weg entfernt und nie direkt nebeneinander,
+sonst entstünden Nester.
+
+### Tag und Nacht hängen an der Wellennummer, nicht an der Uhr
+
+So ist der Zyklus vorhersehbar, pausiert mit dem Spiel und lässt sich in der
+Wellenvorschau ablesen. Vier Wellen je Hälfte: kurz genug, dass niemand lange
+auf die passende Tageszeit wartet, lang genug, um eine Bauphase zu prägen.
+
+Feen und Unlicht lassen sich **jederzeit setzen** — nur ihr Aufstieg wartet auf
+die richtige Zeit. Eine Sperre beim Bauen hätte die Familien in der falschen
+Tageshälfte unbenutzbar gemacht.
+
+Die erste Fassung der Verdunklung war zu stark (Alpha .72/.80) — das Gelände
+war nachts nicht mehr zu lesen. Jetzt .46/.54, dafür kräftigere Lichtkegel.
+
+### Megaentwicklung ohne zehn Wertetabellen
+
+Die vierte Stufe leitet ihre Werte aus der Endstufe ab (Schaden ×1,75, Tempo
+×1,15, Reichweite ×1,18, Sonderwirkungen entsprechend). Zehn handgepflegte
+Tabellen hätte niemand synchron gehalten.
+
+Weil sämtliche Kampfrechnungen über `tierOf()` laufen, wirkt die Megastufe
+überall auf einmal — Schaden, Reichweite, Feuerrate, Splash, Ketten.
+
+Im Testlauf erreichten 8 von 20 Wächtern die Megaentwicklung. Das wirkt
+erreichbar, ohne selbstverständlich zu sein.
+
+### „3D" als Tiefenwirkung, nicht als Umbau
+
+Echtes 3D hätte einen vollständigen Neubau bedeutet. Stattdessen drei Mittel,
+die zusammen Räumlichkeit erzeugen: **Relief** (Licht- und Schattenflächen),
+**Luftperspektive** (der obere Bildbereich wird blasser, was das Auge als
+„weiter weg" liest) und **Vignette**. Dazu ein eingesenkter Weg — dunkle Kante
+oben, heller Streifen unten — und versetzte Schatten.
+
+Fliegende werfen einen kleineren, weiter entfernten und blasseren Schatten als
+laufende. Daran liest man die Flughöhe ab, ohne dass es erklärt werden muss.
+
+### Ein toter Eintrag, den ich selbst produziert habe
+
+Beim Anlegen der Unlicht-Effektivitäten schrieb ich `ghostlike: 1` — einen Typ,
+den es nicht gibt. Genau der Fehler, den ich in Befund „Kleinere Punkte" beim
+alten `flying`-Eintrag bemängelt hatte. Entfernt, und die Tabelle wird jetzt
+gegen die Typenliste validiert.
 
 ---
 

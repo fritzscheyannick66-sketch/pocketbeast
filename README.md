@@ -55,6 +55,25 @@ Balance-Änderung, gemessen.
 **Zurückgezogen:** Der zuvor gemeldete Gold-Überschuss ab Welle 20 war ein Messfehler
 meinerseits — die Ökonomie ist gesund. Details in [ANALYSE.md](ANALYSE.md).
 
+**Großes Feature-Paket (26.08.2026):**
+
+- **Wasserstellen** nehmen ausschließlich Wasser-Wächter auf — und die dürfen
+  nirgendwo sonst stehen. Aus einer freien Wahl wird ein Standortproblem.
+- **Kraftfelder** erweitern die Reichweite des Wächters darauf um 30 %.
+- **Tag-und-Nacht-Zyklus**: alle vier Wellen wechselt die Tageszeit, sichtbar
+  an Beleuchtung, Sternen und Lichtkegeln der Wächter.
+- **Zwei neue Familien**: Fee und Unlicht. Feen entwickeln sich nur bei Tag,
+  Unlicht nur bei Nacht — gesetzt werden dürfen beide jederzeit.
+- **Megaentwicklung**: eine vierte Stufe, die sich nicht kaufen lässt. Ein
+  Wächter auf Endstufe braucht 40 erledigte Gegner und Training 6.
+- **Mehr Tiefe**: Geländerelief, Luftperspektive, Vignette, eingesenkter Weg
+  und versetzte Schatten. Fliegende werfen einen kleineren, blasseren Schatten
+  als laufende — daran liest man die Flughöhe ab.
+- **Routen** meiden jetzt die oberen Ecken, wo die Steuerknöpfe schweben.
+
+Bestand: 10 Wächterfamilien, 10 Elementtypen, 32 Gegnerarten, 8 Bosse.
+Balance gemessen unverändert (siehe [ANALYSE.md](ANALYSE.md)).
+
 **Kreuzungen (25.08.2026):** Jede Route kreuzt sich jetzt einmal selbst — als weiche
 Schlinge, spitzwinklig oder als Straßenkreuzung. Wächter an der Kreuzung bestreichen
 zwei Wegabschnitte und feuern doppelt. Das machte die Karten deutlich leichter,
