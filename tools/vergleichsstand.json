@@ -1,10 +1,39 @@
 {
- "zeit": "2026-08-26T20:43:21.462Z",
+ "zeit": "2026-08-26T21:19:14.943Z",
  "karten": [
   {
    "name": "Grünpfad",
    "idx": 0,
-   "laeufe": 5,
+   "laeufe": 4,
+   "geschafft": 0,
+   "welleMedian": 100,
+   "welleMin": 100,
+   "welleMax": 100,
+   "tuermeMedian": 45,
+   "megaMedian": 16,
+   "typenMedian": 10,
+   "goldUebrigMedian": 291196.5,
+   "enden": {
+    "100": 4
+   },
+   "verlustJeWelle": {},
+   "typAnteil": {
+    "rock": 0.29,
+    "ice": 0.189,
+    "fairy": 0.151,
+    "steel": 0.13,
+    "electric": 0.118,
+    "dark": 0.055,
+    "fire": 0.051,
+    "grass": 0.009,
+    "psychic": 0.006,
+    "water": 0
+   }
+  },
+  {
+   "name": "Glutschlucht",
+   "idx": 1,
+   "laeufe": 4,
    "geschafft": 0,
    "welleMedian": 100,
    "welleMin": 100,
@@ -12,93 +41,57 @@
    "tuermeMedian": 45,
    "megaMedian": 19,
    "typenMedian": 10,
-   "goldUebrigMedian": 383534,
+   "goldUebrigMedian": 309046,
    "enden": {
-    "100": 5
-   },
-   "verlustJeWelle": {},
-   "typAnteil": {
-    "steel": 0.347,
-    "rock": 0.151,
-    "electric": 0.147,
-    "fire": 0.101,
-    "dark": 0.075,
-    "fairy": 0.074,
-    "ice": 0.058,
-    "grass": 0.027,
-    "psychic": 0.021,
-    "water": 0
-   }
-  },
-  {
-   "name": "Glutschlucht",
-   "idx": 1,
-   "laeufe": 5,
-   "geschafft": 0,
-   "welleMedian": 100,
-   "welleMin": 38,
-   "welleMax": 100,
-   "tuermeMedian": 45,
-   "megaMedian": 23,
-   "typenMedian": 10,
-   "goldUebrigMedian": 440721,
-   "enden": {
-    "38": 1,
-    "93": 1,
-    "100": 3
+    "100": 4
    },
    "verlustJeWelle": {
-    "5": 4.6
+    "5": 0.5,
+    "40": 1.25
    },
    "typAnteil": {
-    "steel": 0.213,
-    "rock": 0.207,
-    "water": 0.147,
-    "electric": 0.141,
-    "dark": 0.093,
-    "fairy": 0.058,
-    "psychic": 0.04,
-    "fire": 0.036,
-    "grass": 0.034,
-    "ice": 0.03
+    "rock": 0.375,
+    "steel": 0.167,
+    "water": 0.158,
+    "electric": 0.064,
+    "dark": 0.056,
+    "fairy": 0.047,
+    "grass": 0.046,
+    "fire": 0.038,
+    "ice": 0.027,
+    "psychic": 0.021
    }
   },
   {
    "name": "Flutruine",
    "idx": 2,
-   "laeufe": 5,
+   "laeufe": 4,
    "geschafft": 0,
-   "welleMedian": 38,
-   "welleMin": 32,
-   "welleMax": 48,
+   "welleMedian": 100,
+   "welleMin": 58,
+   "welleMax": 100,
    "tuermeMedian": 45,
-   "megaMedian": 3,
+   "megaMedian": 18,
    "typenMedian": 10,
-   "goldUebrigMedian": 3019,
+   "goldUebrigMedian": 335117,
    "enden": {
-    "32": 2,
-    "38": 1,
-    "42": 1,
-    "48": 1
+    "58": 1,
+    "100": 3
    },
    "verlustJeWelle": {
-    "16": 2,
-    "20": 5.2,
-    "26": 0.8,
-    "40": 1,
-    "42": 2.6
+    "40": 3.75
    },
    "typAnteil": {
-    "rock": 0.292,
-    "steel": 0.289,
-    "dark": 0.132,
-    "electric": 0.079,
+    "rock": 0.489,
+    "electric": 0.161,
     "fire": 0.057,
-    "psychic": 0.043,
-    "grass": 0.036,
-    "ice": 0.036,
-    "fairy": 0.028,
-    "water": 0.007
+    "dark": 0.057,
+    "steel": 0.055,
+    "water": 0.052,
+    "fairy": 0.043,
+    "ice": 0.037,
+    "grass": 0.033,
+    "psychic": 0.015
    }
   }
  ]

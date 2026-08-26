@@ -195,7 +195,8 @@ function ladeSpiel(datei) {
   save, offerBoon, takeBoon,
   pathAt, genWave, estimateDefense, pickMod, pathCoverage,
   BOONS, takeBoon,
-  HAIN, hainStufe, hainPreis, hainKaufen, trainGrenze,
+  HAIN, hainStufe, hainPreis, hainKaufen, trainGrenze, karteHatWasser,
+  FELD_VULKAN_BONUS, FELD_KRAFT_BONUS,
   beerenAbrechnen, BEEREN_JE_PUNKT, BEEREN_PUNKTE_MAX,
 };`;
 

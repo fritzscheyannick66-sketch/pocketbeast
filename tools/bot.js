@@ -53,6 +53,41 @@ function luftAnteil(gruppen) {
   return gesamt > 0 ? luft / gesamt : 0;
 }
 
+/* Was ein Wächter über seinen Einzelschaden hinaus leistet.
+
+   Dritter blinder Fleck derselben Art wie die Feldwirkung: Wer nur
+   dmg × rate rechnet, sieht die halbe Wirkung nicht. Ein Flächentreffer
+   erwischt bei einer Gruppe von zehn Gegnern mehrere auf einmal; eine
+   Verlangsamung verlängert die Zeit, in der alle anderen feuern dürfen;
+   eine Fessel hält einen Gegner ganz an; Durchschlag entscheidet gegen
+   Panzerung, wo sonst fast nichts ankommt.
+
+   Der Wasser-Wächter fiel genau deshalb durch: Sein Einzelschaden je Beere
+   ist der niedrigste im Spiel (0,13 gegen 0,21 beim Feuer-Wächter), seine
+   Fläche und Bremse aber gehören zu den stärksten. Auf Grünpfad baute der
+   Bot ihn kein einziges Mal, obwohl alle vier Wasserstellen dort ab Stufe 1
+   feuern. */
+function nebenwirkung(stufe, gruppen) {
+  let f = 1;
+  if (stufe.splash) {
+    // Wie dicht laufen die Gegner? Große Gruppen machen Fläche wertvoll.
+    const stueck = gruppen.reduce((n, g) => n + g.count, 0);
+    const dichte = Math.min(1, stueck / 26);
+    f *= 1 + (stufe.splash / 60) * (0.5 + dichte);
+  }
+  if (stufe.slow) f *= 1 + stufe.slow.amt * 0.75;
+  if (stufe.root) f *= 1 + stufe.root.p * 1.6;
+  if (stufe.burn) f *= 1 + Math.min(0.5, stufe.burn.dps / 60);
+  if (stufe.chain) f *= 1 + stufe.chain * 0.28;
+  if (stufe.mark) f *= 1 + stufe.mark * 0.8;
+  if (stufe.pierce) {
+    // Durchschlag zählt nur, wenn die Welle überhaupt Panzerung trägt
+    const panzer = gruppen.some((g) => (g.spec.armor || 0) > 4);
+    if (panzer) f *= 1 + Math.min(0.7, stufe.pierce / 30);
+  }
+  return f;
+}
+
 /* Was ein Feld-Wächter wert ist.
 
    Der Psycho-Wächter macht selbst kaum Schaden, hebt aber jeden Nachbarn um
@@ -84,20 +119,28 @@ function bewerteFelder(spiel) {
     for (let r = 0; r < ROWS; r++) {
       if (!spiel.canPlace(c, r)) continue;
       const x = c * TILE + TILE / 2, y = r * TILE + TILE / 2;
+      /* Abstand über den tatsächlichen Wegverlauf messen, nicht über
+         rt.pts. Dort stehen nur die Stützpunkte der Route — auf Flutruine
+         zehn Stück für den ganzen Weg. Wer danach misst, hält Plätze dicht
+         an einer langen Geraden für weit entfernt: Ein Feld, das in
+         Wahrheit 57 Pixel vom Weg liegt, kam so auf 177. pathAt() läuft
+         die Strecke ab und liefert den echten Abstand. */
       let naeh = 1e9, deckung = 0;
       for (const rt of G.routes) {
-        for (const p of rt.pts) {
-          const d = Math.hypot(p.x - x, p.y - y);
-          if (d < naeh) naeh = d;
-          if (d < 140) deckung++;
+        for (let d = 0; d < rt.len; d += 20) {
+          const p = spiel.pathAt(rt, d);
+          const dist = Math.hypot(p.x - x, p.y - y);
+          if (dist < naeh) naeh = dist;
+          if (dist < 140) deckung++;
         }
       }
       if (naeh > 150) continue;            // zu weit weg, feuert nie
       const art = spiel.feldArt(c, r);
-      felder.push({
-        c, r, art, naeh, deckung,
-        wert: deckung * (art === "kraft" ? 1.9 : 1) - naeh * 0.02,
-      });
+      /* Kraftfeld und Vulkanschlot sind die besten Plätze der Karte. Der
+         Schlot zählt hier neutral mit; ob er sich lohnt, entscheidet sich
+         bei der Turmwahl, weil nur Feuer-Wächter darauf dürfen. */
+      const bonus = art === "kraft" ? 1.9 : art === "vulkan" ? 1.7 : 1;
+      felder.push({ c, r, art, naeh, deckung, wert: deckung * bonus - naeh * 0.02 });
     }
   }
   felder.sort((a, b) => b.wert - a.wert);
@@ -142,7 +185,8 @@ function bauen(spiel, zustand) {
       const wirkung = nutzenGegen(spiel, t.def.type, gruppen);
       // Zuwachs an Schaden je Beere, gewichtet mit dem Typenvorteil
       const a = t.def.tiers[t.tier], b = t.def.tiers[t.tier + 1];
-      let jetzt = a.dmg * a.rate, dann = b.dmg * b.rate;
+      let jetzt = a.dmg * a.rate * nebenwirkung(a, gruppen);
+      let dann = b.dmg * b.rate * nebenwirkung(b, gruppen);
       /* Auch beim Aufwerten zählt die Feldwirkung mit: Ein Traumflaum auf
          Stufe 3 hebt seine Nachbarn fast dreimal so stark wie auf Stufe 1. */
       if (b.aura) {
@@ -233,7 +277,8 @@ function waehleNeuenWaechter(spiel, gruppen, luft) {
        der erste eines fehlenden. Genau hier fiel der Vorgänger durch — neun
        von zwanzig Wächtern waren bei ihm derselbe billige Typ. */
     const vielfalt = 1 / (1 + (vorhanden[def.id] || 0) * 0.85);
-    const grund = def.tiers[0].dmg * def.tiers[0].rate / kosten;
+    const st0 = def.tiers[0];
+    const grund = st0.dmg * st0.rate / kosten * nebenwirkung(st0, gruppen);
 
     /* Passenden Platz suchen. Wasser-Wächter nur auf Wasser, sonst nirgends
        dort. Feld-Wächter wollen nicht an den Weg, sondern zwischen möglichst
@@ -249,10 +294,24 @@ function waehleNeuenWaechter(spiel, gruppen, luft) {
       }
       zusatz = bestesFeld;
     } else {
-      for (const f of felder) {
-        if (!spiel.darfHier(def.id, f.c, f.r)) continue;
-        platz = f;
-        break;
+      /* Feuer-Wächter zuerst auf einen freien Vulkanschlot: 18 Prozent auf
+         Schaden und Reichweite sind mehr, als eine Stufe kostet. Ein Schlot,
+         auf dem niemand steht, ist verschenkter Platz — außer Feuer darf ihn
+         ohnehin niemand nutzen. */
+      if (def.type === "fire") {
+        for (const f of felder) {
+          if (f.art !== "vulkan") continue;
+          if (!spiel.darfHier(def.id, f.c, f.r)) continue;
+          platz = f;
+          break;
+        }
+      }
+      if (!platz) {
+        for (const f of felder) {
+          if (!spiel.darfHier(def.id, f.c, f.r)) continue;
+          platz = f;
+          break;
+        }
       }
     }
     if (!platz) continue;

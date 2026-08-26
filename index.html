@@ -915,6 +915,14 @@ const MAPS = [
     wpB: [[-1,6],[3,6],[3,3],[9,3],[9,9],[5,9],[5,5],[13,5],[13,8],[16,8],[17,6],[17,4],[20,5]],
   },
   {
+    /* Vulkanschlote statt Wasserstellen. In einer Schlucht aus Glut und
+       Asche waren Tümpel das falsche Bild — und der Feuer-Wächter, der hier
+       thematisch zu Hause ist, hatte keinen eigenen Platz.
+
+       Anders als eine Wasserstelle fesselt der Schlot nicht: Feuer-Wächter
+       dürfen weiterhin überall stehen, der Schlot ist ein besonders guter
+       Platz, keine Bedingung. */
+    sonderfelder: [["vulkan", 4], ["kraft", 3]],
     name: "Glutschlucht", diff: "Fordernd", mul: 1.44, gold: 300, lives: 18,
     himmel: ["#3B1F1E", "#8F5238"],
     ground: ["#241310", "#331914"], accent: "#7A452E", foliage: "#8E5730",
@@ -2312,13 +2320,17 @@ function recalcAuras() {
 function boon(id) { return G.boons[id] || 0; }
 function trainMul(t) { return 1 + (t.train || 0) * .09; }
 function statDmg(t) {
+  // Vulkanschlot: nur Feuer-Wächter stehen darauf, also braucht es keine Typprüfung
+  const schlot = feldArt(t.c, t.r) === "vulkan" ? (1 + FELD_VULKAN_BONUS) : 1;
   return tierOf(t).dmg * (1 + rank("kraft") * .04) * (1 + (t.aDmg || 0)) * trainMul(t)
-       * (1 + boon("dmg") * .12) * (1 + hainStufe("schliff") * .03);
+       * (1 + boon("dmg") * .12) * (1 + hainStufe("schliff") * .03) * schlot;
 }
 function statRange(t) {
   const modR = G.mod && G.mod.range ? G.mod.range : 1;
   // Kraftfelder erweitern die Sicht des Wächters, der darauf steht
-  const feld = feldArt(t.c, t.r) === "kraft" ? (1 + FELD_KRAFT_BONUS) : 1;
+  const art = feldArt(t.c, t.r);
+  const feld = art === "kraft" ? (1 + FELD_KRAFT_BONUS)
+             : art === "vulkan" ? (1 + FELD_VULKAN_BONUS) : 1;
   return tierOf(t).range * (1 + rank("weit") * .03) * (1 + (t.aRng || 0))
        * (1 + (t.train || 0) * .02) * (1 + boon("rng") * .08) * modR * feld
        * (1 + hainStufe("fern") * .02);
@@ -2460,6 +2472,10 @@ function tagesZeitName(welle) {
    eine Route wiedererkennbar bleibt und nicht bei jedem Start anders aussieht.
    ============================================================ */
 const FELD_KRAFT_BONUS = 0.30;
+/* Der Vulkanschlot speist den Feuer-Wächter, der darauf steht: mehr Hitze,
+   weiter reichende Glut. Beides gleich stark, damit die Wirkung ohne
+   Nachrechnen zu merken ist. */
+const FELD_VULKAN_BONUS = 0.18;
 
 function baueFelder() {
   const felder = new Map();
@@ -2496,8 +2512,12 @@ function baueFelder() {
     }
     return gesetzt;
   };
-  setze(4 + Math.floor(rnd() * 2), "wasser");   // 4–5 Wasserstellen
-  setze(3 + Math.floor(rnd() * 2), "kraft");    // 3–4 Kraftfelder
+  /* Welche Sonderfelder eine Karte trägt, steht bei der Karte selbst.
+     Die Glutschlucht ist eine Feuerlandschaft — Tümpel wirkten dort
+     aufgesetzt. Sie bekommt stattdessen Vulkanschlote. */
+  for (const [art, n] of (G.map.sonderfelder || [["wasser", 4], ["kraft", 3]])) {
+    setze(n + Math.floor(rnd() * 2), art);
+  }
   return felder;
 }
 
@@ -2505,13 +2525,31 @@ function feldArt(c, r) {
   return (G.felder && G.felder.get(c + "," + r)) || null;
 }
 
-/* Wasser-Wächter und Wasserstellen gehören zusammen: die einen dürfen nur
-   dorthin, die anderen nehmen nur sie auf. */
+/* Hat diese Karte überhaupt Wasserstellen? */
+function karteHatWasser() {
+  if (!G.felder) return false;
+  for (const art of G.felder.values()) if (art === "wasser") return true;
+  return false;
+}
+
+/* Wer darf wohin.
+
+   Wasser-Wächter und Wasserstellen gehören zusammen: die einen dürfen nur
+   dorthin, die anderen nehmen nur sie auf. Trägt eine Karte gar keine
+   Wasserstellen — wie die Glutschlucht mit ihren Vulkanschloten —, dann
+   dürfen Wasser-Wächter überall stehen. Sonst stünde die Familie im Laden,
+   ohne dass sie sich setzen ließe.
+
+   Der Vulkanschlot nimmt nur Feuer-Wächter auf, fesselt sie aber nicht:
+   Feuer darf weiterhin überall stehen, der Schlot ist ein guter Platz und
+   keine Bedingung. Wäre er beides, hinge die stärkste Familie der Karte an
+   vier Feldern. */
 function darfHier(id, c, r) {
   const def = TOWER_BY_ID[id];
   if (!def) return false;
   const art = feldArt(c, r);
-  if (def.type === "water") return art === "wasser";
+  if (art === "vulkan") return def.type === "fire";
+  if (def.type === "water") return karteHatWasser() ? art === "wasser" : art !== "vulkan";
   return art !== "wasser";
 }
 
@@ -2538,8 +2576,10 @@ function placeTower(id, c, r) {
   if (!canPlace(c, r)) return;
   if (!darfHier(id, c, r)) {
     // Ohne Hinweis wirkt ein wirkungsloser Tipp wie ein Fehler im Spiel
-    banner(def.type === "water" ? "Wasser-Wächter nur auf Wasserstellen"
-                                : "Auf Wasserstellen nur Wasser-Wächter");
+    const art = feldArt(c, r);
+    banner(art === "vulkan" ? "Auf Vulkanschloten nur Feuer-Wächter"
+         : def.type === "water" ? "Wasser-Wächter nur auf Wasserstellen"
+         : "Auf Wasserstellen nur Wasser-Wächter");
     sfxUI();
     return;
   }
@@ -4154,6 +4194,59 @@ function zeichneFelder(g) {
       // Lichtreflex
       g.fillStyle = "rgba(255,255,255,.42)";
       g.beginPath(); g.ellipse(x - TILE * .12, y - TILE * .08, TILE * .1, TILE * .045, -.4, 0, 7); g.fill();
+    } else if (art === "vulkan") {
+      /* Vulkanschlot: ein aufgebrochener Kegel mit glühendem Schlund.
+         Bewusst kantig gegen die runde Mulde der Wasserstelle und den
+         geometrischen Ring des Kraftfelds — die drei Feldarten müssen sich
+         auf einen Blick unterscheiden, auch wenn ein Wächter darauf steht
+         und nur der Rand hervorschaut. */
+      const puls = .5 + Math.sin(G.time * 2.4 + x * .05) * .5;
+
+      // Aschekranz am Boden
+      g.fillStyle = "rgba(24,14,10,.5)";
+      g.beginPath(); g.ellipse(x, y + 3, TILE * .40, TILE * .28, 0, 0, 7); g.fill();
+
+      // Kegel: gezackter Rand statt glatter Ellipse
+      g.beginPath();
+      const zacken = 9;
+      for (let i = 0; i <= zacken; i++) {
+        const a = (i / zacken) * Math.PI * 2 - Math.PI / 2;
+        const rr = TILE * (i % 2 ? .30 : .36);
+        const px = x + Math.cos(a) * rr, py = y + Math.sin(a) * rr * .72;
+        if (i) g.lineTo(px, py); else g.moveTo(px, py);
+      }
+      g.closePath();
+      const kegel = g.createLinearGradient(x, y - TILE * .3, x, y + TILE * .3);
+      kegel.addColorStop(0, "#5C3A2E"); kegel.addColorStop(1, "#2E1C16");
+      g.fillStyle = kegel; g.fill();
+      g.strokeStyle = "rgba(18,10,8,.8)"; g.lineWidth = 1.4; g.stroke();
+
+      // Schlund
+      const glut = g.createRadialGradient(x, y, 1, x, y, TILE * .22);
+      glut.addColorStop(0, "#FFE9A8");
+      glut.addColorStop(.35, "#FF8B3C");
+      glut.addColorStop(1, "#8A2A12");
+      g.fillStyle = glut;
+      g.beginPath(); g.ellipse(x, y, TILE * .20, TILE * .14, 0, 0, 7); g.fill();
+
+      // Glutschein, der atmet
+      g.save();
+      g.globalCompositeOperation = "lighter";
+      const schein = g.createRadialGradient(x, y, 2, x, y, TILE * (.34 + puls * .12));
+      schein.addColorStop(0, `rgba(255,140,60,${.20 + puls * .16})`);
+      schein.addColorStop(1, "rgba(255,140,60,0)");
+      g.fillStyle = schein;
+      g.beginPath(); g.arc(x, y, TILE * (.34 + puls * .12), 0, 7); g.fill();
+      g.restore();
+
+      // Funken, die aufsteigen
+      for (let i = 0; i < 3; i++) {
+        const t2 = (G.time * .55 + i * .37 + x * .013) % 1;
+        const fx2 = x + Math.sin(t2 * 7 + i * 2.1) * TILE * .11;
+        const fy2 = y - t2 * TILE * .55;
+        g.fillStyle = `rgba(255,${170 - t2 * 80 | 0},80,${(1 - t2) * .8})`;
+        g.beginPath(); g.arc(fx2, fy2, (1 - t2) * 1.9 + .5, 0, 7); g.fill();
+      }
     } else {
       // Kraftfeld: Ring mit Speichen, deutlich anders als ein Tümpel
       g.strokeStyle = "rgba(240,168,60,.75)"; g.lineWidth = 2;
@@ -5821,7 +5914,7 @@ function showHelp() {
       <div class="kv" style="padding:10px"><div class="k">9 · Kreuzung und Gabelung</div>
         <div style="font-size:13px;margin-top:4px;line-height:1.5">Jede Route kreuzt sich einmal selbst — dort bestreicht ein Wächter zwei Abschnitte und feuert doppelt. Der <b>Grünpfad</b> gabelt sich zusätzlich: die Wilden verteilen sich abwechselnd auf beide Zweige, decke also beide.</div></div>
       <div class="kv" style="padding:10px"><div class="k">10 · Besondere Felder</div>
-        <div style="font-size:13px;margin-top:4px;line-height:1.5">Blaue <b>Wasserstellen</b> nehmen ausschließlich Wasser-Wächter auf — und Wasser-Wächter dürfen nirgendwo sonst stehen. Goldene <b>Kraftfelder</b> erweitern die Reichweite des Wächters darauf um 30 %.</div></div>
+        <div style="font-size:13px;margin-top:4px;line-height:1.5">Blaue <b>Wasserstellen</b> nehmen ausschließlich Wasser-Wächter auf — und Wasser-Wächter dürfen dort, wo es welche gibt, nirgendwo sonst stehen. Glühende <b>Vulkanschlote</b> in der Glutschlucht nehmen nur Feuer-Wächter auf und geben ihnen 18 % mehr Schaden und Reichweite; Feuer-Wächter dürfen aber auch anderswo stehen. Goldene <b>Kraftfelder</b> erweitern die Reichweite des Wächters darauf um 30 %.</div></div>
       <div class="kv" style="padding:10px"><div class="k">11 · Tag und Nacht</div>
         <div style="font-size:13px;margin-top:4px;line-height:1.5">Alle vier Wellen wechselt die Tageszeit. <b>Feen</b> entwickeln sich nur bei Tag, <b>Unlicht</b> nur bei Nacht — setzen kannst du beide jederzeit, nur der Aufstieg wartet. Die kommende Tageszeit steht bei <b>Nächste Welle</b>.</div></div>
       <div class="kv" style="padding:10px"><div class="k">12 · Megaentwicklung</div>
