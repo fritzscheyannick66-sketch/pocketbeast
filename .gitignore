@@ -21,3 +21,6 @@
 
 # Cache des Prototyp-Projekts
 godot-prototyp/.godot/
+
+# Cache des 3D-Projekts
+godot-3d/.godot/

@@ -1,0 +1,22 @@
+; PocketBeast 3D
+; Eigenständiges Projekt neben dem Browserspiel und dem 2D-Prototyp.
+; Ziel: echte dreidimensionale Darstellung derselben Spielidee.
+
+config_version=5
+
+[application]
+
+config/name="PocketBeast 3D"
+run/main_scene="res://scenes/welt.tscn"
+config/features=PackedStringArray("4.7", "Forward Plus")
+
+[display]
+
+window/size/viewport_width=1280
+window/size/viewport_height=768
+
+[rendering]
+
+renderer/rendering_method="forward_plus"
+lights_and_shadows/directional_shadow/size=4096
+anti_aliasing/quality/msaa_3d=2
