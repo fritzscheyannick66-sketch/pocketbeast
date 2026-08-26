@@ -97,13 +97,11 @@ const ist = { mul: karte.mul, gold: karte.gold, lives: karte.lives };
    ablesen lässt, dann Kombinationen. */
 const varianten = [
   ["wie jetzt", {}],
-  ["8 Vulkanschlote", { sonderfelder: [["vulkan", 8], ["kraft", 3], ["hoehe", 3]] }],
-  ["6 Erhöhungen", { sonderfelder: [["vulkan", 4], ["kraft", 3], ["hoehe", 6]] }],
-  ["Multiplikator 1,32", { mul: 1.32 }],
-  ["Multiplikator 1,22", { mul: 1.22 }],
-  ["Startbeeren 420", { gold: 420 }],
-  ["Feuer Reichweite +40 %", { tower: [["fire", "range", 1.40]] }],
-  ["8 Schlote + Feuer +40 %", { sonderfelder: [["vulkan", 8], ["kraft", 3], ["hoehe", 3]], tower: [["fire", "range", 1.40]] }],
+  ["alle Reichweite +15 %", { tower: [["fire","range",1.15],["water","range",1.15],["grass","range",1.15],
+    ["electric","range",1.15],["rock","range",1.15],["psychic","range",1.15],["ice","range",1.15],
+    ["steel","range",1.15],["fairy","range",1.15],["dark","range",1.15],["wind","range",1.15]] }],
+  ["Feuer+Stahl zurück", { tower: [["fire","range",1.35],["steel","range",1.38]] }],
+  ["Nahkämpfer +25 %", { tower: [["fire","range",1.25],["steel","range",1.25],["grass","range",1.15],["dark","range",1.15]] }],
 ];
 
 console.log("");

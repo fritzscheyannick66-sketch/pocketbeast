@@ -2305,7 +2305,34 @@ function refSpecHP(w) {
    schwieriger: Welle 24 kostete entweder alles oder nichts. */
 const BOSS_SURGE = 1.20, BOSS_SHARE = 0.25;
 const BOSS_REF = BOSSES.reduce((a, b) => a + b.hp, 0) / BOSSES.length;
-function waveArmorScale(w) { return 1 + (w - 1) * 0.052; }
+/* Panzerungswachstum.
+
+   Panzerung wird vom Schaden JEDES Treffers abgezogen — sie ist keine
+   prozentuale Minderung, sondern eine Wand. Deshalb darf sie nicht
+   ungebremst wachsen.
+
+   Vorher wuchs sie mit 5,2 % je Welle und wurde zusätzlich mit dem
+   Schwierigkeitsfaktor der Karte multipliziert. Gerechnet ergab das für
+   Monolithor (Grundpanzer 18) auf der Flutruine:
+
+       Welle  27  →   83 Panzerung
+       Welle  60  →  143
+       Welle 100  →  216
+
+   Der stärkste gewöhnliche Wächter, Ambosswacht, macht 158 Schaden je
+   Treffer und durchschlägt 26. Gegen 216 bleiben davon exakt null. Neun der
+   zwölf Familien waren gegen gepanzerte Gegner in der späten Flutruine
+   vollständig wertlos — nicht schwach, sondern wirkungslos.
+
+   Jetzt wächst sie mit 3,8 % je Welle, und der Kartenfaktor geht nur zur
+   Hälfte ein: Eine schwerere Karte trägt schwerere Panzerung, aber nicht im
+   selben Maß, in dem ihre Gegner mehr Leben haben. Dieselbe Rechnung ergibt
+   jetzt 53 / 92 / 126. */
+function waveArmorScale(w) { return 1 + (w - 1) * 0.038; }
+
+/* Wie stark der Schwierigkeitsfaktor der Karte auf die Panzerung wirkt.
+   Voll angewandt machte er die schwerste Karte doppelt undurchdringlich. */
+function kartenPanzerFaktor() { return 1 + ((G.map.mul || 1) - 1) * 0.5; }
 
 function pickMod(w) {
   if (w < 4) return null;
@@ -2338,6 +2365,29 @@ function genWave(w, mul) {
   const rest = pool.slice();
   for (let i = 0; i < kinds && rest.length; i++) {
     picked.push(rest.splice(Math.floor(rng() * rest.length), 1)[0]);
+  }
+
+  /* Bodengarantie: Eine Welle darf nie vollständig aus Fliegern bestehen.
+
+     Gemessen über je vierzehn Läufe kippten acht von vierzehn Runden auf der
+     Glutschlucht und elf von vierzehn auf der Flutruine — und fast immer an
+     derselben Stelle. Die Untersuchung zeigte reine Flugwellen: Flutruine
+     Welle 20 zu hundert Prozent, Glutschlucht Welle 38 und 42 ebenso.
+
+     Gegen eine solche Welle fällt jeder bodengebundene Wächter aus, allen
+     voran Gestein — der stärkste im Spiel und deshalb überall gebaut. Wer
+     nicht zufällig genug Luftabwehr stehen hat, verliert die Welle
+     vollständig, egal wie gut aufgestellt er sonst ist.
+
+     Flugwellen bleiben, sie sollen zur Vorbereitung zwingen. Aber die
+     letzte gezogene Art wird gegen eine bodengebundene getauscht, wenn
+     sonst nichts am Boden liefe. Damit bleibt immer ein Ziel übrig, an dem
+     die vorhandene Aufstellung arbeiten kann. */
+  if (picked.length && picked.every((sp) => sp.flying)) {
+    const boden = pool.filter((sp) => !sp.flying && !picked.includes(sp));
+    if (boden.length) {
+      picked[picked.length - 1] = boden[Math.floor(rng() * boden.length)];
+    }
   }
   const total = Math.min(60, Math.round((7 + Math.floor(w * 1.15)) * (mod && mod.count ? mod.count : 1)));
   const pickedAvg = picked.reduce((a, s) => a + s.hp, 0) / picked.length;
@@ -3536,7 +3586,7 @@ function spawnEnemy(s, hp, spd, bounty, boss, d, isSplit) {
        die HP mit `mul` stiegen — auf der schweren Karte fiel Panzerung damit
        relativ weniger ins Gewicht als auf der leichten, und die Routen
        kehrten ihre Rangfolge um. */
-    armor: Math.round((s.armor || 0) * waveArmorScale(G.sent) * (G.map.mul || 1) * (mod && mod.armor ? mod.armor : 1)),
+    armor: Math.round((s.armor || 0) * waveArmorScale(G.sent) * kartenPanzerFaktor() * (mod && mod.armor ? mod.armor : 1)),
     burn: 0, burnT: 0, slow: 0, slowT: 0, rootT: 0, mark: 0, markT: 0, wetT: 0,
     shield: 0, shieldMax: 0, shieldT: 0, abT: 0, comboT: 0,
     wob: Math.random() * 9, dead: false, dir: 1, walk: 0, isSplit: !!isSplit,
@@ -5778,7 +5828,7 @@ function estimateDefense(groups) {
   const out = [];
   for (const g of groups) {
     const spd = g.spd || 44;
-    const armor = Math.round((g.spec.armor || 0) * waveArmorScale(G.sent + 1) * (G.map.mul || 1)
+    const armor = Math.round((g.spec.armor || 0) * waveArmorScale(G.sent + 1) * kartenPanzerFaktor()
       * (g.mod && g.mod.armor ? g.mod.armor : 1)) * (1 - boon("pierce") * .30);
     /* Räumliche Länge der Gruppe: so weit ist der letzte Gegner hinter dem
        ersten. Ein Wächter feuert, solange diese Kolonne seinen Bereich
