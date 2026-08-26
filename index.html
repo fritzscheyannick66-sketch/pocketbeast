@@ -909,7 +909,31 @@ const MAPS = [
     wp: [[-1,5],[3,4],[7,8],[3,9],[4,6],[11,6],[8,3],[13,4],[16,8],[11,10],[20,8]],
   },
   {
-    name: "Flutruine", diff: "Brutal", mul: 1.95, gold: 320, lives: 15,
+    /* Startbeeren von 320 auf 500.
+
+       Bei 320 kam eine Runde hier nie in Gang: Es reichte für zwei, drei
+       Wächter, die die frühen Wellen nicht sauber hielten. Jeder
+       durchgelassene Wilde kostete Leben, die ausbleibenden Abschüsse
+       kosteten Kopfgeld, und ohne Kopfgeld gab es keinen Nachbau — eine
+       Spirale, aus der die Runde nicht mehr herausfand.
+
+       Gemessen über je sieben Läufe liegt zwischen 400 und 480 ein
+       Kipppunkt, keine Steigung:
+
+           320 Beeren →  Welle  9,  6 Wächter
+           400 Beeren →  Welle 11,  8 Wächter
+           480 Beeren →  Welle 38, 45 Wächter
+           640 Beeren →  Welle 42, 45 Wächter
+
+       500 liegt knapp darüber, mit etwas Puffer. Multiplikator und Leben
+       bleiben unverändert — die machen die Karte hart, und das soll sie
+       sein. Nur der Anlauf darf nicht unmöglich sein.
+
+       Den Multiplikator zu senken half übrigens gar nichts (1,95 und 1,75
+       ergaben beide Welle 20), mehr Leben ebenso wenig (15, 20 und 25 Leben
+       ergaben Welle 20, 20 und 21). Beide setzen an der Zähigkeit an; das
+       Problem saß im Anlauf. */
+    name: "Flutruine", diff: "Brutal", mul: 1.95, gold: 500, lives: 15,
     himmel: ["#33505F", "#7690A0"],
     ground: ["#1B2B3A", "#223447"], accent: "#3A5C78", foliage: "#4E8878",
     path: "#6D7E8E", pathEdge: "#28323F", soil: "#93A5B6",

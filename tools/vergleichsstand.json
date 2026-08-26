@@ -1,10 +1,10 @@
 {
- "zeit": "2026-08-26T19:43:14.569Z",
+ "zeit": "2026-08-26T20:43:21.462Z",
  "karten": [
   {
    "name": "Grünpfad",
    "idx": 0,
-   "laeufe": 3,
+   "laeufe": 5,
    "geschafft": 0,
    "welleMedian": 100,
    "welleMin": 100,
@@ -12,86 +12,93 @@
    "tuermeMedian": 45,
    "megaMedian": 19,
    "typenMedian": 10,
-   "goldUebrigMedian": 289344,
+   "goldUebrigMedian": 383534,
    "enden": {
-    "100": 3
+    "100": 5
    },
    "verlustJeWelle": {},
    "typAnteil": {
-    "steel": 0.318,
-    "rock": 0.182,
-    "electric": 0.152,
-    "ice": 0.096,
-    "dark": 0.088,
-    "fire": 0.067,
-    "fairy": 0.06,
-    "grass": 0.022,
-    "psychic": 0.014,
+    "steel": 0.347,
+    "rock": 0.151,
+    "electric": 0.147,
+    "fire": 0.101,
+    "dark": 0.075,
+    "fairy": 0.074,
+    "ice": 0.058,
+    "grass": 0.027,
+    "psychic": 0.021,
     "water": 0
    }
   },
   {
    "name": "Glutschlucht",
    "idx": 1,
-   "laeufe": 3,
+   "laeufe": 5,
    "geschafft": 0,
    "welleMedian": 100,
-   "welleMin": 100,
+   "welleMin": 38,
    "welleMax": 100,
    "tuermeMedian": 45,
-   "megaMedian": 22,
+   "megaMedian": 23,
    "typenMedian": 10,
-   "goldUebrigMedian": 239588,
+   "goldUebrigMedian": 440721,
    "enden": {
+    "38": 1,
+    "93": 1,
     "100": 3
    },
    "verlustJeWelle": {
-    "5": 4.67
+    "5": 4.6
    },
    "typAnteil": {
-    "steel": 0.221,
-    "rock": 0.165,
-    "electric": 0.147,
-    "dark": 0.137,
-    "water": 0.118,
-    "fairy": 0.089,
-    "psychic": 0.048,
-    "fire": 0.037,
-    "grass": 0.025,
-    "ice": 0.015
+    "steel": 0.213,
+    "rock": 0.207,
+    "water": 0.147,
+    "electric": 0.141,
+    "dark": 0.093,
+    "fairy": 0.058,
+    "psychic": 0.04,
+    "fire": 0.036,
+    "grass": 0.034,
+    "ice": 0.03
    }
   },
   {
    "name": "Flutruine",
    "idx": 2,
-   "laeufe": 3,
+   "laeufe": 5,
    "geschafft": 0,
-   "welleMedian": 9,
-   "welleMin": 9,
-   "welleMax": 20,
-   "tuermeMedian": 6,
-   "megaMedian": 0,
-   "typenMedian": 3,
-   "goldUebrigMedian": 169,
+   "welleMedian": 38,
+   "welleMin": 32,
+   "welleMax": 48,
+   "tuermeMedian": 45,
+   "megaMedian": 3,
+   "typenMedian": 10,
+   "goldUebrigMedian": 3019,
    "enden": {
-    "9": 2,
-    "20": 1
+    "32": 2,
+    "38": 1,
+    "42": 1,
+    "48": 1
    },
    "verlustJeWelle": {
-    "2": 2,
-    "4": 3.33,
-    "8": 3.33
+    "16": 2,
+    "20": 5.2,
+    "26": 0.8,
+    "40": 1,
+    "42": 2.6
    },
    "typAnteil": {
-    "fire": 0.218,
-    "steel": 0.188,
-    "dark": 0.161,
-    "grass": 0.147,
-    "electric": 0.137,
-    "rock": 0.063,
-    "psychic": 0.061,
-    "water": 0.014,
-    "fairy": 0.012
+    "rock": 0.292,
+    "steel": 0.289,
+    "dark": 0.132,
+    "electric": 0.079,
+    "fire": 0.057,
+    "psychic": 0.043,
+    "grass": 0.036,
+    "ice": 0.036,
+    "fairy": 0.028,
+    "water": 0.007
    }
   }
  ]
