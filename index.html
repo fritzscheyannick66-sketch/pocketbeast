@@ -552,7 +552,19 @@ function eff(atk, def) {
   return v === undefined ? 1 : v;
 }
 
-/* ---------------- Wächter (Türme) ---------------- */
+/* ---------------- Wächter (Türme) ----------------
+
+   Namensprinzip über alle Familien:
+
+     Stufe 1   Verkleinerung — jung, zutraulich  (Zündling, Tröpfling)
+     Stufe 2   Gestalt — gewachsen, tierhaft      (Glutkatze, Flutwelpe)
+     Stufe 3   Würde und Wucht — zweigliedrig     (Flammenkralle, Wogenfürst)
+     Mega      dieselbe Bauart, ein Stück schwerer (Flammenfürst)
+
+   Durchgehend deutsche Wortbildung. Vorher mischten sich griechische
+   (Pyro-), lateinische (Terra-) und italienische Stämme (Volt, Mahlstrom)
+   in eine sonst deutsche Reihe — drei Sprachen in einer Liste, die sich als
+   eine Familie lesen soll. */
 /* Der legendäre Wächter steht am Ende der Liste und erscheint erst, wenn
    alle hundert Wellen einer Karte gehalten sind. Er ist die Bedingung für den
    Endlosmodus — dort greift keine Wellenobergrenze mehr, und ohne einen
@@ -565,18 +577,18 @@ const TOWERS = [
     id: "fire", type: "fire", shape: "cat", air: true,
     blurb: "Schnelle Einzelziele, entzündet Gegner.",
     tiers: [
-      { name: "Funkling",    cost: 90,  dmg: 12, rate: 1.6, range: 130 },
-      { name: "Glutkatz",    cost: 130, dmg: 26, rate: 1.9, range: 146, burn: { dps: 9,  dur: 2 } },
-      { name: "Pyroklaue",   cost: 240, dmg: 48, rate: 2.2, range: 162, burn: { dps: 22, dur: 3 } },
+      { name: "Zündling",    cost: 90,  dmg: 12, rate: 1.6, range: 130 },
+      { name: "Glutkatze",    cost: 130, dmg: 26, rate: 1.9, range: 146, burn: { dps: 9,  dur: 2 } },
+      { name: "Flammenkralle",   cost: 240, dmg: 48, rate: 2.2, range: 162, burn: { dps: 22, dur: 3 } },
     ],
   },
   {
     id: "water", type: "water", shape: "drop", air: true,
     blurb: "Flächenschaden, verlangsamt alles im Umkreis.",
     tiers: [
-      { name: "Tropfling",   cost: 110, dmg: 14, rate: 1.0,  range: 140, splash: 36, slow: { amt: .2, dur: 1.2 } },
-      { name: "Flutwelp",    cost: 165, dmg: 30, rate: 1.15, range: 156, splash: 48, slow: { amt: .3, dur: 1.5 } },
-      { name: "Mahlstrom",   cost: 300, dmg: 58, rate: 1.3,  range: 176, splash: 64, slow: { amt: .42, dur: 2 } },
+      { name: "Tröpfling",   cost: 110, dmg: 14, rate: 1.0,  range: 140, splash: 36, slow: { amt: .2, dur: 1.2 } },
+      { name: "Flutwelpe",    cost: 165, dmg: 30, rate: 1.15, range: 156, splash: 48, slow: { amt: .3, dur: 1.5 } },
+      { name: "Wogenfürst",   cost: 300, dmg: 58, rate: 1.3,  range: 176, splash: 64, slow: { amt: .42, dur: 2 } },
     ],
   },
   {
@@ -584,35 +596,35 @@ const TOWERS = [
     blurb: "Günstig und verlässlich, fesselt mit Ranken.",
     tiers: [
       { name: "Keimling",    cost: 65,  dmg: 10, rate: 1.3, range: 126 },
-      { name: "Dornkind",    cost: 105, dmg: 22, rate: 1.5, range: 142, root: { p: .12, dur: .6 } },
-      { name: "Dornschlund", cost: 210, dmg: 40, rate: 1.7, range: 158, root: { p: .2, dur: 1.0 }, burn: { dps: 8, dur: 3 } },
+      { name: "Dornbock",    cost: 105, dmg: 22, rate: 1.5, range: 142, root: { p: .12, dur: .6 } },
+      { name: "Rankenschlund", cost: 210, dmg: 40, rate: 1.7, range: 158, root: { p: .2, dur: 1.0 }, burn: { dps: 8, dur: 3 } },
     ],
   },
   {
     id: "electric", type: "electric", shape: "fox", air: true,
     blurb: "Feuert sehr schnell, Blitze springen weiter.",
     tiers: [
-      { name: "Funkmilbe",   cost: 100, dmg: 7,  rate: 3.2, range: 116 },
-      { name: "Voltfuchs",   cost: 150, dmg: 13, rate: 3.6, range: 132, chain: 2 },
-      { name: "Donnerkiefer",cost: 275, dmg: 24, rate: 4.0, range: 148, chain: 3 },
+      { name: "Blitzmilbe",   cost: 100, dmg: 7,  rate: 3.2, range: 116 },
+      { name: "Wetterfuchs",   cost: 150, dmg: 13, rate: 3.6, range: 132, chain: 2 },
+      { name: "Donnerrachen",cost: 275, dmg: 24, rate: 4.0, range: 148, chain: 3 },
     ],
   },
   {
     id: "rock", type: "rock", shape: "ox", air: false,
     blurb: "Wuchtige Erschütterung — trifft keine Flieger.",
     tiers: [
-      { name: "Kiesel",      cost: 130, dmg: 34,  rate: .55, range: 150, splash: 52 },
+      { name: "Kiesling",      cost: 130, dmg: 34,  rate: .55, range: 150, splash: 52 },
       { name: "Felsochse",   cost: 195, dmg: 76,  rate: .62, range: 166, splash: 68 },
-      { name: "Terrabeben",  cost: 350, dmg: 148, rate: .70, range: 186, splash: 88, root: { p: .1, dur: .5 } },
+      { name: "Bergwucht",  cost: 350, dmg: 148, rate: .70, range: 186, splash: 88, root: { p: .1, dur: .5 } },
     ],
   },
   {
     id: "psychic", type: "psychic", shape: "owl", air: true,
     blurb: "Stärkt benachbarte Wächter und markiert Ziele.",
     tiers: [
-      { name: "Gedankenflaum", cost: 150, dmg: 9,  rate: .9,  range: 152, aura: { dmg: .10, rng: .08 } },
+      { name: "Traumflaum", cost: 150, dmg: 9,  rate: .9,  range: 152, aura: { dmg: .10, rng: .08 } },
       { name: "Traumeule",     cost: 210, dmg: 20, rate: 1.0, range: 172, aura: { dmg: .18, rng: .12 }, mark: .14 },
-      { name: "Orakel",        cost: 380, dmg: 38, rate: 1.1, range: 196, aura: { dmg: .28, rng: .18 }, mark: .26 },
+      { name: "Weitseher",        cost: 380, dmg: 38, rate: 1.1, range: 196, aura: { dmg: .28, rng: .18 }, mark: .26 },
     ],
   },
   {
@@ -622,7 +634,7 @@ const TOWERS = [
     blurb: "Friert Gegner ein — die stärkste Verlangsamung.",
     tiers: [
       { name: "Frostfell",   cost: 105, dmg: 9,  rate: 1.1, range: 134, splash: 30, slow: { amt: .3,  dur: 1.6 } },
-      { name: "Raufrost",    cost: 160, dmg: 19, rate: 1.2, range: 150, splash: 42, slow: { amt: .45, dur: 2.0 } },
+      { name: "Raureifer",    cost: 160, dmg: 19, rate: 1.2, range: 150, splash: 42, slow: { amt: .45, dur: 2.0 } },
       { name: "Eisklamm",    cost: 290, dmg: 36, rate: 1.3, range: 168, splash: 58, slow: { amt: .6,  dur: 2.6 }, root: { p: .16, dur: .8 } },
     ],
   },
@@ -634,7 +646,7 @@ const TOWERS = [
     tiers: [
       { name: "Nietling",    cost: 140, dmg: 40,  rate: .7,  range: 142, pierce: 6 },
       { name: "Schmiedstier",cost: 205, dmg: 84,  rate: .78, range: 158, pierce: 14 },
-      { name: "Amboss",      cost: 360, dmg: 158, rate: .86, range: 176, pierce: 26, splash: 40 },
+      { name: "Ambosswacht",      cost: 360, dmg: 158, rate: .86, range: 176, pierce: 26, splash: 40 },
     ],
   },
   {
@@ -646,7 +658,7 @@ const TOWERS = [
     tiers: [
       { name: "Schimmerchen", cost: 120, dmg: 11, rate: 1.5, range: 140, mark: .10 },
       { name: "Glanzfee",     cost: 175, dmg: 24, rate: 1.7, range: 158, mark: .18, splash: 32 },
-      { name: "Morgenlicht",  cost: 315, dmg: 46, rate: 1.9, range: 178, mark: .30, splash: 46 },
+      { name: "Morgenwacht",  cost: 315, dmg: 46, rate: 1.9, range: 178, mark: .30, splash: 46 },
     ],
   },
   {
@@ -717,10 +729,15 @@ function megaWerte(def) {
   return m;
 }
 
+/* Die Meganamen sind die vierte Stufe derselben Reihe und folgen demselben
+   Prinzip: zweigliedrig, deutsch, und ein Stück gewichtiger als Stufe drei.
+   "Infernokralle" und "Titanamboss" trugen Fremdwortstämme und fielen aus
+   der Reihe. */
 const MEGA_NAMEN = {
-  fire: "Infernokralle", water: "Tiefenherr", grass: "Urwaldwächter",
+  fire: "Flammenfürst", water: "Tiefenherr", grass: "Urwaldwächter",
   electric: "Gewitterfang", rock: "Bergbrecher", psychic: "Allseher",
-  ice: "Ewigfrost", steel: "Titanamboss", fairy: "Sternenfee", dark: "Nachtfürst",
+  ice: "Ewigfrost", steel: "Erzamboss", fairy: "Sternenfee", dark: "Nachtfürst",
+  legend: "Ewigfürst",
 };
 
 /* Fortschritt in Richtung Megaentwicklung — auch für die Anzeige gebraucht. */
@@ -4457,6 +4474,152 @@ function drawWeather(g) {
   g.restore();
 }
 
+/* Podest eines Wächters.
+
+   Vorher trugen alle Stufen dasselbe Podest, und sechs der elf Typen teilten
+   sich dieselbe Rune — einen schmucklosen Doppelkreis, der nur bedeutete
+   "hier stand kein eigenes Zeichen". Wer Eis, Stahl, Fee, Unlicht, Psycho
+   oder den legendären Wächter setzte, bekam optisch dasselbe.
+
+   Jetzt hat jeder Typ sein eigenes Zeichen, und das Podest wächst mit dem
+   Rang mit: Stufe 1 schlicht, Stufe 2 mit umlaufender Kante, Stufe 3 mit
+   Ecksteinen. Die Megaentwicklung setzt einen goldenen Reif darum. */
+function zeichnePodest(g, t, col) {
+  const x = t.x, y = t.y + 2, stufe = t.tier;
+  const br = 20 + stufe * 1.6;
+
+  // Grundkörper
+  g.fillStyle = shade(col, -.62);
+  g.beginPath();
+  if (g.roundRect) g.roundRect(x - br, y, br * 2, 15, 6); else g.rect(x - br, y, br * 2, 15);
+  g.fill();
+  // belichtete Oberkante
+  g.fillStyle = rgba(col, .3);
+  g.beginPath();
+  if (g.roundRect) g.roundRect(x - br, y, br * 2, 5, 3); else g.rect(x - br, y, br * 2, 5);
+  g.fill();
+
+  // Ab Stufe 2 eine umlaufende Kante
+  if (stufe >= 1) {
+    g.strokeStyle = rgba(shade(col, .3), .55);
+    g.lineWidth = 1.2;
+    g.beginPath();
+    if (g.roundRect) g.roundRect(x - br + 2, y + 2, br * 2 - 4, 11, 4); else g.rect(x - br + 2, y + 2, br * 2 - 4, 11);
+    g.stroke();
+  }
+  // Ab Stufe 3 Ecksteine
+  if (stufe >= 2) {
+    g.fillStyle = shade(col, -.35);
+    for (const vz of [-1, 1]) {
+      g.beginPath();
+      if (g.roundRect) g.roundRect(x + vz * (br - 5) - 2.5, y - 3, 5, 8, 2);
+      else g.rect(x + vz * (br - 5) - 2.5, y - 3, 5, 8);
+      g.fill();
+      g.fillStyle = rgba(shade(col, .45), .8);
+      g.fillRect(x + vz * (br - 5) - 1, y - 2.4, 2, 2);
+      g.fillStyle = shade(col, -.35);
+    }
+  }
+  // Mega: goldener Reif
+  if (t.mega) {
+    g.strokeStyle = rgba("#F5C542", .5 + Math.sin(G.time * 2.2 + x) * .22);
+    g.lineWidth = 2;
+    g.beginPath(); g.ellipse(x, y + 8, br + 4, 8, 0, 0, 7); g.stroke();
+  }
+
+  // Typzeichen
+  g.save();
+  g.globalAlpha = .55 + Math.sin(G.time * 1.6 + x) * .12;
+  g.strokeStyle = shade(col, .35); g.lineWidth = 1.5;
+  g.lineCap = "round"; g.lineJoin = "round";
+  zeichneRune(g, t.def.type, x, y + 8.5);
+  g.restore();
+}
+
+/* Ein eigenes Zeichen für jeden Typ. Es sitzt klein auf dem Podest, ist aber
+   das einzige, was einen Wächter auf einen Blick verrät, wenn die Figur
+   selbst gerade von einem Baum halb verdeckt wird. */
+function zeichneRune(g, typ, x, y) {
+  const r = 3.4;
+  switch (typ) {
+    case "fire":     // Flamme
+      g.beginPath();
+      g.moveTo(x, y - r); g.quadraticCurveTo(x + r * .9, y, x, y + r);
+      g.quadraticCurveTo(x - r * .9, y, x, y - r);
+      g.stroke();
+      break;
+    case "water":    // Welle
+      g.beginPath();
+      g.moveTo(x - r, y + 1);
+      g.quadraticCurveTo(x - r * .5, y - 2, x, y + 1);
+      g.quadraticCurveTo(x + r * .5, y + 4, x + r, y + 1);
+      g.stroke();
+      break;
+    case "grass":    // Spross
+      g.beginPath(); g.moveTo(x, y + r); g.lineTo(x, y - r * .4); g.stroke();
+      g.beginPath();
+      g.moveTo(x, y - r * .2); g.quadraticCurveTo(x - r, y - r, x - r * .3, y - r * 1.1);
+      g.moveTo(x, y - r * .2); g.quadraticCurveTo(x + r, y - r, x + r * .3, y - r * 1.1);
+      g.stroke();
+      break;
+    case "electric": // Blitz
+      g.beginPath();
+      g.moveTo(x - 2, y - r); g.lineTo(x + 1, y); g.lineTo(x - 1, y); g.lineTo(x + 2, y + r);
+      g.stroke();
+      break;
+    case "rock":     // Quader
+      g.beginPath();
+      g.moveTo(x - r, y + r * .6); g.lineTo(x - r * .4, y - r);
+      g.lineTo(x + r, y - r * .3); g.lineTo(x + r * .5, y + r); g.closePath();
+      g.stroke();
+      break;
+    case "psychic":  // Auge
+      g.beginPath();
+      g.moveTo(x - r, y); g.quadraticCurveTo(x, y - r * .95, x + r, y);
+      g.quadraticCurveTo(x, y + r * .95, x - r, y);
+      g.stroke();
+      g.beginPath(); g.arc(x, y, r * .32, 0, 7); g.stroke();
+      break;
+    case "ice":      // Kristallstern
+      g.beginPath();
+      for (let i = 0; i < 3; i++) {
+        const a = i * Math.PI / 3;
+        g.moveTo(x - Math.cos(a) * r, y - Math.sin(a) * r);
+        g.lineTo(x + Math.cos(a) * r, y + Math.sin(a) * r);
+      }
+      g.stroke();
+      break;
+    case "steel":    // Niete im Ring
+      g.beginPath(); g.arc(x, y, r * .85, 0, 7); g.stroke();
+      g.beginPath();
+      g.moveTo(x - r * .45, y - r * .45); g.lineTo(x + r * .45, y + r * .45);
+      g.moveTo(x + r * .45, y - r * .45); g.lineTo(x - r * .45, y + r * .45);
+      g.stroke();
+      break;
+    case "fairy":    // vierzackiger Funkel
+      g.beginPath();
+      for (let i = 0; i < 8; i++) {
+        const a = i * Math.PI / 4, rr = i % 2 ? r * .3 : r;
+        g[i ? "lineTo" : "moveTo"](x + Math.cos(a) * rr, y + Math.sin(a) * rr);
+      }
+      g.closePath(); g.stroke();
+      break;
+    case "dark":     // abnehmender Mond
+      g.beginPath(); g.arc(x, y, r, .7, 5.6); g.stroke();
+      break;
+    case "legend":   // Krone
+      g.beginPath();
+      g.moveTo(x - r, y + r * .7); g.lineTo(x - r, y - r * .3);
+      g.lineTo(x - r * .5, y + r * .2); g.lineTo(x, y - r);
+      g.lineTo(x + r * .5, y + r * .2); g.lineTo(x + r, y - r * .3);
+      g.lineTo(x + r, y + r * .7); g.closePath();
+      g.stroke();
+      break;
+    default:
+      g.beginPath(); g.arc(x, y, r * .8, 0, 7); g.stroke();
+  }
+}
+
 function drawTower(g, t) {
   const col = TYPES[t.def.type].col;
   const st = tierOf(t);
@@ -4469,26 +4632,7 @@ function drawTower(g, t) {
   g.beginPath(); g.ellipse(t.x + 9, t.y + 19, 22, 7, .12, 0, 7); g.fill();
   g.fillStyle = "rgba(0,0,0,.32)";
   g.beginPath(); g.ellipse(t.x, t.y + 15, 19, 8, 0, 0, 7); g.fill();
-  g.fillStyle = shade(col, -.62);
-  g.beginPath();
-  if (g.roundRect) { g.roundRect(t.x - 20, t.y + 2, 40, 15, 6); } else g.rect(t.x - 20, t.y + 2, 40, 15);
-  g.fill();
-  g.fillStyle = rgba(col, .3);
-  g.beginPath();
-  if (g.roundRect) { g.roundRect(t.x - 20, t.y + 2, 40, 5, 3); } else g.rect(t.x - 20, t.y + 2, 40, 5);
-  g.fill();
-  // Typ-Rune auf dem Podest
-  g.save();
-  g.globalAlpha = .5 + Math.sin(G.time * 1.6 + t.x) * .12;
-  g.strokeStyle = col; g.lineWidth = 1.4; g.lineCap = "round";
-  const rx = t.x, ry = t.y + 10.5;
-  if (t.def.type === "fire") { g.beginPath(); g.moveTo(rx, ry - 3); g.quadraticCurveTo(rx + 3, ry, rx, ry + 3); g.quadraticCurveTo(rx - 3, ry, rx, ry - 3); g.stroke(); }
-  else if (t.def.type === "water") { g.beginPath(); g.arc(rx, ry, 3, .1, 3.3); g.stroke(); }
-  else if (t.def.type === "grass") { g.beginPath(); g.moveTo(rx - 3, ry + 2); g.lineTo(rx, ry - 3); g.lineTo(rx + 3, ry + 2); g.stroke(); }
-  else if (t.def.type === "electric") { g.beginPath(); g.moveTo(rx - 2, ry - 3); g.lineTo(rx + 1, ry); g.lineTo(rx - 1, ry); g.lineTo(rx + 2, ry + 3); g.stroke(); }
-  else if (t.def.type === "rock") { g.strokeRect(rx - 2.6, ry - 2.6, 5.2, 5.2); }
-  else { g.beginPath(); g.arc(rx, ry, 3, 0, 7); g.stroke(); g.beginPath(); g.arc(rx, ry, 1.2, 0, 7); g.stroke(); }
-  g.restore();
+  zeichnePodest(g, t, col);
   if (st.aura) {
     g.strokeStyle = rgba(col, .18 + Math.sin(G.time * 2) * .06);
     g.lineWidth = 1.4;
