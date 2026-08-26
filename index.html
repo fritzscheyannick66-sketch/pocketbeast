@@ -768,10 +768,11 @@ const BOON_BY_ID = Object.fromEntries(BOONS.map(b => [b.id, b]));
 const MAPS = [
   {
     name: "Grünpfad", diff: "Ruhig", mul: 1.25, gold: 280, lives: 20,
-    ground: ["#16261C", "#1A2E21"], accent: "#3A5C40", foliage: "#3F7A4A",
-    path: "#5A4632", pathEdge: "#2A2117", soil: "#7A6448",
+    ground: ["#1E3324", "#27422C"], accent: "#4A7350", foliage: "#4E9257",
+    path: "#9C7B54", pathEdge: "#41301F", soil: "#BFA173",
+    gras: "#5B9A5F", gras2: "#3C6E44", erde: "#6B5636",
     weather: "pollen", tint: "rgba(120,200,140,.05)",
-    flora: ["grass","grass","grass","grass","bush","bush","conifer","conifer","broadleaf","broadleaf","flower","mushroom","rock"],
+    flora: ["grass","grass","grass","grass","grass","bush","bush","conifer","conifer","conifer","broadleaf","broadleaf","flower","flower","mushroom","rock"],
     /* Mäandernder Waldweg: geglättet (smooth), viele Wegpunkte mit
        Versatz — weiche S-Bögen statt rechter Winkel. */
     smooth: 2,
@@ -791,18 +792,20 @@ const MAPS = [
   },
   {
     name: "Glutschlucht", diff: "Fordernd", mul: 1.44, gold: 300, lives: 18,
-    ground: ["#180D0B", "#22120F"], accent: "#5A3524", foliage: "#6E4326",
-    path: "#63483C", pathEdge: "#150C0A", soil: "#8A6450",
+    ground: ["#241310", "#331914"], accent: "#7A452E", foliage: "#8E5730",
+    path: "#9E7359", pathEdge: "#241509", soil: "#C49170",
+    gras: "#8A5A38", gras2: "#5E3A24", erde: "#8A6248",
     weather: "embers", tint: "rgba(255,120,50,.06)",
-    flora: ["grass","rock","rock","deadtree","deadtree","deadtree","crystalrock","crystalrock","vent","vent","vent"],
+    flora: ["grass","rock","deadtree","deadtree","crystalrock","crystalrock","vent","vent","vent","vent"],
     /* Schroffe Spalte: spitze Winkel und Diagonalen, bewusst ungeglättet —
        der Weg knickt, statt zu schwingen. */
     wp: [[-1,5],[3,4],[7,8],[3,9],[4,6],[11,6],[8,3],[13,4],[16,8],[11,10],[20,8]],
   },
   {
     name: "Flutruine", diff: "Brutal", mul: 1.95, gold: 320, lives: 15,
-    ground: ["#141F2B", "#182634"], accent: "#2C4459", foliage: "#3E6B5C",
-    path: "#404A55", pathEdge: "#1C2530", soil: "#5C6C7C",
+    ground: ["#1B2B3A", "#223447"], accent: "#3A5C78", foliage: "#4E8878",
+    path: "#6D7E8E", pathEdge: "#28323F", soil: "#93A5B6",
+    gras: "#4A7A6A", gras2: "#31554C", erde: "#5A6773",
     weather: "rain", tint: "rgba(90,150,210,.07)",
     flora: ["grass","grass","rubble","rubble","rock","rock","pillar","pillar","pool","broadleaf"],
     /* Gefluteter Straßenzug: streng rechtwinklig, mit einer Kehre nach
@@ -2541,15 +2544,27 @@ function draw() {
 
   const pts = G.path.pts;
   g.lineCap = "round"; g.lineJoin = "round";
-  // Trittspuren (laufend) — auf jeder Route, auch dem zweiten Zweig
-  g.strokeStyle = "rgba(255,255,255,.10)"; g.lineWidth = 2;
-  g.setLineDash([10, 14]); g.lineDashOffset = -G.time * 20;
+  /* Zugrichtung andeuten — aber nicht als durchgezogene Mittellinie.
+     Die gestrichelte Linie in der Wegmitte ließ den Trampelpfad wie eine
+     asphaltierte Straße mit Fahrbahnmarkierung aussehen. Stattdessen wandern
+     jetzt einzelne helle Tupfen seitlich versetzt über den Weg, wie
+     aufgewirbelter Staub. */
   for (const rt of G.routes) {
-    g.beginPath(); g.moveTo(rt.pts[0].x, rt.pts[0].y);
-    for (let i = 1; i < rt.pts.length; i++) g.lineTo(rt.pts[i].x, rt.pts[i].y);
-    g.stroke();
+    const schritt = 34;
+    for (let d = (G.time * 26) % schritt; d < rt.len; d += schritt) {
+      const a = pathAt(rt, d), b = pathAt(rt, Math.min(rt.len, d + 8));
+      const dx = b.x - a.x, dy = b.y - a.y;
+      const l = Math.hypot(dx, dy) || 1;
+      const nx = -dy / l, ny = dx / l;
+      const seite = ((d / schritt) | 0) % 2 ? 1 : -1;
+      const off = seite * TILE * .16;
+      const fade = .06 + Math.sin(d * .04 + G.time * 2) * .03;
+      g.fillStyle = `rgba(255,242,220,${Math.max(0, fade)})`;
+      g.beginPath();
+      g.ellipse(a.x + nx * off, a.y + ny * off, 3.2, 2.0, Math.atan2(dy, dx), 0, 7);
+      g.fill();
+    }
   }
-  g.setLineDash([]);
 
   // Bewegte Deko
   drawLiveDecor(g);
@@ -2787,6 +2802,80 @@ function resumeRun() {
 let decorCache = null;
 let stoneCache = null;
 
+/* Grasnarbe.
+   Der Untergrund war eine glatte Farbfläche mit ein paar weichen Flecken —
+   auf 80 % des Bildes wirkte das leer und billig. Jetzt liegt eine echte
+   Narbe darüber: tausende kurze Striche in wechselnden Grüntönen, dazu
+   Erdstellen, wo die Decke dünner wird.
+
+   Das ist teuer zu zeichnen, kostet im Spiel aber nichts: Der Hintergrund
+   wird einmal je Karte gerendert und danach als Bild wiederverwendet. */
+function zeichneGrasnarbe(g, m) {
+  const rn = mulberry(G.mapIdx * 8171 + 23);
+  const gras = m.gras || shade(m.ground[1], .5);
+  const gras2 = m.gras2 || shade(m.ground[1], .3);
+  const erde = m.erde || m.soil || shade(m.ground[1], .35);
+
+  // Erdstellen: unregelmäßige Lichtungen, an denen der Boden durchkommt
+  for (let i = 0; i < 26; i++) {
+    const x = rn() * W, y = rn() * H;
+    const rx = 30 + rn() * 90, ry = 20 + rn() * 55;
+    g.save();
+    g.globalAlpha = .16 + rn() * .20;
+    g.fillStyle = erde;
+    g.beginPath();
+    // gezackter Rand statt sauberer Ellipse, sonst wirkt es wie ein Aufkleber
+    const n = 14;
+    for (let k = 0; k <= n; k++) {
+      const a = k / n * Math.PI * 2;
+      const w = .78 + rn() * .44;
+      const px = x + Math.cos(a) * rx * w, py = y + Math.sin(a) * ry * w;
+      k === 0 ? g.moveTo(px, py) : g.lineTo(px, py);
+    }
+    g.closePath(); g.fill();
+    g.restore();
+  }
+
+  // Halme. Kurze Striche, leicht geneigt, in drei Tonlagen.
+  g.save();
+  g.lineCap = "round";
+  const halme = 7000;
+  for (let i = 0; i < halme; i++) {
+    const x = rn() * W, y = rn() * H;
+    const t = rn();
+    const c = t < .34 ? gras : (t < .72 ? gras2 : shade(gras, .28));
+    const h = 2.2 + rn() * 4.6;
+    const neig = (rn() - .5) * 1.5;
+    g.strokeStyle = rgba(c, .30 + rn() * .40);
+    g.lineWidth = .9 + rn() * 1.0;
+    g.beginPath();
+    g.moveTo(x, y);
+    g.quadraticCurveTo(x + neig * .5, y - h * .6, x + neig, y - h);
+    g.stroke();
+  }
+  g.restore();
+
+  // Dichtere Büschel, damit die Narbe nicht gleichmäßig gestreut wirkt
+  for (let i = 0; i < 380; i++) {
+    const bx = rn() * W, by = rn() * H;
+    const dicht = 6 + Math.floor(rn() * 10);
+    g.save();
+    g.lineCap = "round";
+    for (let k = 0; k < dicht; k++) {
+      const x = bx + (rn() - .5) * 16, y = by + (rn() - .5) * 10;
+      const h = 3 + rn() * 5;
+      const neig = (rn() - .5) * 1.8;
+      g.strokeStyle = rgba(rn() > .5 ? gras : shade(gras, .30), .38 + rn() * .34);
+      g.lineWidth = .9 + rn() * .7;
+      g.beginPath();
+      g.moveTo(x, y);
+      g.quadraticCurveTo(x + neig * .5, y - h * .6, x + neig, y - h);
+      g.stroke();
+    }
+    g.restore();
+  }
+}
+
 function drawGroundTexture(g) {
   const m = G.map;
   if (!decorCache || decorCache.map !== G.mapIdx) buildDecor();
@@ -2794,6 +2883,7 @@ function drawGroundTexture(g) {
     g.fillStyle = b.c;
     g.beginPath(); g.ellipse(b.x, b.y, b.w, b.h, b.a, 0, 7); g.fill();
   }
+  zeichneGrasnarbe(g, m);
   if (decorCache.cracks) {
     g.save();
     g.lineCap = "round"; g.lineJoin = "round";
@@ -2857,6 +2947,13 @@ function buildDecor() {
      Dafür liegt jetzt ein Dichtefeld über der Karte: wenige Zentren mit
      Gaußglocken, deren Summe bestimmt, wie viel wo wächst. Jedes Zentrum hat
      zudem eine Leitart — so wird aus einem Nadelwald nicht ein Mischmasch. */
+  /* Grundgröße je Art. Ohne diese Staffelung wirkt alles gleich wichtig —
+     ein Kieselstein so groß wie eine Tanne. */
+  const GROESSE = {
+    conifer: 1.55, broadleaf: 1.45, deadtree: 1.30, pillar: 1.25,
+    bush: .95, crystalrock: 1.05, vent: 1.00, rubble: .70,
+    rock: .62, pool: .90, flower: .60, mushroom: .55, grass: .80,
+  };
   const items = [];
   const kinds = m.flora;
   const big = ["conifer", "broadleaf", "deadtree", "pillar", "pool"];
@@ -2865,11 +2962,24 @@ function buildDecor() {
      Objekte bleiben auf ein Nest beschränkt. Ohne das wurde etwa "pool" zur
      Leitart eines weiten Clusters und überzog die halbe Flutruine mit
      Pfützen — die Karte las sich fleckig statt geordnet. */
-  const gross = { pool: .42, pillar: .5, deadtree: .62, conifer: .8, broadleaf: .8, vent: .55, crystalrock: .6 };
+  /* Radius der Ballung je Leitart. Klein für alles, was in Menge erschlägt:
+     Felsen als Leitart überzogen die Karte mit 191 Brocken — ein Drittel des
+     gesamten Bewuchses und optisch ein sich wiederholendes Muster. */
+  const gross = { pool: .42, pillar: .5, deadtree: .62, conifer: .95, broadleaf: .95,
+                  vent: .58, crystalrock: .5, rock: .38, rubble: .45, mushroom: .6 };
   const zentren = [];
-  const nZ = 7 + Math.floor(rnd() * 4);
+  const nZ = 11 + Math.floor(rnd() * 4);
+  /* Leitarten ohne Wiederholung ziehen, solange der Vorrat reicht. Wurde
+     dieselbe Art mehrfach zum Zentrum, überwog sie alles andere: einmal
+     standen 141 Nadelbäumen ganze 3 Laubbäume gegenüber. */
+  const artenVorrat = [...new Set(kinds)];
+  for (let i = artenVorrat.length - 1; i > 0; i--) {
+    const j = Math.floor(rnd() * (i + 1));
+    [artenVorrat[i], artenVorrat[j]] = [artenVorrat[j], artenVorrat[i]];
+  }
   for (let i = 0; i < nZ; i++) {
-    const k = kinds[Math.floor(rnd() * kinds.length)];
+    const k = artenVorrat.length ? artenVorrat[i % artenVorrat.length]
+                                 : kinds[Math.floor(rnd() * kinds.length)];
     zentren.push({
       x: rnd() * W, y: rnd() * H,
       r: (90 + rnd() * 170) * (gross[k] || 1),
@@ -2906,16 +3016,28 @@ function buildDecor() {
     const c = f.c, r = f.r, art = f.art;
     const d = f.d / median;                 // 1,0 = durchschnittlich bewachsen
     // Ballung dicht, Lichtung offen — rund ein Drittel bleibt frei.
-    const count = d > 1.45 ? 3 : d > 1.15 ? 2 : d > .88 ? 1 : (rnd() > .85 ? 1 : 0);
+    /* Zum Rand hin dichter: Das Feld soll wie eine Lichtung im Wald wirken,
+       nicht wie eine leere Wiese mit ein paar Bäumchen. Der Bewuchs rahmt das
+       Geschehen ein und lenkt den Blick nach innen. */
+    const randNaehe = Math.min(
+      Math.min(c, COLS - 1 - c) / 4,
+      Math.min(r, ROWS - 1 - r) / 3
+    );
+    const randBonus = 1 + Math.max(0, 1 - randNaehe) * 0.85;
+    const dd = d * randBonus;
+    const count = dd > 1.45 ? 4 : dd > 1.15 ? 3 : dd > .88 ? 2 : (rnd() > .55 ? 1 : 0);
     for (let i = 0; i < count; i++) {
       // in der Ballung überwiegt die Leitart, am Rand mischt es sich auf
       let k = (art && rnd() < .58 + d * .2) ? art : kinds[Math.floor(rnd() * kinds.length)];
       if (big.includes(k) && near(c, r)) k = "grass";
-      if (big.includes(k) && d < .5 && rnd() > .35) k = "grass";
+      if (big.includes(k) && d < .5 && rnd() > .55) k = "grass";
       items.push({
-        x: c * TILE + 8 + rnd() * (TILE - 16),
-        y: r * TILE + 8 + rnd() * (TILE - 16),
-        s: (.7 + rnd() * .6) * (big.includes(k) ? .92 + d * .16 : 1),
+        x: c * TILE + 4 + rnd() * (TILE - 8),
+        y: r * TILE + 4 + rnd() * (TILE - 8),
+        /* Größe nach Art: Bäume dürfen groß sein, Kleinzeug nicht. Bei
+           einheitlicher Vergrößerung wuchsen die Felsbrocken auf Baumgröße
+           und überzogen die Karte mit gleichförmigen braunen Hügeln. */
+        s: (GROESSE[k] || 1.0) * (.85 + rnd() * .5) * (big.includes(k) ? .95 + dd * .18 : 1),
         k, seed: rnd() * 9,
       });
     }
@@ -2966,6 +3088,54 @@ function buildDecor() {
    Dafür wird der Weg abgetastet, an jedem Punkt die Normale bestimmt und
    beidseits eine Tupfenreihe gesetzt — außen in Geländefarbe (Bewuchs, der
    hereinwächst), innen in Bodenfarbe (Erde, die heraus getragen wurde). */
+/* Struktur auf dem Weg: ausgetretene Fahrrinnen, Kies und Erdflecken.
+   Der Weg war eine gleichmäßige braune Fläche — mit zwei helleren Rinnen und
+   verstreutem Korn liest er sich als getretener Pfad statt als Farbstreifen. */
+function zeichneWegStruktur(g, m) {
+  const rn = mulberry(G.mapIdx * 5233 + 41);
+  const boden = m.soil || shade(m.accent, .2);
+  const dunkel = shade(m.path || m.accent, -.35);
+
+  for (const rt of G.routes) {
+    // zwei ausgetretene Rinnen links und rechts der Mitte
+    for (const seite of [-1, 1]) {
+      g.save();
+      g.strokeStyle = rgba(shade(m.path || m.accent, .16), .30);
+      g.lineWidth = TILE * .17;
+      g.lineCap = "round"; g.lineJoin = "round";
+      g.beginPath();
+      let erst = true;
+      for (let d = 0; d <= rt.len; d += 10) {
+        const a = pathAt(rt, d), b = pathAt(rt, Math.min(rt.len, d + 8));
+        const dx = b.x - a.x, dy = b.y - a.y;
+        const l = Math.hypot(dx, dy) || 1;
+        const nx = -dy / l, ny = dx / l;
+        const off = seite * TILE * (.15 + Math.sin(d * .012) * .03);
+        const px = a.x + nx * off, py = a.y + ny * off;
+        erst ? (g.moveTo(px, py), erst = false) : g.lineTo(px, py);
+      }
+      g.stroke();
+      g.restore();
+    }
+
+    // Korn und Erdflecken auf der Wegfläche
+    for (let d = 0; d < rt.len; d += 5) {
+      const a = pathAt(rt, d), b = pathAt(rt, Math.min(rt.len, d + 6));
+      const dx = b.x - a.x, dy = b.y - a.y;
+      const l = Math.hypot(dx, dy) || 1;
+      const nx = -dy / l, ny = dx / l;
+      for (let k = 0; k < 2; k++) {
+        const off = (rn() - .5) * TILE * .72;
+        const x = a.x + nx * off, y = a.y + ny * off;
+        const hell = rn() > .55;
+        g.fillStyle = hell ? rgba(boden, .07 + rn() * .10) : rgba(dunkel, .07 + rn() * .11);
+        const rr2 = .8 + rn() * 2.6;
+        g.beginPath(); g.ellipse(x, y, rr2, rr2 * (.5 + rn() * .5), rn() * 3, 0, 7); g.fill();
+      }
+    }
+  }
+}
+
 function drawPathFringe(g) {
   const m = G.map;
   for (const p of G.routes) {
@@ -3077,7 +3247,7 @@ function getBackdrop() {
     for (let i = 1; i < rt.pts.length; i++) g.lineTo(rt.pts[i].x, rt.pts[i].y + (dy || 0));
     g.stroke();
   };
-  g.strokeStyle = "rgba(0,0,0,.28)"; g.lineWidth = TILE * 1.0;
+  g.strokeStyle = "rgba(0,0,0,.20)"; g.lineWidth = TILE * 1.0;
   for (const rt of G.routes) zug(rt, 4);
   g.strokeStyle = m.pathEdge || shade(m.accent, -.3); g.lineWidth = TILE * .96;
   for (const rt of G.routes) zug(rt);
@@ -3090,14 +3260,15 @@ function getBackdrop() {
      einer Mulde, in die Licht von oben fällt. */
   g.save();
   g.globalCompositeOperation = "multiply";
-  g.strokeStyle = "rgba(0,0,0,.30)"; g.lineWidth = TILE * .90;
+  g.strokeStyle = "rgba(0,0,0,.16)"; g.lineWidth = TILE * .86;
   for (const rt of G.routes) zug(rt, -3);
   g.restore();
   g.save();
   g.globalCompositeOperation = "screen";
-  g.strokeStyle = "rgba(255,236,200,.10)"; g.lineWidth = TILE * .62;
+  g.strokeStyle = "rgba(255,240,210,.16)"; g.lineWidth = TILE * .58;
   for (const rt of G.routes) zug(rt, 4);
   g.restore();
+  zeichneWegStruktur(g, m);
   drawPathFringe(g);
   drawPathStones(g);
   zeichneFelder(g);
@@ -3154,7 +3325,7 @@ function zeichneTiefe(g, m) {
   g.save();
   const vg = g.createRadialGradient(W / 2, H / 2, Math.min(W, H) * .34, W / 2, H / 2, Math.max(W, H) * .78);
   vg.addColorStop(0, "rgba(0,0,0,0)");
-  vg.addColorStop(1, "rgba(4,8,12,.44)");
+  vg.addColorStop(1, "rgba(6,10,16,.30)");
   g.fillStyle = vg;
   g.fillRect(0, 0, W, H);
   g.restore();
@@ -3179,30 +3350,91 @@ function drawFlora(g, it, m, fol, forceSway) {
   };
   switch (it.k) {
     case "conifer": {
-      shadow(11 * s, 4 * s);
+      /* Nadelbaum mit Volumen statt drei flacher Dreiecke:
+         fünf Kranzlagen mit gezackter Unterkante, jede Lage links beschattet
+         und rechts belichtet — dadurch wirkt der Baum rund statt wie ein
+         aufgeklebtes Zeichen. Ein warmer Lichtsaum an der Sonnenseite trennt
+         ihn vom Untergrund. */
+      shadow(13 * s, 5 * s);
+      // Stamm mit Verjüngung
       g.fillStyle = "#3B2A1C";
-      g.fillRect(x - 1.6 * s, y - 8 * s, 3.2 * s, 8 * s);
-      for (let i = 0; i < 3; i++) {
-        const w = (15 - i * 3.6) * s, h = 12 * s, ty = y - (7 + i * 7) * s;
+      g.beginPath();
+      g.moveTo(x - 2.0 * s, y);
+      g.lineTo(x - 1.2 * s, y - 9 * s);
+      g.lineTo(x + 1.2 * s, y - 9 * s);
+      g.lineTo(x + 2.0 * s, y);
+      g.closePath(); g.fill();
+      const lagen = 5;
+      for (let i = 0; i < lagen; i++) {
+        const k = i / (lagen - 1);
+        const w = (17 - i * 2.7) * s;
+        const h = (11 - i * .9) * s;
+        const ty = y - (6 + i * 6.2) * s;
+        const vx = x + sway * (.15 + k * .5);
+        // gezackte Unterkante
         g.beginPath();
-        g.moveTo(x + sway * (i * .3), ty - h);
-        g.lineTo(x - w / 2, ty);
-        g.lineTo(x + w / 2, ty);
+        g.moveTo(vx, ty - h);
+        const zacken = 5;
+        for (let z = 0; z <= zacken; z++) {
+          const f = z / zacken;
+          const px = vx - w / 2 + w * f;
+          const py = ty + (z % 2 ? 1.6 * s : 0);
+          g.lineTo(px, py);
+        }
         g.closePath();
-        const gr = g.createLinearGradient(x - w/2, ty - h, x + w/2, ty);
-        gr.addColorStop(0, lite); gr.addColorStop(1, dark);
+        const gr = g.createLinearGradient(vx - w / 2, ty - h, vx + w / 2, ty);
+        gr.addColorStop(0, shade(dark, -.15));
+        gr.addColorStop(.45, fol);
+        gr.addColorStop(1, lite);
         g.fillStyle = gr; g.fill();
+        // Lichtsaum oben rechts
+        g.strokeStyle = rgba(shade(lite, .35), .5 - k * .25);
+        g.lineWidth = .9 * s;
+        g.beginPath();
+        g.moveTo(vx, ty - h);
+        g.lineTo(vx + w / 2, ty);
+        g.stroke();
       }
       break;
     }
     case "broadleaf": {
-      shadow(12 * s, 4.5 * s);
-      g.strokeStyle = "#4A3524"; g.lineWidth = 3 * s; g.lineCap = "round";
+      /* Laubbaum als Krone aus vielen überlappenden Blattballen statt vier
+         glatter Kreise. Die Reihenfolge geht von dunkel und hinten zu hell und
+         vorne, sodass die Krone Tiefe bekommt; ein paar Ballen ragen über den
+         Rand hinaus und brechen die Kreisform auf. */
+      shadow(14 * s, 5 * s);
+      // Stamm mit Astgabel
+      g.strokeStyle = "#4A3524"; g.lineWidth = 3.4 * s; g.lineCap = "round";
       g.beginPath(); g.moveTo(x, y); g.quadraticCurveTo(x + sway * .3, y - 8 * s, x + sway, y - 13 * s); g.stroke();
-      const cx = x + sway, cy = y - 17 * s;
-      for (const [ox, oy, rr2, cc] of [[-6, 2, 8, dark], [6, 1, 8.5, dark], [0, -4, 10, fol], [-3, -2, 7, lite]]) {
-        g.fillStyle = cc;
-        g.beginPath(); g.arc(cx + ox * s, cy + oy * s, rr2 * s, 0, 7); g.fill();
+      g.lineWidth = 1.8 * s;
+      g.beginPath(); g.moveTo(x + sway * .6, y - 10 * s); g.lineTo(x + sway - 5 * s, y - 15 * s); g.stroke();
+      g.beginPath(); g.moveTo(x + sway * .6, y - 11 * s); g.lineTo(x + sway + 5 * s, y - 16 * s); g.stroke();
+
+      const cx = x + sway, cy = y - 18 * s;
+      const rnd = mulberry(Math.floor(it.seed * 9973) + 7);
+      // hintere, dunkle Lage
+      for (let i = 0; i < 7; i++) {
+        const a = rnd() * Math.PI * 2, d = rnd() * 8 * s;
+        g.fillStyle = shade(dark, -.10);
+        g.beginPath();
+        g.arc(cx + Math.cos(a) * d, cy + Math.sin(a) * d * .7, (5 + rnd() * 4) * s, 0, 7);
+        g.fill();
+      }
+      // mittlere Lage in Blattfarbe
+      for (let i = 0; i < 6; i++) {
+        const a = rnd() * Math.PI * 2, d = rnd() * 6.5 * s;
+        g.fillStyle = fol;
+        g.beginPath();
+        g.arc(cx + Math.cos(a) * d - 1 * s, cy + Math.sin(a) * d * .7 - 1.5 * s, (4.5 + rnd() * 3.5) * s, 0, 7);
+        g.fill();
+      }
+      // Lichtseite oben links
+      for (let i = 0; i < 4; i++) {
+        const a = -2.6 + rnd() * 1.5, d = (2 + rnd() * 5) * s;
+        g.fillStyle = rgba(lite, .85);
+        g.beginPath();
+        g.arc(cx + Math.cos(a) * d, cy + Math.sin(a) * d * .8, (3 + rnd() * 2.6) * s, 0, 7);
+        g.fill();
       }
       break;
     }
