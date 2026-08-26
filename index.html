@@ -78,6 +78,7 @@ button{font-family:inherit;color:inherit}
 .stat.gold .v{color:var(--amber)}
 .stat.wave .v{color:var(--t-water)}
 .stat.score .v{color:var(--t-grass)}
+.stat.sterne .v{color:#F5C542}
 
 /* ---------- layout ---------- */
 .main{display:grid;grid-template-columns:minmax(0,1fr) 330px;gap:12px;align-items:start}
@@ -379,8 +380,9 @@ table.eff th{color:var(--muted);font-weight:700;font-size:9.5px;letter-spacing:.
     <div class="stats">
       <div class="stat hp"><span class="k">Leben</span><span class="v" id="s-hp">20</span></div>
       <div class="stat gold"><span class="k">Beeren</span><span class="v" id="s-gold">0</span></div>
-      <div class="stat wave"><span class="k">Welle</span><span class="v" id="s-wave">0/40</span></div>
+      <div class="stat wave"><span class="k">Welle</span><span class="v" id="s-wave">0/100</span></div>
       <div class="stat score"><span class="k">Punkte</span><span class="v" id="s-score">0</span></div>
+      <div class="stat sterne"><span class="k">Sterne</span><span class="v" id="s-sterne">0</span></div>
     </div>
   </div>
 
@@ -449,6 +451,11 @@ table.eff th{color:var(--muted);font-weight:700;font-size:9.5px;letter-spacing:.
 
 const TILE = 56, COLS = 20, ROWS = 12, W = COLS * TILE, H = ROWS * TILE;
 
+/* Eine Runde geht über 100 Wellen. Je gehaltener Welle gibt es einen Stern,
+   macht 100 Sterne je Karte. Steht hier oben, weil der Spielzustand die Zahl
+   schon beim Laden braucht. */
+const WELLEN_JE_KARTE = 100;
+
 /* ============================================================
    2,5D-Projektion
    ============================================================
@@ -508,6 +515,11 @@ const TYPES = {
   steel:    { name: "Stahl",   col: "#A9BECD" },
   fairy:    { name: "Fee",     col: "#FF9ED2" },
   dark:     { name: "Unlicht", col: "#8C7BB8" },
+  /* Legendär steht bewusst NICHT in der Effektivitätstabelle. eff() gibt für
+     fehlende Einträge 1.0 zurück — der legendäre Wächter trifft damit alles
+     gleich stark: keine Schwäche, aber auch kein Typenvorteil. Seine Stärke
+     liegt in den Grundwerten, nicht im Ausspielen der Tabelle. */
+  legend:   { name: "Legendär", col: "#F5C542" },
 };
 const TYPE_KEYS = Object.keys(TYPES);
 
@@ -541,6 +553,13 @@ function eff(atk, def) {
 }
 
 /* ---------------- Wächter (Türme) ---------------- */
+/* Der legendäre Wächter steht am Ende der Liste und erscheint erst, wenn
+   alle hundert Wellen einer Karte gehalten sind. Er ist die Bedingung für den
+   Endlosmodus — dort greift keine Wellenobergrenze mehr, und ohne einen
+   Wächter, der ohne Typenvorteil auskommt, liefe man sich an der
+   Effektivitätstabelle fest. */
+const LEGENDAER_ID = "legend";
+
 const TOWERS = [
   {
     id: "fire", type: "fire", shape: "cat", air: true,
@@ -640,6 +659,27 @@ const TOWERS = [
       { name: "Schattling",  cost: 125, dmg: 26, rate: .95, range: 146 },
       { name: "Nachtzehrer", cost: 185, dmg: 54, rate: 1.05, range: 164, burn: { dps: 14, dur: 2.5 } },
       { name: "Finsterwacht",cost: 330, dmg: 104, rate: 1.15, range: 184, burn: { dps: 30, dur: 3 }, chain: 2 },
+    ],
+  },
+  {
+    /* Der legendäre Wächter. Freigeschaltet, wenn alle hundert Wellen einer
+       Karte gehalten sind, und Voraussetzung für deren Endlosmodus.
+
+       Er trifft alles neutral — kein Typenvorteil, keine Schwäche. Dafür
+       vereint er, was sonst auf mehrere Familien verteilt ist: Flächenschaden,
+       Brand, Kettenschlag und Panzerbruch. Teuer genug, dass er eine
+       Entscheidung bleibt und nicht einfach den Rest ersetzt.
+
+       Bewusst ohne Tag- oder Nachtbindung: im Endlosmodus laufen die Wellen
+       unbegrenzt weiter, und ein Wächter, der die halbe Zeit ruht, wäre dort
+       kein Anker, sondern ein Ärgernis. */
+    id: "legend", type: "legend", shape: "owl", air: true,
+    legendaer: true,
+    blurb: "Kennt weder Schwäche noch Vorteil — trifft alles gleich hart.",
+    tiers: [
+      { name: "Dämmerhüter", cost: 420, dmg: 70,  rate: 1.2, range: 168, splash: 40, pierce: 12 },
+      { name: "Firnwächter", cost: 620, dmg: 140, rate: 1.35, range: 188, splash: 56, pierce: 24, burn: { dps: 26, dur: 3 } },
+      { name: "Ewigwacht",   cost: 980, dmg: 265, rate: 1.5, range: 212, splash: 74, pierce: 42, burn: { dps: 52, dur: 3.5 }, chain: 3 },
     ],
   },
 ];
@@ -883,7 +923,7 @@ const TAL_BY_ID = Object.fromEntries(TALENTS.map(t => [t.id, t]));
    Spielstand darunter ab. Würde er mitumbenannt, fänden vorhandene Stände
    keinen Anschluss mehr und alle Talentpunkte wären verloren. */
 const SAVE_KEY = "wildwacht.v1";
-const save = { points: 0, spent: 0, ranks: {}, cleared: {}, best: 0, run: null, tut: false, endless: 0, sound: true };
+const save = { points: 0, spent: 0, ranks: {}, cleared: {}, best: 0, run: null, tut: false, endless: 0, sound: true, sterne: {} };
 function loadSave() {
   try {
     const raw = localStorage.getItem(SAVE_KEY);
@@ -892,6 +932,7 @@ function loadSave() {
     if (o && typeof o === "object") Object.assign(save, o);
     if (!save.ranks) save.ranks = {};
     if (!save.cleared) save.cleared = {};
+    if (!save.sterne) save.sterne = {};   // ältere Stände kennen sie noch nicht
   } catch (e) { /* Speicher nicht verfügbar — Spiel läuft trotzdem */ }
 }
 function writeSave() {
@@ -1762,7 +1803,7 @@ const $ = id => document.getElementById(id);
 const G = {
   mapIdx: 0, map: null, path: null, blocked: null,
   towers: [], enemies: [], shots: [], fx: [], floats: [], poofs: [],
-  gold: 0, lives: 0, wave: 0, maxWave: 40,
+  gold: 0, lives: 0, wave: 0, maxWave: WELLEN_JE_KARTE,
   queue: [], waveActive: false, sent: 0,
   speed: 1, paused: false, running: false, over: false,
   place: null, sel: null, hover: null, ghost: null, targetMode: "first",
@@ -1787,8 +1828,16 @@ window.addEventListener("resize", fitCanvas);
 /* ============================================================
    Wellen
    ============================================================ */
-const BOSS_WAVES = [8, 16, 24, 32, 40];
-function isBossWave(w) { return w > 0 && w % 8 === 0; }
+const BOSS_WAVES = [];
+for (let w = 8; w <= WELLEN_JE_KARTE; w += 8) BOSS_WAVES.push(w);
+if (BOSS_WAVES[BOSS_WAVES.length - 1] !== WELLEN_JE_KARTE) BOSS_WAVES.push(WELLEN_JE_KARTE);
+/* Alle acht Wellen ein Anführer — und die Schlusswelle immer, auch wenn sie
+   nicht auf den Achtertakt fällt. Bei hundert Wellen wäre der letzte Boss
+   sonst auf Welle 96 gefallen und die Runde mit einer gewöhnlichen Welle
+   ausgeklungen. */
+function isBossWave(w) {
+  return w > 0 && (w % 8 === 0 || w === WELLEN_JE_KARTE);
+}
 
 /* Wellenstärke. Die Wachstumsrate fällt glatt von WAVE_R0 auf WAVE_R1:
    früh steil, damit der Druck rechtzeitig einsetzt, spät flach, weil die
@@ -1797,12 +1846,24 @@ function isBossWave(w) { return w > 0 && w % 8 === 0; }
    Verteidigung erst in den letzten Wellen und lässt alles davor wirkungslos —
    genau das war vorher der Fall. */
 const WAVE_R0 = 1.21, WAVE_R1 = 1.035, WAVE_MID = 26, WAVE_STEEP = 4;
+/* Dritte Phase, seit die Runde bis Welle 100 läuft.
+
+   Mit nur zwei Raten wächst die Welle ab Welle 40 mit gleichbleibenden
+   3,5 % weiter — bis Welle 100 wäre sie dann achtmal so zäh wie bei Welle 40.
+   So viel kann die Verteidigung nicht zulegen: Auf Endstufe bleiben nur noch
+   Megaentwicklung und Training, und irgendwann ist auch das Feld voll.
+
+   Deshalb fällt die Rate ein zweites Mal, auf 1,8 %. Die Wellen 1 bis 40
+   bleiben dabei unverändert — die zweite Absenkung greift erst danach. */
+const WAVE_R2 = 1.018, WAVE_MID2 = 58, WAVE_STEEP2 = 8;
 const waveHPCache = [];
 function waveHP(w, mul) {
   if (waveHPCache[w] === undefined) {
     let base = 30;
     for (let i = 2; i <= w; i++) {
-      base *= WAVE_R1 + (WAVE_R0 - WAVE_R1) / (1 + Math.exp((i - WAVE_MID) / WAVE_STEEP));
+      base *= WAVE_R2
+        + (WAVE_R1 - WAVE_R2) / (1 + Math.exp((i - WAVE_MID2) / WAVE_STEEP2))
+        + (WAVE_R0 - WAVE_R1) / (1 + Math.exp((i - WAVE_MID) / WAVE_STEEP));
     }
     waveHPCache[w] = base;
   }
@@ -1952,6 +2013,33 @@ function startWave() {
   renderWaveList(); updateStats();
 }
 
+/* ============================================================
+   Sterne
+   ============================================================
+   Je gehaltener Welle ein Stern, hundert je Karte.
+
+   Gezählt wird die höchste je erreichte Welle, nicht jede einzeln gehaltene.
+   Sonst ließe sich Welle 1 beliebig oft neu spielen und der Sternenstand
+   hochtreiben, ohne je weiter zu kommen — eine Zahl, die nur noch misst, wie
+   oft jemand neu angefangen hat. */
+function sterne(mapIdx) { return (save.sterne && save.sterne[mapIdx]) || 0; }
+function sterneGesamt() { return MAPS.reduce((n, _, i) => n + sterne(i), 0); }
+function sterneMoeglich() { return MAPS.length * WELLEN_JE_KARTE; }
+
+/* Vergibt Sterne für eine gehaltene Welle. Gibt zurück, wie viele neu
+   dazukamen — null, wenn die Welle schon einmal geschafft war. */
+function sternVergeben(mapIdx, welle) {
+  if (!save.sterne) save.sterne = {};
+  const alt = sterne(mapIdx);
+  if (welle <= alt) return 0;
+  save.sterne[mapIdx] = Math.min(WELLEN_JE_KARTE, welle);
+  return save.sterne[mapIdx] - alt;
+}
+
+/* Der legendäre Wächter steht bereit, sobald alle Wellen einer Karte
+   gehalten wurden. Er ist die Bedingung für den Endlosmodus dieser Karte. */
+function legendaerFrei(mapIdx) { return sterne(mapIdx) >= WELLEN_JE_KARTE; }
+
 function endWave() {
   G.waveActive = false;
   G.mod = null;
@@ -1960,8 +2048,15 @@ function endWave() {
   G.gold += clearBonus + interest;
   G.score += 120 + G.wave * 20;
   save.points += isBossWave(G.wave) ? 6 : 1;
+  const neueSterne = G.endless ? 0 : sternVergeben(G.mapIdx, G.wave);
   writeSave();
-  addLog(`Welle ${G.wave} gehalten — <b>+${clearBonus + interest}</b> Beeren`);
+  addLog(`Welle ${G.wave} gehalten — <b>+${clearBonus + interest}</b> Beeren`
+    + (neueSterne ? ` · <b>★</b> Stern ${sterne(G.mapIdx)}/${WELLEN_JE_KARTE}` : ""));
+  if (neueSterne) {
+    G.floats.push({ x: W / 2, y: H * .42, txt: "★ " + sterne(G.mapIdx), col: "#F0A83C", life: 1.6, max: 1.6 });
+    if (legendaerFrei(G.mapIdx) && sterne(G.mapIdx) === WELLEN_JE_KARTE)
+      banner("★ Legendärer Wächter freigeschaltet");
+  }
   if (G.endless && G.wave > (save.endless || 0)) { save.endless = G.wave; writeSave(); }
   if (!G.endless && G.wave >= G.maxWave) return victory();
   sfxWaveClear();
@@ -4072,6 +4167,8 @@ function updateStats() {
   $("s-gold").textContent = G.gold;
   $("s-wave").textContent = G.sent + "/" + (G.endless ? "∞" : G.maxWave);
   $("s-score").textContent = G.score;
+  const st = $("s-sterne");
+  if (st) st.textContent = sterne(G.mapIdx) + "/" + WELLEN_JE_KARTE;
   $("s-hp").parentElement.classList.toggle("low", G.running && !G.over && G.lives <= 5);
   document.querySelectorAll(".card").forEach(el => {
     const d = TOWER_BY_ID[el.dataset.id];
@@ -4101,6 +4198,11 @@ function renderShop() {
   const box = $("shop");
   box.innerHTML = "";
   TOWERS.forEach((d, i) => {
+    /* Der legendäre Wächter bleibt verborgen, solange die Karte nicht
+       durchgespielt ist. Ihn ausgegraut anzuzeigen wäre ehrlicher, hätte aber
+       den Laden auf jeder Karte um eine Karte verlängert, die man vierhundert
+       Wellen lang nicht anfassen kann. Im Menü steht, wie er zu bekommen ist. */
+    if (d.legendaer && !legendaerFrei(G.mapIdx)) return;
     const t0 = d.tiers[0];
     const el = document.createElement("button");
     el.className = "card";
@@ -4587,7 +4689,8 @@ function menuHTML() {
       <button class="mapcard" data-i="${i}" data-sel="${i === menuMap ? 1 : 0}">
         <canvas width="300" height="180"></canvas>
         <div class="nm">${m.name}</div>
-        <div class="dd">${m.diff} · ${m.lives} Leben · ${m.gold} Beeren${m.wpB ? " · ⑂ Gabelung" : ""}${save.cleared[i] ? " · ✓ gemeistert" : ""}</div>
+        <div class="dd">${m.diff} · ${m.lives} Leben · ${m.gold} Beeren${m.wpB ? " · ⑂ Gabelung" : ""}</div>
+        <div class="dd" style="color:${sterne(i) >= WELLEN_JE_KARTE ? "#F5C542" : "var(--muted)"}">★ ${sterne(i)} / ${WELLEN_JE_KARTE}${legendaerFrei(i) ? " · legendärer Wächter erweckt" : ""}</div>
       </button>`).join("")}</div>
   </section>
 
@@ -4806,7 +4909,7 @@ function victory() {
   if (G.score > (save.best || 0)) save.best = G.score;
   writeSave();
   openVeil(`<h2 class="big">Route gehalten</h2>
-    <p class="lead">Alle 40 Wellen auf ${G.map.name} abgewehrt, mit ${G.lives} Leben übrig.
+    <p class="lead">Alle ${WELLEN_JE_KARTE} Wellen auf ${G.map.name} abgewehrt, mit ${G.lives} Leben übrig.
     +15 Trainerpunkte. ${MAPS.filter((_, i) => !save.cleared[i]).length ? "Die härteren Routen warten." : "Alle drei Routen gemeistert."}</p>
     <div class="grid2" style="max-width:420px;margin-bottom:16px">
       <div class="kv"><div class="k">Punkte</div><div class="v">${G.score}</div></div>
@@ -4815,12 +4918,15 @@ function victory() {
       <div class="kv"><div class="k">Wächter</div><div class="v">${G.towers.length}</div></div>
     </div>
     <div style="display:flex;gap:8px;flex-wrap:wrap">
-      <button class="btn primary" id="b-endless">Endlos weiterspielen</button>
+      <button class="btn primary" id="b-endless"${legendaerFrei(G.mapIdx) ? "" : " disabled"}>Endlos weiterspielen</button>
       <button class="btn" id="b-tomenu2">Nächste Route</button>
     </div>
-    <p class="empty" style="margin-top:10px">Im Endlosmodus laufen die Wellen unbegrenzt weiter, alle acht Wellen kommt ein Anführer.
+    <p class="empty" style="margin-top:10px">${legendaerFrei(G.mapIdx)
+      ? `<b style="color:#F5C542">★ ${TOWER_BY_ID[LEGENDAER_ID].tiers[0].name}</b> steht jetzt im Laden — der legendäre Wächter kennt weder Schwäche noch Typenvorteil. Im Endlosmodus laufen die Wellen unbegrenzt weiter, alle acht Wellen kommt ein Anführer.`
+      : `Der Endlosmodus verlangt den legendären Wächter. Halte alle ${WELLEN_JE_KARTE} Wellen dieser Route, um ihn zu erwecken — bisher ${sterne(G.mapIdx)} von ${WELLEN_JE_KARTE} Sternen.`}
     ${save.endless ? `Dein Rekord: Welle ${save.endless}.` : ""}</p>`);
   $("b-endless").addEventListener("click", () => {
+    if (!legendaerFrei(G.mapIdx)) return;   // ohne legendären Wächter kein Endlos
     closeVeil();
     G.over = false; G.running = true; G.endless = true;
     addLog("<b>Endlosmodus</b> — die Wildnis hört nicht auf.");
