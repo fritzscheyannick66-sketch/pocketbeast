@@ -257,7 +257,7 @@ const KARTEN := [
 	{ "name": "Firnfeld", "grad": "Fordernd", "faktor": 1.48, "beeren": 330, "leben": 17 },
 	{ "name": "Erzwerk", "grad": "Brutal", "faktor": 1.72, "beeren": 460, "leben": 16 },
 	{ "name": "Glanzwiese", "grad": "Ruhig", "faktor": 1.28, "beeren": 300, "leben": 20 },
-	{ "name": "Nachtgrund", "grad": "Brutal", "faktor": 1.78, "beeren": 580, "leben": 16 },
+	{ "name": "Nachtgrund", "grad": "Brutal", "faktor": 1.55, "beeren": 520, "leben": 16 },
 	{ "name": "Böenkuppe", "grad": "Fordernd", "faktor": 1.4, "beeren": 320, "leben": 18 },
 ]
 
