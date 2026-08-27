@@ -1208,7 +1208,7 @@ const MAPS = [
       namen: ["Schattenhüter", "Nachtwächter", "Finsterthron"],
       text: "Er wirft keinen Schatten — er ist einer." },
     sonderfelder: [["hoehe", 4], ["kraft", 4], ["wasser", 5]],
-    name: "Nachtgrund", diff: "Brutal", mul: 1.78, gold: 470, lives: 16,
+    name: "Nachtgrund", diff: "Brutal", mul: 1.78, gold: 580, lives: 16,
     himmel: ["#1E1A2A", "#453C58"],
     ground: ["#1A1622", "#221E2E"], accent: "#463C58", foliage: "#5A4C72",
     path: "#6E6478", pathEdge: "#2A2434", soil: "#8E82A0",
@@ -3934,7 +3934,19 @@ function update(dt) {
     if (e.spec.heal) {
       for (const o of G.enemies) {
         if (o === e || o.dead) continue;
-        if (Math.hypot(o.x - e.x, o.y - e.y) < 90) o.hp = Math.min(o.max, o.hp + o.max * .012 * dt);
+        /* Heilung sammeln statt sofort anwenden.
+
+           Vorher heilte jeder Heiler einzeln 1,2 Prozent je Sekunde, und das
+           addierte sich ungebremst. Gemessen auf Nachtgrund Welle 29: zwanzig
+           Mesmirr heilten zusammen 24 Prozent des Maximallebens je Sekunde —
+           mehr, als die meisten Aufstellungen austeilen. Die Welle war nicht
+           schwer, sondern unbesiegbar, und beide "Brutal"-Karten kippten genau
+           dort.
+
+           Jetzt wird erst gezählt, wie viel Heilung ein Ziel abbekommt, und
+           danach gedeckelt. Ein Heiler wirkt unverändert; zwanzig wirken
+           spürbar, aber nicht unüberwindlich. */
+        if (Math.hypot(o.x - e.x, o.y - e.y) < 90) o.heilAnteil = (o.heilAnteil || 0) + .012;
       }
     }
     let spd = e.rootT > 0 ? 0 : e.base * (1 - (e.slowT > 0 ? e.slow : 0));
@@ -3971,6 +3983,16 @@ function update(dt) {
       if (G.lives <= 0) return gameOver();
     }
   }
+  /* Gesammelte Heilung anwenden, gedeckelt.
+     Der Deckel liegt bei 4,5 Prozent je Sekunde — knapp das Vierfache eines
+     einzelnen Heilers. Darüber hinaus bringt jeder weitere nichts mehr. */
+  for (const e of G.enemies) {
+    if (!e.heilAnteil) continue;
+    const rate = Math.min(.045, e.heilAnteil);
+    e.hp = Math.min(e.max, e.hp + e.max * rate * dt);
+    e.heilAnteil = 0;
+  }
+
   G.enemies = G.enemies.filter(e => !e.dead);
 
   for (const t of G.towers) {
