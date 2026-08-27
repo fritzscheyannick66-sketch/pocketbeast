@@ -618,11 +618,20 @@ function eff(atk, def) {
    (Pyro-), lateinische (Terra-) und italienische Stämme (Volt, Mahlstrom)
    in eine sonst deutsche Reihe — drei Sprachen in einer Liste, die sich als
    eine Familie lesen soll. */
-/* Der legendäre Wächter steht am Ende der Liste und erscheint erst, wenn
-   alle hundert Wellen einer Karte gehalten sind. Er ist die Bedingung für den
-   Endlosmodus — dort greift keine Wellenobergrenze mehr, und ohne einen
-   Wächter, der ohne Typenvorteil auskommt, liefe man sich an der
-   Effektivitätstabelle fest. */
+/* Legendäre Wächter.
+
+   Jede Karte hat ihren eigenen. Er erscheint erst, wenn alle hundert Wellen
+   dieser Karte gehalten sind, und ist die Bedingung für deren Endlosmodus.
+
+   Alle teilen dieselbe Bauart — Werte aus der Grundfassung, dazu Name,
+   Element und Gestalt der Karte, auf der sie erwacht sind. Das ist kein
+   Sparen an Arbeit, sondern Absicht: Ein legendärer Wächter soll sich wie
+   ein legendärer Wächter anfühlen, gleich auf welcher Karte. Was ihn
+   unterscheidet, ist woher er kommt.
+
+   Anders als die gewöhnlichen Familien tragen sie ihr Element mit sich:
+   Der legendäre Wächter der Feuerkarte IST ein Feuerwesen und schlägt
+   entsprechend zu. Nur die Grundfassung steht außerhalb der Tabelle. */
 const LEGENDAER_ID = "legend";
 
 const TOWERS = [
@@ -961,6 +970,9 @@ const MAPS = [
        Pfützen mitten auf einer Waldlichtung sahen aus wie vergessene Löcher;
        ein See ist eine Landschaftsform, um die herum man baut. */
     sonderfelder: [["wasser", 6, "see"], ["kraft", 3], ["hoehe", 3]],
+    heim: "grass", legendaer: { typ: "grass", gestalt: "hueter",
+      namen: ["Hainhüter", "Waldwächter", "Wurzelthron"],
+      text: "Der Hüter des Grünpfads — hier gewachsen, hier verwurzelt." },
     name: "Grünpfad", diff: "Ruhig", mul: 1.25, gold: 280, lives: 20,
     himmel: ["#3E5C6B", "#7C9689"],
     ground: ["#1E3324", "#27422C"], accent: "#4A7350", foliage: "#4E9257",
@@ -1023,6 +1035,9 @@ const MAPS = [
        die Messung nicht — die Streuung reicht von 42 bis 100 und überdeckt
        alles Feinere. */
     sonderfelder: [["vulkan", 8], ["kraft", 3], ["hoehe", 3]],
+    heim: "fire", legendaer: { typ: "fire", gestalt: "hueter",
+      namen: ["Aschehüter", "Glutwächter", "Schlundthron"],
+      text: "Aus der Asche der Schlucht erwacht — er kennt kein Verlöschen." },
     name: "Glutschlucht", diff: "Fordernd", mul: 1.44, gold: 300, lives: 18,
     himmel: ["#3B1F1E", "#8F5238"],
     ground: ["#241310", "#331914"], accent: "#7A452E", foliage: "#8E5730",
@@ -1062,6 +1077,9 @@ const MAPS = [
     /* Mehr Erhöhungen als anderswo: In einer Ruine stehen überall Mauerreste,
        und die Karte ist die schwerste — gute Stellungen sind hier am nötigsten. */
     sonderfelder: [["wasser", 5], ["kraft", 4], ["hoehe", 5]],
+    heim: "water", legendaer: { typ: "water", gestalt: "hueter",
+      namen: ["Tiefenhüter", "Flutwächter", "Strömungsthron"],
+      text: "Was in der Ruine versank, wacht wieder — und hält die Flut." },
     name: "Flutruine", diff: "Brutal", mul: 1.95, gold: 500, lives: 15,
     himmel: ["#33505F", "#7690A0"],
     ground: ["#1B2B3A", "#223447"], accent: "#3A5C78", foliage: "#4E8878",
@@ -1072,6 +1090,151 @@ const MAPS = [
     /* Gefluteter Straßenzug: streng rechtwinklig, mit einer Kehre nach
        links — als führe die Straße um einen eingestürzten Block herum. */
     wp: [[-1,4],[7,4],[7,10],[4,10],[4,7],[13,7],[13,3],[17,3],[17,9],[20,9]],
+  },
+  {
+    /* Elektro — Gewitterkamm. Ein kahler Höhenzug, über den ständig
+       Wetterleuchten zieht. Der Weg läuft über den Grat, links und rechts
+       fällt es ab; Erhöhungen gibt es hier reichlich. */
+    heim: "electric",
+    legendaer: { typ: "electric", gestalt: "hueter",
+      namen: ["Blitzhüter", "Sturmwächter", "Wetterthron"],
+      text: "Über dem Kamm gebar ihn ein Schlag, der nie verhallte." },
+    sonderfelder: [["hoehe", 7], ["kraft", 4], ["wasser", 4]],
+    name: "Gewitterkamm", diff: "Fordernd", mul: 1.38, gold: 320, lives: 18,
+    himmel: ["#2F3A52", "#6E7B96"],
+    ground: ["#2A2E3C", "#353B4C"], accent: "#5A6480", foliage: "#6B7A96",
+    path: "#8C8474", pathEdge: "#3A362C", soil: "#B6AE96",
+    gras: "#6E7C88", gras2: "#4E5A66", erde: "#5A5648",
+    weather: "storm", tint: "rgba(255,214,69,.05)",
+    flora: ["grass","grass","grass","rock","rock","conifer","deadtree","bush","crystalrock","flower"],
+    smooth: 2,
+    wp: [[-1,7],[3,7],[3,3],[8,3],[8,9],[5,9],[5,6],[12,6],[12,10],[16,10],[16,3],[19,3],[19,8],[20,8]],
+  },
+  {
+    /* Gestein — Steinkessel. Ein ausgetrocknetes Felsbecken. Der Weg windet
+       sich zwischen Blöcken, viel Deckung, wenig Weite. */
+    heim: "rock",
+    legendaer: { typ: "rock", gestalt: "hueter",
+      namen: ["Steinhüter", "Felswächter", "Grundthron"],
+      text: "Er stand schon, als der Kessel noch Meer war." },
+    sonderfelder: [["hoehe", 6], ["kraft", 4], ["wasser", 4]],
+    name: "Steinkessel", diff: "Fordernd", mul: 1.42, gold: 310, lives: 18,
+    himmel: ["#4A4038", "#8C7E6C"],
+    ground: ["#3A342C", "#463E34"], accent: "#6E6252", foliage: "#7A6E5A",
+    path: "#A89478", pathEdge: "#4A4034", soil: "#C6B294",
+    gras: "#7E7460", gras2: "#5E5648", erde: "#6E6250",
+    weather: "dust", tint: "rgba(192,143,103,.06)",
+    flora: ["rock","rock","rock","crystalrock","grass","grass","bush","deadtree","rubble","pillar"],
+    smooth: 1,
+    wp: [[-1,5],[4,5],[4,10],[8,10],[8,4],[12,4],[12,9],[6,9],[6,7],[16,7],[16,3],[19,3],[19,6],[20,6]],
+  },
+  {
+    /* Psycho — Traumhain. Ein Wald, der nicht ganz wirklich ist. Sanfte
+       Farben, weiche Wege, überall Feldwirkung. */
+    heim: "psychic",
+    legendaer: { typ: "psychic", gestalt: "hueter",
+      namen: ["Traumhüter", "Seherwächter", "Gedankenthron"],
+      text: "Er träumt den Hain, und der Hain träumt ihn." },
+    sonderfelder: [["kraft", 7], ["wasser", 5], ["hoehe", 3]],
+    name: "Traumhain", diff: "Ruhig", mul: 1.30, gold: 300, lives: 20,
+    himmel: ["#4A3A62", "#9A86B4"],
+    ground: ["#2E2440", "#3A2E50"], accent: "#6A5490", foliage: "#8A6EB4",
+    path: "#9C8AB4", pathEdge: "#40325A", soil: "#C4B2DC",
+    gras: "#7E68A4", gras2: "#5A4A7A", erde: "#6A5A84",
+    weather: "pollen", tint: "rgba(195,130,255,.07)",
+    flora: ["grass","grass","mushroom","mushroom","broadleaf","broadleaf","flower","flower","bush","wisp"],
+    smooth: 3,
+    wp: [[-1,6],[4,6],[4,3],[10,3],[10,9],[6,9],[6,6],[14,6],[14,10],[18,10],[18,4],[20,5]],
+  },
+  {
+    /* Eis — Firnfeld. Weite, offene Schneefläche. Wenig Deckung, lange
+       Sichtlinien — hier zählt Reichweite mehr als anderswo. */
+    heim: "ice",
+    legendaer: { typ: "ice", gestalt: "hueter",
+      namen: ["Firnhüter", "Frostwächter", "Ewigthron"],
+      text: "Unter dem Firn schlief er, bis die Wildnis ihn weckte." },
+    sonderfelder: [["wasser", 7], ["kraft", 3], ["hoehe", 4]],
+    name: "Firnfeld", diff: "Fordernd", mul: 1.48, gold: 330, lives: 17,
+    himmel: ["#54687E", "#AEC2D4"],
+    ground: ["#3E4C5A", "#4E5E6E"], accent: "#7A8EA2", foliage: "#96AABE",
+    path: "#B4BEC8", pathEdge: "#4E5866", soil: "#D6DEE6",
+    gras: "#8EA2B2", gras2: "#6E8090", erde: "#7A8492",
+    weather: "snow", tint: "rgba(127,219,240,.06)",
+    flora: ["conifer","conifer","conifer","rock","deadtree","crystalrock","grass","bush"],
+    smooth: 2,
+    wp: [[-1,4],[4,4],[4,10],[9,10],[9,3],[13,3],[13,9],[7,9],[7,6],[17,6],[17,10],[20,10]],
+  },
+  {
+    /* Stahl — Erzwerk. Eine verlassene Grube. Rechtwinklig, eng, hart —
+       Durchschlag entscheidet hier. */
+    heim: "steel",
+    legendaer: { typ: "steel", gestalt: "hueter",
+      namen: ["Erzhüter", "Schmiedwächter", "Ambossthron"],
+      text: "Im Erz geschmiedet, vom Erz getragen." },
+    sonderfelder: [["hoehe", 5], ["kraft", 5], ["wasser", 4]],
+    name: "Erzwerk", diff: "Brutal", mul: 1.72, gold: 460, lives: 16,
+    himmel: ["#3A4048", "#7E868E"],
+    ground: ["#32363C", "#3E434A"], accent: "#666E78", foliage: "#78828E",
+    path: "#8E8E92", pathEdge: "#3A3C40", soil: "#B2B2B6",
+    gras: "#6E767E", gras2: "#525A62", erde: "#5E6068",
+    weather: "dust", tint: "rgba(169,190,205,.05)",
+    flora: ["rubble","rubble","rock","pillar","deadtree","crystalrock","grass"],
+    smooth: 0,
+    wp: [[-1,3],[4,3],[4,9],[8,9],[8,4],[12,4],[12,10],[16,10],[16,5],[10,5],[10,7],[20,7]],
+  },
+  {
+    /* Fee — Glanzwiese. Hell, offen, freundlich. Die leichteste Karte nach
+       dem Grünpfad, mit vielen Kraftfeldern. */
+    heim: "fairy",
+    legendaer: { typ: "fairy", gestalt: "hueter",
+      namen: ["Glanzhüter", "Lichtwächter", "Morgenthron"],
+      text: "Wo er steht, wird es einen Atemzug lang heller." },
+    sonderfelder: [["kraft", 6], ["wasser", 5], ["hoehe", 3]],
+    name: "Glanzwiese", diff: "Ruhig", mul: 1.28, gold: 300, lives: 20,
+    himmel: ["#6E5A72", "#C4A8BE"],
+    ground: ["#3E3448", "#4C4058", "#4C4058"], accent: "#8A6E92", foliage: "#B48ABE",
+    path: "#C4A8B4", pathEdge: "#584A5E", soil: "#E2CCD6",
+    gras: "#9A7EA2", gras2: "#76607E", erde: "#8A7290",
+    weather: "sun", tint: "rgba(255,158,210,.06)",
+    flora: ["flower","flower","flower","grass","grass","broadleaf","bush","mushroom","wisp"],
+    smooth: 3,
+    wp: [[-1,8],[4,8],[4,3],[9,3],[9,10],[13,10],[13,4],[7,4],[7,7],[17,7],[17,10],[20,10]],
+  },
+  {
+    /* Unlicht — Nachtgrund. Die dunkelste Karte. Enge Wege, viel Deckung,
+       kaum Übersicht. */
+    heim: "dark",
+    legendaer: { typ: "dark", gestalt: "hueter",
+      namen: ["Schattenhüter", "Nachtwächter", "Finsterthron"],
+      text: "Er wirft keinen Schatten — er ist einer." },
+    sonderfelder: [["hoehe", 4], ["kraft", 4], ["wasser", 5]],
+    name: "Nachtgrund", diff: "Brutal", mul: 1.78, gold: 470, lives: 16,
+    himmel: ["#1E1A2A", "#453C58"],
+    ground: ["#1A1622", "#221E2E"], accent: "#463C58", foliage: "#5A4C72",
+    path: "#6E6478", pathEdge: "#2A2434", soil: "#8E82A0",
+    gras: "#4E4462", gras2: "#362E46", erde: "#463E52",
+    weather: "fog", tint: "rgba(140,123,184,.07)",
+    flora: ["deadtree","deadtree","conifer","mushroom","mushroom","rock","bush","wisp"],
+    smooth: 2,
+    wp: [[-1,6],[3,6],[3,10],[7,10],[7,4],[11,4],[11,10],[15,10],[15,4],[18,4],[18,8],[12,8],[12,6],[20,6]],
+  },
+  {
+    /* Wind — Böenkuppe. Die offenste Karte, weite Sicht in alle Richtungen.
+       Erhöhungen überall, und Flieger sind hier zu Hause. */
+    heim: "wind",
+    legendaer: { typ: "wind", gestalt: "hueter",
+      namen: ["Böenhüter", "Windwächter", "Wirbelthron"],
+      text: "Man hört ihn kommen, lange bevor man ihn sieht." },
+    sonderfelder: [["hoehe", 8], ["kraft", 4], ["wasser", 4]],
+    name: "Böenkuppe", diff: "Fordernd", mul: 1.40, gold: 320, lives: 18,
+    himmel: ["#5A7280", "#A6C0C6"],
+    ground: ["#3A4A44", "#485A52"], accent: "#6E8A7E", foliage: "#8AA69A",
+    path: "#AEA890", pathEdge: "#4A4A3C", soil: "#D2CCB2",
+    gras: "#7E9A86", gras2: "#5E7666", erde: "#6E6E58",
+    weather: "storm", tint: "rgba(159,227,214,.05)",
+    flora: ["grass","grass","grass","bush","conifer","rock","deadtree","flower"],
+    smooth: 3,
+    wp: [[-1,5],[4,5],[4,10],[9,10],[9,4],[14,4],[14,10],[18,10],[18,5],[11,5],[11,8],[20,8]],
   },
 ];
 
@@ -2567,6 +2730,23 @@ function sternVergeben(mapIdx, welle) {
    gehalten wurden. Er ist die Bedingung für den Endlosmodus dieser Karte. */
 function legendaerFrei(mapIdx) { return sterne(mapIdx) >= WELLEN_JE_KARTE; }
 
+/* Der legendäre Wächter dieser Karte — Werte der Grundfassung, aber Name,
+   Element und Gestalt aus der Karte. */
+function legendaerDef(mapIdx) {
+  const grund = TOWER_BY_ID[LEGENDAER_ID];
+  const m = MAPS[mapIdx];
+  if (!m || !m.legendaer) return grund;
+  const eigen = m.legendaer;
+  return {
+    ...grund,
+    id: LEGENDAER_ID,
+    type: eigen.typ || grund.type,
+    shape: eigen.gestalt || grund.shape,
+    blurb: eigen.text || grund.blurb,
+    tiers: grund.tiers.map((t, i) => ({ ...t, name: eigen.namen[i] })),
+  };
+}
+
 function endWave() {
   G.waveActive = false;
   G.mod = null;
@@ -2623,8 +2803,9 @@ function trainMul(t) { return 1 + (t.train || 0) * .09; }
 function statDmg(t) {
   // Vulkanschlot: nur Feuer-Wächter stehen darauf, also braucht es keine Typprüfung
   const schlot = feldArt(t.c, t.r) === "vulkan" ? (1 + FELD_VULKAN_BONUS) : 1;
+  const heim = istHeimWaechter(t) ? (1 + HEIM_WAECHTER_SCHADEN) : 1;
   return tierOf(t).dmg * (1 + rank("kraft") * .04) * (1 + (t.aDmg || 0)) * trainMul(t)
-       * (1 + boon("dmg") * .12) * (1 + hainStufe("schliff") * .03) * schlot;
+       * (1 + boon("dmg") * .12) * (1 + hainStufe("schliff") * .03) * schlot * heim;
 }
 function statRange(t) {
   const modR = G.mod && G.mod.range ? G.mod.range : 1;
@@ -2639,7 +2820,8 @@ function statRange(t) {
   }
   return tierOf(t).range * (1 + rank("weit") * .03) * (1 + (t.aRng || 0))
        * (1 + (t.train || 0) * .02) * (1 + boon("rng") * .08) * modR * feld
-       * (1 + hainStufe("fern") * .02);
+       * (1 + hainStufe("fern") * .02)
+       * (istHeimWaechter(t) ? (1 + HEIM_WAECHTER_REICHWEITE) : 1);
 }
 const TRAIN_MAX = 15;
 
@@ -2794,6 +2976,31 @@ const FELD_VULKAN_BONUS = 0.18;
    bekommt, zeichnet niemanden aus. */
 const FELD_HOEHE_BONUS = 0.32;
 const FELD_HOEHE_TYPEN = ["rock", "wind"];
+
+/* ============================================================
+   Heimvorteil
+   ============================================================
+   Jede Karte gehört einem Element. Wer dort mit diesem Element antritt,
+   kämpft auf vertrautem Grund: Seine Wächter treffen härter und sehen
+   weiter. Die Gegner desselben Elements sind dort aber ebenfalls zu Hause
+   und tragen mehr Leben.
+
+   Das macht jede Karte zu einer eigenen Aufgabe statt zu derselben in
+   anderen Farben: Auf der Feuerkarte lohnen Feuer-Wächter — aber die
+   Feuer-Gegner, gegen die sie ohnehin schwach sind, kommen zäher.
+
+   Bewusst maßvoll: Zwanzig Prozent sind zu spüren, ohne dass eine Karte
+   nur noch mit einem einzigen Element spielbar wäre. */
+const HEIM_WAECHTER_SCHADEN = 0.20;
+const HEIM_WAECHTER_REICHWEITE = 0.12;
+const HEIM_GEGNER_LEBEN = 0.25;
+
+function heimTyp() { return (G.map && G.map.heim) || null; }
+
+function istHeimWaechter(t) {
+  const h = heimTyp();
+  return h !== null && t.def.type === h;
+}
 
 function baueFelder() {
   const felder = new Map();
@@ -2950,7 +3157,18 @@ function warnGold() {
   if (SND.on && SND.ctx) tone({ f: 200, f2: 130, d: .16, type: "square", g: .13 });
 }
 function placeTower(id, c, r) {
-  const def = TOWER_BY_ID[id];
+  /* Der legendäre Wächter trägt Namen und Element seiner Karte. Die
+     Umschreibung geschieht beim Setzen, damit ein gesetzter Wächter seine
+     Kartenherkunft behält, auch wenn man später eine andere Karte spielt. */
+  if (id === LEGENDAER_ID) {
+    const eigen = legendaerDef(G.mapIdx);
+    return placeTowerDef(eigen, c, r);
+  }
+  return placeTowerDef(TOWER_BY_ID[id], c, r);
+}
+
+function placeTowerDef(def, c, r) {
+  const id = def.id;
   const cost = def.tiers[0].cost;
   if (G.gold < cost) { warnGold(); return; }
   if (!canPlace(c, r)) return;
@@ -3651,6 +3869,10 @@ function splashHit(s) {
    Update
    ============================================================ */
 function spawnEnemy(s, hp, spd, bounty, boss, d, isSplit) {
+  /* Heimvorteil der Gegner: Wer auf der Karte seines Elements antritt, ist
+     dort ebenfalls zu Hause. Hier statt in der Wellenberechnung, damit auch
+     abgespaltene Gegner davon erfasst werden. */
+  if (heimTyp() === s.type) hp *= 1 + HEIM_GEGNER_LEBEN;
   const mod = G.mod;
   /* Routenwahl an der Gabelung: streng abwechselnd statt zufällig.
      Beim Würfeln kann eine Welle rein zufällig fast geschlossen einen Zweig
@@ -3669,6 +3891,9 @@ function spawnEnemy(s, hp, spd, bounty, boss, d, isSplit) {
        relativ weniger ins Gewicht als auf der leichten, und die Routen
        kehrten ihre Rangfolge um. */
     armor: Math.round((s.armor || 0) * waveArmorScale(G.sent) * kartenPanzerFaktor() * (mod && mod.armor ? mod.armor : 1)),
+    /* Gegner des Heimtyps sind auf dieser Karte ebenfalls zu Hause. Ohne das
+       wäre der Heimvorteil ein reines Geschenk statt einer Eigenheit. */
+    heimstark: heimTyp() === s.type,
     burn: 0, burnT: 0, slow: 0, slowT: 0, rootT: 0, mark: 0, markT: 0, wetT: 0,
     shield: 0, shieldMax: 0, shieldT: 0, abT: 0, comboT: 0,
     wob: Math.random() * 9, dead: false, dir: 1, walk: 0, isSplit: !!isSplit,
@@ -5526,6 +5751,94 @@ function drawWeather(g) {
     const hz = g.createLinearGradient(0, H, 0, H * .5);
     hz.addColorStop(0, "rgba(255,110,45,.10)"); hz.addColorStop(1, "rgba(255,110,45,0)");
     g.fillStyle = hz; g.fillRect(0, 0, W, H);
+  } else if (m.weather === "sun") {
+    /* Sonnenschein: breite Lichtbahnen, die schräg über das Feld ziehen.
+       Sie wandern langsam — schnelles Licht sähe nach Suchscheinwerfer aus,
+       nicht nach Sonne durch Wolken. Zusätzlich tanzen Staubkörner darin,
+       weil eine leere Lichtbahn wie ein Farbfehler wirkt. */
+    g.save();
+    g.globalCompositeOperation = "lighter";
+    for (let i = 0; i < 4; i++) {
+      const mitte = ((t * 7 + i * 340) % (W + 700)) - 350;
+      const breite = 110 + i * 40;
+      const bahn = g.createLinearGradient(mitte - breite, 0, mitte + breite, H);
+      const st = .05 + Math.abs(Math.sin(t * .22 + i * 1.7)) * .05;
+      bahn.addColorStop(0, "rgba(255,244,200,0)");
+      bahn.addColorStop(.5, `rgba(255,244,200,${st})`);
+      bahn.addColorStop(1, "rgba(255,244,200,0)");
+      g.fillStyle = bahn;
+      g.fillRect(0, 0, W, H);
+    }
+    g.restore();
+    for (let i = 0; i < 40; i++) {
+      const sx = (i * 191.3 + Math.sin(t * .4 + i) * 30) % W;
+      const sy = (i * 83.7 + t * (5 + (i % 4) * 3)) % H;
+      const a = .12 + Math.abs(Math.sin(t * 1.6 + i)) * .22;
+      g.fillStyle = `rgba(255,248,214,${a})`;
+      g.beginPath(); g.arc(sx, sy, .8 + (i % 3) * .4, 0, 7); g.fill();
+    }
+  } else if (m.weather === "snow") {
+    /* Schnee: langsam, taumelnd, in drei Größen. Die Flocken driften
+       seitlich mit — senkrecht fallender Schnee sieht aus wie Regen. */
+    for (let i = 0; i < 90; i++) {
+      const sp = 22 + (i % 6) * 11;
+      const sx = ((i * 149.3) % W) + Math.sin(t * .5 + i * .7) * 26;
+      const sy = (t * sp + i * 71) % (H + 30) - 15;
+      const gr = .9 + (i % 4) * .55;
+      const a = .3 + (i % 3) * .18;
+      g.fillStyle = `rgba(238,246,252,${a})`;
+      g.beginPath(); g.arc(sx, sy, gr, 0, 7); g.fill();
+    }
+    g.fillStyle = "rgba(200,224,242,.05)"; g.fillRect(0, 0, W, H);
+  } else if (m.weather === "fog") {
+    /* Nebel: wenige, sehr breite Schwaden, die quer ziehen. Der Reiz liegt
+       darin, dass sie Teile des Feldes verdecken und wieder freigeben. */
+    for (let i = 0; i < 5; i++) {
+      const y0 = (i * H / 5) + Math.sin(t * .16 + i) * 26;
+      const x0 = ((t * (11 + i * 5) + i * 420) % (W + 800)) - 400;
+      const grd = g.createRadialGradient(x0, y0, 10, x0, y0, 300);
+      const st = .09 + Math.abs(Math.sin(t * .2 + i * 2.1)) * .07;
+      grd.addColorStop(0, `rgba(190,200,215,${st})`);
+      grd.addColorStop(1, "rgba(190,200,215,0)");
+      g.fillStyle = grd;
+      g.save(); g.translate(x0, y0); g.scale(1.8, .5); g.translate(-x0, -y0);
+      g.beginPath(); g.arc(x0, y0, 300, 0, 7); g.fill();
+      g.restore();
+    }
+  } else if (m.weather === "dust") {
+    /* Staub: bodennah, waagerecht ziehend, körnig. Anders als Pollen steigt
+       er nicht, sondern wird getrieben. */
+    for (let i = 0; i < 70; i++) {
+      const sp = 34 + (i % 5) * 22;
+      const sx = ((i * 167.9 + t * sp) % (W + 60)) - 30;
+      const sy = H * .35 + ((i * 53.7) % (H * .65)) + Math.sin(t * 1.1 + i) * 9;
+      const a = .10 + Math.abs(Math.sin(t * .8 + i)) * .18;
+      g.fillStyle = `rgba(214,196,164,${a})`;
+      g.beginPath(); g.ellipse(sx, sy, 1.6 + (i % 3) * .8, .9, 0, 0, 7); g.fill();
+    }
+    g.fillStyle = "rgba(190,168,130,.04)"; g.fillRect(0, 0, W, H);
+  } else if (m.weather === "storm") {
+    /* Sturm: schräg gepeitschter Regen und gelegentliches Wetterleuchten.
+       Der Blitz kommt selten und kurz — häufiges Zucken ermüdet und
+       verdeckt das Spielgeschehen. */
+    g.strokeStyle = "rgba(196,214,232,.28)"; g.lineWidth = 1.2;
+    for (let i = 0; i < 130; i++) {
+      const sx = (i * 131.7) % W;
+      const sp = 700 + (i % 6) * 90;
+      const y0 = (t * sp + i * 67) % (H + 80) - 50;
+      g.beginPath();
+      g.moveTo(sx, y0);
+      g.lineTo(sx - 9, y0 + 22);
+      g.stroke();
+    }
+    // Wetterleuchten: ein kurzer Aufheller alle paar Sekunden
+    const zyklus = (t * .38) % 1;
+    if (zyklus < .06) {
+      const st = (1 - zyklus / .06) * .18;
+      g.fillStyle = `rgba(226,238,255,${st})`;
+      g.fillRect(0, 0, W, H);
+    }
+    g.fillStyle = "rgba(110,140,175,.05)"; g.fillRect(0, 0, W, H);
   } else {
     for (let i = 0; i < 46; i++) {
       const sp = 9 + (i % 4) * 5;
@@ -5951,6 +6264,7 @@ function renderShop() {
        den Laden auf jeder Karte um eine Karte verlängert, die man vierhundert
        Wellen lang nicht anfassen kann. Im Menü steht, wie er zu bekommen ist. */
     if (d.legendaer && !legendaerFrei(G.mapIdx)) return;
+    if (d.legendaer) d = legendaerDef(G.mapIdx);
     const t0 = d.tiers[0];
     const el = document.createElement("button");
     el.className = "card";

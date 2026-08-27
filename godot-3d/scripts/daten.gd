@@ -236,5 +236,13 @@ const KARTEN := [
 	{ "name": "Grünpfad", "grad": "Ruhig", "faktor": 1.25, "beeren": 280, "leben": 20 },
 	{ "name": "Glutschlucht", "grad": "Fordernd", "faktor": 1.44, "beeren": 300, "leben": 18 },
 	{ "name": "Flutruine", "grad": "Brutal", "faktor": 1.95, "beeren": 500, "leben": 15 },
+	{ "name": "Gewitterkamm", "grad": "Fordernd", "faktor": 1.38, "beeren": 320, "leben": 18 },
+	{ "name": "Steinkessel", "grad": "Fordernd", "faktor": 1.42, "beeren": 310, "leben": 18 },
+	{ "name": "Traumhain", "grad": "Ruhig", "faktor": 1.3, "beeren": 300, "leben": 20 },
+	{ "name": "Firnfeld", "grad": "Fordernd", "faktor": 1.48, "beeren": 330, "leben": 17 },
+	{ "name": "Erzwerk", "grad": "Brutal", "faktor": 1.72, "beeren": 460, "leben": 16 },
+	{ "name": "Glanzwiese", "grad": "Ruhig", "faktor": 1.28, "beeren": 300, "leben": 20 },
+	{ "name": "Nachtgrund", "grad": "Brutal", "faktor": 1.78, "beeren": 470, "leben": 16 },
+	{ "name": "Böenkuppe", "grad": "Fordernd", "faktor": 1.4, "beeren": 320, "leben": 18 },
 ]
 

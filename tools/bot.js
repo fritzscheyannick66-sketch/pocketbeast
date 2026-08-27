@@ -197,7 +197,9 @@ function bauen(spiel, zustand) {
         jetzt += summe * ((a.aura && a.aura.dmg) || 0);
         dann += summe * b.aura.dmg;
       }
-      const wert = ((dann - jetzt) / kosten) * wirkung;
+      const heimT = (spiel.heimTyp && spiel.heimTyp() === t.def.type)
+        ? (1 + (spiel.HEIM_WAECHTER_SCHADEN || 0.2)) : 1;
+      const wert = ((dann - jetzt) / kosten) * wirkung * heimT;
       if (wert > besterWert) { besterWert = wert; besterAufstieg = t; }
     }
     if (besterAufstieg) {
@@ -273,6 +275,12 @@ function waehleNeuenWaechter(spiel, gruppen, luft) {
     if (G.gold < kosten) continue;
 
     const wirkung = nutzenGegen(spiel, def.type, gruppen);
+    /* Heimvorteil: Auf der Karte seines Elements trifft ein Wächter zwanzig
+       Prozent härter und sieht zwölf Prozent weiter. Wer das nicht mitrechnet,
+       baut auf der Stahlkarte alles außer Stahl — und wundert sich, warum die
+       Karte nicht zu halten ist. */
+    const heim = (spiel.heimTyp && spiel.heimTyp() === def.type)
+      ? (1 + (spiel.HEIM_WAECHTER_SCHADEN || 0.2)) : 1;
     /* Wer nicht in die Luft trifft, ist gegen eine Flugwelle wertlos.
        Der alte Bot kannte diesen Unterschied nicht. */
     const luftStrafe = def.air ? 1 : (1 - luft * 0.85);
@@ -325,7 +333,7 @@ function waehleNeuenWaechter(spiel, gruppen, luft) {
     if (!platz) continue;
 
     // Eigener Schaden plus das, was der Wächter bei anderen auslöst
-    const wert = (grund + zusatz / kosten) * wirkung * luftStrafe * vielfalt
+    const wert = (grund + zusatz / kosten) * wirkung * luftStrafe * vielfalt * heim
       * (1 + platz.wert * 0.0015);
     if (wert > besterWert) {
       besterWert = wert;

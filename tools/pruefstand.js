@@ -197,6 +197,7 @@ function ladeSpiel(datei) {
   BOONS, takeBoon,
   HAIN, hainStufe, hainPreis, hainKaufen, trainGrenze, karteHatWasser, familieSetzbar,
   FELD_VULKAN_BONUS, FELD_KRAFT_BONUS, FELD_HOEHE_BONUS,
+  heimTyp, istHeimWaechter, HEIM_WAECHTER_SCHADEN, legendaerDef,
   beerenAbrechnen, BEEREN_JE_PUNKT, BEEREN_PUNKTE_MAX,
 };`;
 
