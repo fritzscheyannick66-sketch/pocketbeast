@@ -76,6 +76,75 @@ func ausbaukosten(id: String, stufe: int) -> int:
 
 
 ## ============================================================
+## Ausbau
+## ============================================================
+
+## Ab wann ein Wächter die Megaentwicklung erreichen kann.
+## Dieselben Schwellen wie im Browserspiel.
+const MEGA_ERLEDIGT := 40
+const MEGA_TRAINING := 6
+const MEGA_KOSTEN := 650
+const TRAIN_MAX := 15
+
+
+## Was die nächste Trainingsstufe kostet. Wächst um 24 Prozent je Stufe —
+## dadurch bleibt Training früh günstig und wird spät zum Beerengrab.
+func trainingskosten(stufe: int) -> int:
+	return int(round(80.0 * pow(1.24, float(stufe))))
+
+
+## Wieviel Schaden das Training zusätzlich bringt: neun Prozent je Stufe.
+static func trainingsfaktor(stufe: int) -> float:
+	return 1.0 + float(stufe) * 0.09
+
+
+## Steht die Megaentwicklung bereit?
+##
+## Sie hängt nicht am Geld allein, sondern an einem Wächter, der lange genug
+## gelebt und lange genug getroffen hat. Ein frisch gekaufter kommt nie
+## dorthin — das belohnt Pflege statt Nachschub.
+func mega_bereit(turm: Dictionary) -> bool:
+	if turm.get("mega", false):
+		return false
+	if int(turm.get("stufe", 0)) < 2:
+		return false
+	if int(turm.get("erledigt", 0)) < MEGA_ERLEDIGT:
+		return false
+	if int(turm.get("training", 0)) < MEGA_TRAINING:
+		return false
+	return true
+
+
+## Die Werte der Megaentwicklung, abgeleitet aus der Endstufe.
+## Schaden mal 1,75, Feuerrate mal 1,15, Reichweite mal 1,18 —
+## dieselben Faktoren wie im Browserspiel.
+static func mega_werte(endstufe: Dictionary) -> Dictionary:
+	var m := endstufe.duplicate(true)
+	m["schaden"] = float(endstufe["schaden"]) * 1.75
+	m["rate"] = float(endstufe["rate"]) * 1.15
+	m["reichweite"] = float(endstufe["reichweite"]) * 1.18
+	if endstufe.has("durchschlag"):
+		m["durchschlag"] = float(endstufe["durchschlag"]) * 1.5
+	return m
+
+
+## Was ein Wächter beim Entlassen zurückbringt: sechzig Prozent des
+## Gezahlten. Wer umbaut, verliert etwas — sonst wäre jede Aufstellung
+## beliebig, weil man sie jederzeit kostenlos umwerfen könnte.
+func entlassungswert(turm: Dictionary) -> int:
+	var def := waechter_def(String(turm.get("id", "")))
+	if def.is_empty():
+		return 0
+	var summe := 0
+	for i in range(int(turm.get("stufe", 0)) + 1):
+		summe += int(def["stufen"][i]["kosten"])
+	summe += int(turm.get("trainingsausgaben", 0))
+	if turm.get("mega", false):
+		summe += MEGA_KOSTEN
+	return int(round(float(summe) * 0.6))
+
+
+## ============================================================
 ## Wellen
 ## ============================================================
 

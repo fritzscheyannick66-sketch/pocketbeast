@@ -57,6 +57,10 @@ var tempo := 1
 ## Welche Kacheln schon belegt sind — Wegkacheln und gesetzte Wächter.
 var belegt: Dictionary = {}
 
+## Welcher gesetzte Wächter gerade angewählt ist, und sein Reichweitenring.
+var angewaehlt: Dictionary = {}
+var auswahlring: Node3D
+
 @onready var _wurzel_gegner := Node3D.new()
 @onready var _wurzel_schuesse := Node3D.new()
 
@@ -77,6 +81,10 @@ func _ready() -> void:
 	bedienung.waechter_gewaehlt.connect(_auf_auswahl)
 	bedienung.welle_gerufen.connect(_auf_wellenruf)
 	bedienung.tempo_gewechselt.connect(_auf_tempo)
+	bedienung.ausbauen.connect(_auf_ausbau)
+	bedienung.trainieren.connect(_auf_training)
+	bedienung.mega.connect(_auf_mega)
+	bedienung.entlassen.connect(_auf_entlassen)
 	bedienung.zeige(spiel)
 
 	print("PocketBeast 3D — ", Daten.KARTEN[0]["name"],
@@ -390,6 +398,7 @@ func _unhandled_input(ereignis: InputEvent) -> void:
 			gewaehlt = ""
 			bedienung.auswahl_loeschen()
 			_auf_auswahl("")
+			_waehle_turm({})
 			return
 		# Zifferntasten wählen die Wächter der Reihe nach
 		if taste >= KEY_1 and taste <= KEY_9:
@@ -428,9 +437,21 @@ func _kachel_unter_maus() -> Vector2i:
 
 
 func _versuche_bauen() -> void:
-	if gewaehlt == "" or spiel.verloren:
+	if spiel.verloren:
 		return
 	var k := _kachel_unter_maus()
+
+	# Steht dort ein Wächter, wird er angewählt statt gebaut. Das ist die
+	# natürliche Erwartung: Wer auf etwas klickt, das schon da ist, will es
+	# ansehen, nicht daneben bauen.
+	if gewaehlt == "":
+		for t in tuerme:
+			if t.get("kachel", Vector2i(-99, -99)) == k:
+				_waehle_turm(t)
+				return
+		_waehle_turm({})
+		return
+
 	if not _kachel_frei(k):
 		bedienung.setze_hinweis("Hier ist kein Platz — der Weg oder ein Wächter belegt die Stelle")
 		return
@@ -440,9 +461,125 @@ func _versuche_bauen() -> void:
 		return
 	spiel.beeren -= kosten
 	belegt[k] = "turm"
-	_setze_waechter(gewaehlt, 0, _kachel_zu_welt(k))
+	_setze_waechter(gewaehlt, 0, _kachel_zu_welt(k), k)
 	bedienung.zeige(spiel)
 	bedienung.setze_hinweis("%s gesetzt" % spiel.waechter_def(gewaehlt)["stufen"][0]["name"])
+
+
+## ============================================================
+## Wächter anwählen und ausbauen
+## ============================================================
+
+func _waehle_turm(t: Dictionary) -> void:
+	angewaehlt = t
+	if auswahlring:
+		auswahlring.queue_free()
+		auswahlring = null
+	if t.is_empty():
+		bedienung.zeige_turm(null, spiel)
+		return
+	bedienung.zeige_turm(t, spiel)
+
+	# Reichweitenring um den angewählten Wächter
+	auswahlring = MeshInstance3D.new()
+	var tm := TorusMesh.new()
+	var reich: float = float(t["reichweite"])
+	tm.inner_radius = reich - 0.07
+	tm.outer_radius = reich
+	tm.rings = 56
+	auswahlring.mesh = tm
+	var m := StandardMaterial3D.new()
+	var f: Color = t["farbe"]
+	m.albedo_color = Color(f.r, f.g, f.b, 0.5)
+	m.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	auswahlring.material_override = m
+	var p: Vector3 = t["pos"]
+	auswahlring.position = Vector3(p.x, p.y + 0.07, p.z)
+	add_child(auswahlring)
+
+
+## Setzt die Kampfwerte eines Wächters neu — nach Ausbau, Training oder Mega.
+##
+## An einer Stelle gesammelt, weil sonst drei Wege dieselbe Rechnung führen
+## müssten und einer davon irgendwann abweicht.
+func _werte_neu(t: Dictionary) -> void:
+	var def := spiel.waechter_def(String(t["id"]))
+	var st: Dictionary = def["stufen"][int(t["stufe"])]
+	if t.get("mega", false):
+		st = Spiel.mega_werte(st)
+	var tf: float = Spiel.trainingsfaktor(int(t.get("training", 0)))
+	t["schaden"] = float(st["schaden"]) * tf
+	t["takt"] = float(st["rate"])
+	t["reichweite"] = float(st["reichweite"]) / Spiel.PIXEL_JE_METER
+	t["durchschlag"] = float(st.get("durchschlag", 0))
+	# Größer werden lassen, damit man den Rang sieht
+	var koerper: MeshInstance3D = t["koerper"]
+	var wuchs: float = 1.0 + float(t["stufe"]) * 0.14 + (0.18 if t.get("mega", false) else 0.0)
+	koerper.scale = Vector3.ONE * wuchs
+
+
+func _auf_ausbau() -> void:
+	if angewaehlt.is_empty():
+		return
+	var t := angewaehlt
+	var stufe: int = int(t["stufe"])
+	var kosten: int = spiel.ausbaukosten(String(t["id"]), stufe)
+	if kosten < 0 or spiel.beeren < kosten:
+		return
+	spiel.beeren -= kosten
+	t["stufe"] = stufe + 1
+	_werte_neu(t)
+	_waehle_turm(t)
+	bedienung.setze_hinweis("Entwickelt zu %s" %
+		spiel.waechter_def(String(t["id"]))["stufen"][int(t["stufe"])]["name"])
+
+
+func _auf_training() -> void:
+	if angewaehlt.is_empty():
+		return
+	var t := angewaehlt
+	if int(t["stufe"]) < 2:
+		return
+	var trn: int = int(t.get("training", 0))
+	if trn >= spiel.TRAIN_MAX:
+		return
+	var kosten: int = spiel.trainingskosten(trn)
+	if spiel.beeren < kosten:
+		return
+	spiel.beeren -= kosten
+	t["training"] = trn + 1
+	t["trainingsausgaben"] = int(t.get("trainingsausgaben", 0)) + kosten
+	_werte_neu(t)
+	_waehle_turm(t)
+
+
+func _auf_mega() -> void:
+	if angewaehlt.is_empty():
+		return
+	var t := angewaehlt
+	if not spiel.mega_bereit(t) or spiel.beeren < spiel.MEGA_KOSTEN:
+		return
+	spiel.beeren -= spiel.MEGA_KOSTEN
+	t["mega"] = true
+	_werte_neu(t)
+	_waehle_turm(t)
+	bedienung.setze_hinweis("★ Megaentwicklung vollzogen")
+
+
+func _auf_entlassen() -> void:
+	if angewaehlt.is_empty():
+		return
+	var t := angewaehlt
+	spiel.beeren += spiel.entlassungswert(t)
+	var k: Vector2i = t.get("kachel", Vector2i(-99, -99))
+	if belegt.get(k, "") == "turm":
+		belegt.erase(k)
+	var kn: Node3D = t["knoten"]
+	kn.queue_free()
+	tuerme.erase(t)
+	_waehle_turm({})
+	bedienung.setze_hinweis("Wächter entlassen")
 
 
 ## Ein durchscheinender Umriss dort, wo gebaut würde.
@@ -514,7 +651,7 @@ func _abstand_zum_weg(p: Vector3) -> float:
 ## Schaden und Feuerrate sind dieselben. Die Umrechnung Pixel/Meter steht in
 ## spiel.gd, weil beide Fassungen sie brauchen.
 
-func _setze_waechter(id: String, stufe: int, pos: Vector3) -> void:
+func _setze_waechter(id: String, stufe: int, pos: Vector3, kachel: Vector2i = Vector2i(-99, -99)) -> void:
 	var def: Dictionary = {}
 	for w in Daten.WAECHTER:
 		if w["id"] == id:
@@ -526,15 +663,22 @@ func _setze_waechter(id: String, stufe: int, pos: Vector3) -> void:
 	var st: Dictionary = def["stufen"][clampi(stufe, 0, 2)]
 	var typ: String = def["typ"]
 	var farbe: Color = Daten.TYPEN[typ]["farbe"]
-	_setze_turm(pos, farbe,
+	var t := _setze_turm(pos, farbe,
 		float(st["reichweite"]) / Spiel.PIXEL_JE_METER,
 		float(st["rate"]),
 		float(st["schaden"]),
 		typ, def["luft"], float(st.get("durchschlag", 0)))
+	t["id"] = id
+	t["stufe"] = stufe
+	t["kachel"] = kachel
+	t["erledigt"] = 0
+	t["training"] = 0
+	t["trainingsausgaben"] = 0
+	t["mega"] = false
 
 
 func _setze_turm(pos: Vector3, farbe: Color, reichweite: float, takt: float, schaden: float,
-		typ: String = "", luft: bool = true, durchschlag: float = 0.0) -> void:
+		typ: String = "", luft: bool = true, durchschlag: float = 0.0) -> Dictionary:
 	var y := Gelaende.hoehe_bei(pos.x, pos.z, 99.0)
 	var wurzel := Node3D.new()
 	wurzel.position = Vector3(pos.x, y, pos.z)
@@ -574,6 +718,7 @@ func _setze_turm(pos: Vector3, farbe: Color, reichweite: float, takt: float, sch
 		"reichweite": reichweite, "takt": takt, "schaden": schaden, "abklingen": 0.0,
 		"farbe": farbe, "typ": typ, "luft": luft, "durchschlag": durchschlag,
 	})
+	return tuerme[tuerme.size() - 1]
 
 
 func _spawne_gegner() -> void:
@@ -631,6 +776,8 @@ func _process(delta: float) -> void:
 		_takt(delta)
 
 	bedienung.zeige(spiel)
+	if not angewaehlt.is_empty():
+		bedienung.zeige_turm(angewaehlt, spiel)
 
 
 func _takt(delta: float) -> void:
@@ -679,7 +826,12 @@ func _takt(delta: float) -> void:
 		koerper.rotation.y = atan2(richtung.x, richtung.z)
 		if t["abklingen"] <= 0.0:
 			t["abklingen"] = 1.0 / t["takt"]
+			var vorher: float = ziel["leben"]
 			ziel["leben"] -= _schaden(t, ziel)
+			# Wer den letzten Treffer setzt, bekommt ihn angerechnet — das
+			# zählt für die Megaentwicklung
+			if vorher > 0.0 and ziel["leben"] <= 0.0:
+				t["erledigt"] = int(t.get("erledigt", 0)) + 1
 			_blitz(t["pos"] + Vector3.UP * 0.95, zk.position, t["farbe"])
 
 	# Aufräumen

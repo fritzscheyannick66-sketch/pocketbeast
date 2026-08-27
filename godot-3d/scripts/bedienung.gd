@@ -16,6 +16,10 @@ const Daten = preload("res://scripts/daten.gd")
 signal waechter_gewaehlt(id: String)
 signal welle_gerufen()
 signal tempo_gewechselt()
+signal ausbauen()
+signal trainieren()
+signal mega()
+signal entlassen()
 
 var _leben: Label
 var _beeren: Label
@@ -26,6 +30,16 @@ var _wellenknopf: Button
 var _tempoknopf: Button
 var _karten: Dictionary = {}      # id -> Button
 var _gewaehlt := ""
+
+## Das Feld, das erscheint, wenn ein gesetzter Wächter angewählt ist.
+var _tafel: PanelContainer
+var _tafel_titel: Label
+var _tafel_werte: Label
+var _tafel_fortschritt: Label
+var _k_ausbau: Button
+var _k_training: Button
+var _k_mega: Button
+var _k_entlassen: Button
 
 const GRUND := Color(0.055, 0.078, 0.094, 0.92)
 const RAND := Color(0.16, 0.21, 0.24)
@@ -39,6 +53,7 @@ func _ready() -> void:
 	_baue_kopf()
 	_baue_laden()
 	_baue_fuss()
+	_baue_tafel()
 
 
 func _stil(fuell: Color, rand: Color = RAND, radius: int = 8) -> StyleBoxFlat:
@@ -200,6 +215,131 @@ func _baue_fuss() -> void:
 	_hinweis.add_theme_color_override("font_color", MATT)
 	_hinweis.text = "Wächter wählen, dann auf eine freie Fläche klicken"
 	reihe.add_child(_hinweis)
+
+
+## ------------------------------------------------------------
+## Wächtertafel
+## ------------------------------------------------------------
+## Erscheint rechts, sobald ein gesetzter Wächter angewählt ist. Zeigt, was
+## er kann und was der nächste Schritt kostet.
+func _baue_tafel() -> void:
+	_tafel = PanelContainer.new()
+	_tafel.add_theme_stylebox_override("panel", _stil(GRUND))
+	_tafel.anchor_left = 1.0
+	_tafel.anchor_right = 1.0
+	_tafel.anchor_top = 0.0
+	_tafel.offset_left = -252
+	_tafel.offset_right = -14
+	_tafel.offset_top = 72
+	_tafel.visible = false
+	add_child(_tafel)
+
+	var spalte := VBoxContainer.new()
+	spalte.add_theme_constant_override("separation", 6)
+	_tafel.add_child(spalte)
+
+	_tafel_titel = Label.new()
+	_tafel_titel.add_theme_font_size_override("font_size", 15)
+	_tafel_titel.add_theme_color_override("font_color", SCHRIFT)
+	spalte.add_child(_tafel_titel)
+
+	_tafel_werte = Label.new()
+	_tafel_werte.add_theme_font_size_override("font_size", 11)
+	_tafel_werte.add_theme_color_override("font_color", MATT)
+	spalte.add_child(_tafel_werte)
+
+	_tafel_fortschritt = Label.new()
+	_tafel_fortschritt.add_theme_font_size_override("font_size", 10)
+	_tafel_fortschritt.add_theme_color_override("font_color", BERNSTEIN)
+	spalte.add_child(_tafel_fortschritt)
+
+	_k_ausbau = _tafelknopf(spalte, "Entwickeln", BERNSTEIN)
+	_k_ausbau.pressed.connect(func(): ausbauen.emit())
+	_k_training = _tafelknopf(spalte, "Training", Color(0.42, 0.85, 0.55))
+	_k_training.pressed.connect(func(): trainieren.emit())
+	_k_mega = _tafelknopf(spalte, "★ Megaentwicklung", Color(0.96, 0.77, 0.26))
+	_k_mega.pressed.connect(func(): mega.emit())
+	_k_entlassen = _tafelknopf(spalte, "Entlassen", Color(0.85, 0.45, 0.38))
+	_k_entlassen.pressed.connect(func(): entlassen.emit())
+
+
+func _tafelknopf(eltern: Node, beschriftung: String, farbe: Color) -> Button:
+	var k := Button.new()
+	k.text = beschriftung
+	k.add_theme_font_size_override("font_size", 11)
+	k.add_theme_color_override("font_color", farbe)
+	k.add_theme_color_override("font_disabled_color", Color(0.38, 0.42, 0.44))
+	k.add_theme_stylebox_override("normal", _stil(Color(farbe.r, farbe.g, farbe.b, 0.12), farbe * 0.6, 6))
+	k.add_theme_stylebox_override("hover", _stil(Color(farbe.r, farbe.g, farbe.b, 0.24), farbe, 6))
+	k.add_theme_stylebox_override("disabled", _stil(Color(1, 1, 1, 0.03), RAND, 6))
+	eltern.add_child(k)
+	return k
+
+
+## Zeigt einen angewählten Wächter — oder verbirgt die Tafel bei null.
+func zeige_turm(turm, spiel) -> void:
+	if turm == null:
+		_tafel.visible = false
+		return
+	_tafel.visible = true
+
+	var def: Dictionary = spiel.waechter_def(String(turm.get("id", "")))
+	var stufe: int = int(turm.get("stufe", 0))
+	var st: Dictionary = def["stufen"][stufe]
+	var name: String = String(st["name"])
+	if turm.get("mega", false):
+		name = "★ " + name
+	_tafel_titel.text = "%s   Stufe %d" % [name, stufe + 1]
+
+	var tf: float = spiel.trainingsfaktor(int(turm.get("training", 0)))
+	_tafel_werte.text = "Schaden %d   Rate %.1f/s
+Reichweite %d%s" % [
+		int(round(float(turm["schaden"]))),
+		float(turm["takt"]),
+		int(round(float(turm["reichweite"]) * spiel.PIXEL_JE_METER)),
+		"   Durchschlag %d" % int(turm.get("durchschlag", 0)) if float(turm.get("durchschlag", 0)) > 0 else "",
+	]
+
+	# Ausbauen
+	var kosten: int = spiel.ausbaukosten(String(turm.get("id", "")), stufe)
+	if turm.get("mega", false) or kosten < 0:
+		_k_ausbau.text = "Endstufe erreicht"
+		_k_ausbau.disabled = true
+	else:
+		_k_ausbau.text = "Entwickeln zu %s  ·  %d" % [def["stufen"][stufe + 1]["name"], kosten]
+		_k_ausbau.disabled = spiel.beeren < kosten
+
+	# Training — erst ab Endstufe, wie im Browserspiel
+	var trn: int = int(turm.get("training", 0))
+	var tkosten: int = spiel.trainingskosten(trn)
+	if stufe < 2:
+		_k_training.text = "Training ab Endstufe"
+		_k_training.disabled = true
+	elif trn >= spiel.TRAIN_MAX:
+		_k_training.text = "Training voll (%d)" % trn
+		_k_training.disabled = true
+	else:
+		_k_training.text = "Training %d/%d  ·  %d" % [trn + 1, spiel.TRAIN_MAX, tkosten]
+		_k_training.disabled = spiel.beeren < tkosten
+
+	# Megaentwicklung
+	if turm.get("mega", false):
+		_k_mega.text = "★ Megaentwickelt"
+		_k_mega.disabled = true
+		_tafel_fortschritt.text = ""
+	elif spiel.mega_bereit(turm):
+		_k_mega.text = "★ Megaentwicklung  ·  %d" % spiel.MEGA_KOSTEN
+		_k_mega.disabled = spiel.beeren < spiel.MEGA_KOSTEN
+		_tafel_fortschritt.text = "bereit"
+	else:
+		_k_mega.text = "★ Megaentwicklung"
+		_k_mega.disabled = true
+		_tafel_fortschritt.text = "Mega: %d/%d erledigt · Training %d/%d" % [
+			mini(int(turm.get("erledigt", 0)), spiel.MEGA_ERLEDIGT), spiel.MEGA_ERLEDIGT,
+			mini(trn, spiel.MEGA_TRAINING), spiel.MEGA_TRAINING]
+
+	_k_entlassen.text = "Entlassen  ·  +%d" % spiel.entlassungswert(turm)
+	_k_entlassen.disabled = false
 
 
 ## ------------------------------------------------------------

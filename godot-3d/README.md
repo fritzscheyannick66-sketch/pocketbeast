@@ -16,6 +16,7 @@ Godot 4.7 öffnen → *Import* → diesen Ordner wählen → *Run* (F5).
 |---|---|
 | Wächter wählen | auf eine Karte unten klicken, oder Taste **1**–**9** |
 | Setzen | auf eine freie Fläche klicken |
+| Ansehen und ausbauen | ohne Auswahl auf einen gesetzten Wächter klicken |
 | Auswahl abbrechen | **Esc** |
 | Welle rufen | **Leertaste** oder der Knopf unten links |
 | Tempo | Knopf **1×** — bis dreifach |
@@ -83,7 +84,10 @@ Der größere Teil:
 | Wächter setzen | frei wählbar | ✓ per Klick, mit Vorschau |
 | Beeren, Leben, Punkte | ja | ✓ |
 | Wellen rufen | ja | ✓ zwei Arten je Welle, Bodengarantie |
-| Entwicklung, Mega, Training | ja | nein |
+| Entwicklung in drei Stufen | ja | ✓ |
+| Training | bis 15 Stufen | ✓ |
+| Megaentwicklung | ja | ✓ mit denselben Schwellen |
+| Entlassen | ja | ✓ 60 % zurück |
 | Wächtergestalt | 16 gezeichnete Formen | Kugeln in Elementfarbe |
 | Launen und Segnungen | ja | nein |
 | Sonderfelder | Wasser, Vulkan, Kraft, Höhe | nein |
