@@ -1759,6 +1759,37 @@ function drawCreature(g, x, y, s, col, shape, t, opts) {
         ? stoss * s * .10 * wucht           // sinkt beim Aufsetzen
         : atem * s * .035);                 // hebt und senkt sich im Atem
 
+  /* ---------- Sekundärbewegung ----------
+
+     Was eine Figur lebendig macht, ist nicht ihre eigene Bewegung, sondern
+     das, was ihr hinterherschwingt: Ohren, Schweif, Flügel, Fühler. Sie
+     folgen dem Körper mit Verzögerung — und genau die Verzögerung liest das
+     Auge als Masse.
+
+     Drei Größen, die jede Form nutzen kann:
+
+       nach     Nachlauf. Folgt der Körperbewegung um eine Sechstelsekunde
+                versetzt. Wer sich nach rechts neigt, dessen Ohren kommen
+                kurz danach nach.
+       flattern Schneller Eigenschwung für Leichtes — Flügel, Fühler, Flammen.
+       schwingen Langsamer Eigenschwung für Schweres — Schweif, Zotteln.
+
+     Sie hängen an der Zeit und der Größe, nicht am Zufall: Dieselbe Figur
+     schwingt bei jedem Bild gleich, zwei nebeneinander aber verschieden. */
+  const nach = Math.sin((t - 0.17) * 2.6 + s * .7) * .9;
+  const flattern = Math.sin(t * 11 + s * 1.3);
+  const schwingen = Math.sin(t * 3.4 + s * .9);
+  const nachschwung = Math.sin(t * 3.4 + s * .9 - .55);
+  const regung = (moving ? 1.5 : 1) * (1 + (opts.zuck || 0) * 2.2);
+
+  /* Ein Körperteil um seinen Ansatz drehen — nicht um die Figurmitte.
+     Ein Ohr, das sich um den Bauchnabel dreht, wandert quer über den Kopf;
+     eines, das sich um seinen Ansatz dreht, zuckt. */
+  const teil = (ax, ay, w, fn) => {
+    g.save(); g.translate(ax, ay); g.rotate(w); g.translate(-ax, -ay);
+    fn(); g.restore();
+  };
+
   /* ---------- Zucken bei Treffer ----------
      Ein Treffer war bisher nur ein weißer Schein über der Figur. Jetzt
      staucht sie kurz zusammen und weicht zurück — der Körper reagiert, nicht
@@ -1825,21 +1856,29 @@ function drawCreature(g, x, y, s, col, shape, t, opts) {
       g.strokeStyle = dark; g.lineWidth = Math.max(1.4, s * .2);
       g.beginPath();
       g.moveTo(-s * .78, s * .28);
-      g.quadraticCurveTo(-s * 1.6, s * .1 + Math.sin(t * 4) * s * .3, -s * 1.42, -s * .62);
+      /* Der Schweif peitscht: Der Mittelpunkt schwingt, die Spitze folgt ihm
+         eine halbe Sechstelsekunde später. Beide im selben Takt wären ein
+         steifer Stock, der hin und her kippt. */
+      g.quadraticCurveTo(-s * 1.6, s * .1 + schwingen * s * .3 * regung,
+        -s * 1.42, -s * .62 + nachschwung * s * .26 * regung);
       g.stroke();
       g.lineWidth = Math.max(1, s * .085); g.strokeStyle = deep;
-      // Ohren
+      /* Ohren. Sie zucken einzeln — der Versatz je Seite sorgt dafür, dass
+         nie beide gleichzeitig kippen. Bei einem Treffer legen sie sich an. */
       for (const sg of [-1, 1]) {
-        g.beginPath();
-        g.moveTo(sg * s * .58, -s * .4);
-        g.lineTo(sg * s * .82, -s * 1.2);
-        g.lineTo(sg * s * .16, -s * .8);
-        g.closePath(); g.fillStyle = dark; g.fill(); g.stroke();
-        g.beginPath();
-        g.moveTo(sg * s * .55, -s * .5);
-        g.lineTo(sg * s * .7, -s * 1.0);
-        g.lineTo(sg * s * .32, -s * .74);
-        g.closePath(); g.fillStyle = rgba("#ffd9cf", .5); g.fill();
+        const w = -zuck * .5 + nach * .06 + Math.sin(t * 5.2 + sg * 2.1 + s) * .05;
+        teil(sg * s * .4, -s * .5, w, () => {
+          g.beginPath();
+          g.moveTo(sg * s * .58, -s * .4);
+          g.lineTo(sg * s * .82, -s * 1.2);
+          g.lineTo(sg * s * .16, -s * .8);
+          g.closePath(); g.fillStyle = dark; g.fill(); g.stroke();
+          g.beginPath();
+          g.moveTo(sg * s * .55, -s * .5);
+          g.lineTo(sg * s * .7, -s * 1.0);
+          g.lineTo(sg * s * .32, -s * .74);
+          g.closePath(); g.fillStyle = rgba("#ffd9cf", .5); g.fill();
+        });
       }
       bodyRR(s * 1.8, s * 1.62, s * .6);
       belly(s * .52, s * .4, s * .38);
@@ -1848,7 +1887,7 @@ function drawCreature(g, x, y, s, col, shape, t, opts) {
       g.strokeStyle = rgba("#ffffff", .35); g.lineWidth = Math.max(.8, s * .045);
       for (const sg of [-1, 1]) for (let i = -1; i <= 1; i++) {
         g.beginPath(); g.moveTo(sg * s * .5, s * .16 + i * s * .1);
-        g.lineTo(sg * s * 1.1, s * .1 + i * s * .2); g.stroke();
+        g.lineTo(sg * s * 1.1, s * .1 + i * s * .2 + nach * s * .05); g.stroke();
       }
       break;
     }
@@ -1858,22 +1897,28 @@ function drawCreature(g, x, y, s, col, shape, t, opts) {
       g.fillStyle = dark;
       g.beginPath();
       g.moveTo(-s * .7, s * .1);
-      g.quadraticCurveTo(-s * 1.9, -s * .3 + Math.sin(t * 5) * s * .25, -s * 1.15, -s * 1.05);
-      g.quadraticCurveTo(-s * 1.0, -s * .35, -s * .6, s * .35);
+      /* Ein buschiger Schweif hat mehr Masse als ein Katzenschweif: Er
+         schwingt weiter und kommt später nach. */
+      const fw = schwingen * s * .25 * regung, fn2 = nachschwung * s * .3 * regung;
+      g.quadraticCurveTo(-s * 1.9, -s * .3 + fw, -s * 1.15, -s * 1.05 + fn2);
+      g.quadraticCurveTo(-s * 1.0, -s * .35 + fw * .4, -s * .6, s * .35);
       g.closePath(); g.fill(); g.stroke();
       g.fillStyle = rgba(rim, .45);
-      g.beginPath(); g.ellipse(-s * 1.25, -s * .78, s * .26, s * .2, .5, 0, 7); g.fill();
+      g.beginPath(); g.ellipse(-s * 1.25, -s * .78 + fn2 * .8, s * .26, s * .2, .5, 0, 7); g.fill();
       for (const sg of [-1, 1]) {
-        g.beginPath();
-        g.moveTo(sg * s * .46, -s * .48);
-        g.lineTo(sg * s * 1.0, -s * 1.5);
-        g.lineTo(sg * s * .06, -s * .88);
-        g.closePath(); g.fillStyle = dark; g.fill(); g.stroke();
-        g.beginPath();
-        g.moveTo(sg * s * .46, -s * .55);
-        g.lineTo(sg * s * .82, -s * 1.24);
-        g.lineTo(sg * s * .24, -s * .8);
-        g.closePath(); g.fillStyle = rgba("#ffe6c2", .45); g.fill();
+        const w = -zuck * .55 + nach * .07 + Math.sin(t * 4.6 + sg * 1.7 + s) * .045;
+        teil(sg * s * .3, -s * .6, w, () => {
+          g.beginPath();
+          g.moveTo(sg * s * .46, -s * .48);
+          g.lineTo(sg * s * 1.0, -s * 1.5);
+          g.lineTo(sg * s * .06, -s * .88);
+          g.closePath(); g.fillStyle = dark; g.fill(); g.stroke();
+          g.beginPath();
+          g.moveTo(sg * s * .46, -s * .55);
+          g.lineTo(sg * s * .82, -s * 1.24);
+          g.lineTo(sg * s * .24, -s * .8);
+          g.closePath(); g.fillStyle = rgba("#ffe6c2", .45); g.fill();
+        });
       }
       bodyRR(s * 1.76, s * 1.5, s * .54);
       // Schnauze
@@ -1898,10 +1943,14 @@ function drawCreature(g, x, y, s, col, shape, t, opts) {
       g.lineWidth = Math.max(1, s * .085); g.strokeStyle = deep;
       bodyRR(s * 2.05, s * 1.55, s * .4);
       // Rückenplatten
+      /* Die Platten heben sich nacheinander, von hinten nach vorn — eine
+         Welle, die über den Rücken läuft. Ein Ochse ist schwer; man soll
+         sehen, dass unter der Haut etwas arbeitet. */
       g.fillStyle = rgba(deep, .5);
       for (let i = -1; i <= 1; i++) {
+        const heb = Math.sin(t * 3.4 + s * .9 - i * .7) * s * .07 * regung;
         g.beginPath(); g.moveTo(i * s * .5 - s * .2, -s * .76);
-        g.lineTo(i * s * .5, -s * 1.1); g.lineTo(i * s * .5 + s * .2, -s * .76);
+        g.lineTo(i * s * .5, -s * 1.1 - heb); g.lineTo(i * s * .5 + s * .2, -s * .76);
         g.closePath(); g.fill();
       }
       belly(s * .62, s * .34, s * .42);
@@ -1924,13 +1973,15 @@ function drawCreature(g, x, y, s, col, shape, t, opts) {
       g.fillStyle = rgba(dark, .8);
       g.beginPath();
       g.moveTo(0, -s * .5);
-      g.quadraticCurveTo(-s * 1.9, s * .1 + Math.sin(t * 1.1) * s * .09, -s * 1.25, s * 1.3);
+      g.quadraticCurveTo(-s * 1.9, s * .1 + Math.sin(t * 1.1) * s * .09,
+        -s * 1.25 + nach * s * .07, s * 1.3);
       g.quadraticCurveTo(-s * .4, s * 1.05, 0, s * 1.15);
       g.closePath(); g.fill(); g.stroke();
       g.fillStyle = rgba(dark, .8);
       g.beginPath();
       g.moveTo(0, -s * .5);
-      g.quadraticCurveTo(s * 1.9, s * .1 + Math.sin(t * 1.1 + 1) * s * .09, s * 1.25, s * 1.3);
+      g.quadraticCurveTo(s * 1.9, s * .1 + Math.sin(t * 1.1 + 1) * s * .09,
+        s * 1.25 + nach * s * .07, s * 1.3);
       g.quadraticCurveTo(s * .4, s * 1.05, 0, s * 1.15);
       g.closePath(); g.fill(); g.stroke();
 
@@ -1974,14 +2025,16 @@ function drawCreature(g, x, y, s, col, shape, t, opts) {
        Die Schwingen zittern leicht, statt zu schlagen — der Falke sitzt und
        wartet, er fliegt nicht. */
     case "falke": {
-      const zittern = Math.sin(t * 9 + s) * s * .04;
+      /* Der Falke schlägt nicht, er zittert — bis er getroffen wird: dann
+         gehen die Schwingen kurz auf, wie bei einem aufgeschreckten Vogel. */
+      const zittern = flattern * s * .04 * regung;
 
       // angelegte Schwingen, hinten spitz auslaufend
       g.fillStyle = rgba(dark, .9);
       for (const sg of [-1, 1]) {
         g.save();
         g.translate(sg * s * .52, s * .1 + zittern);
-        g.rotate(sg * .18);
+        g.rotate(sg * (.18 + zuck * .5 + flattern * .03));
         g.beginPath();
         g.moveTo(0, -s * .7);
         g.quadraticCurveTo(sg * s * .5, s * .1, sg * s * .18, s * 1.05);
@@ -2029,27 +2082,34 @@ function drawCreature(g, x, y, s, col, shape, t, opts) {
       // Schwanzfedern, schmal nach unten
       g.fillStyle = rgba(dark, .85);
       g.beginPath();
+      const fz = nachschwung * s * .12 * regung;
       g.moveTo(-s * .22, s * .9);
-      g.lineTo(-s * .12, s * 1.5);
-      g.lineTo(s * .12, s * 1.5);
+      g.lineTo(-s * .12 + fz, s * 1.5);
+      g.lineTo(s * .12 + fz, s * 1.5);
       g.lineTo(s * .22, s * .9);
       g.closePath(); g.fill(); g.stroke();
       break;
     }
     case "owl": {
       bodyRR(s * 1.68, s * 1.86, s * .7);
-      // Federohren
+      // Federohren — sie stellen sich auf, wenn die Eule getroffen wird
       for (const sg of [-1, 1]) {
-        g.beginPath();
-        g.moveTo(sg * s * .32, -s * .86);
-        g.lineTo(sg * s * .7, -s * 1.46);
-        g.lineTo(sg * s * .78, -s * .72);
-        g.closePath(); g.fillStyle = dark; g.fill(); g.stroke();
+        const w = -zuck * .35 + Math.sin(t * 3.8 + sg * 2.4 + s) * .05;
+        teil(sg * s * .5, -s * .8, w, () => {
+          g.beginPath();
+          g.moveTo(sg * s * .32, -s * .86);
+          g.lineTo(sg * s * .7, -s * 1.46);
+          g.lineTo(sg * s * .78, -s * .72);
+          g.closePath(); g.fillStyle = dark; g.fill(); g.stroke();
+        });
       }
-      // Flügel
+      /* Flügel. Angelegt, aber nicht angewachsen: Sie lösen sich beim Atmen
+         eine Spur vom Körper und klappen bei einem Treffer auf. */
       g.fillStyle = rgba(dark, .85);
       for (const sg of [-1, 1]) {
-        g.beginPath(); g.ellipse(sg * s * .74, s * .16, s * .3, s * .62, sg * .12, 0, 7); g.fill(); g.stroke();
+        teil(sg * s * .6, -s * .3, sg * (zuck * .45 + Math.sin(t * 2.2 + s) * .04), () => {
+          g.beginPath(); g.ellipse(sg * s * .74, s * .16, s * .3, s * .62, sg * .12, 0, 7); g.fill(); g.stroke();
+        });
       }
       // Gesichtsscheiben
       g.fillStyle = rgba(rim, .55);
@@ -2071,7 +2131,10 @@ function drawCreature(g, x, y, s, col, shape, t, opts) {
       // Blätter
       for (const sg of [-1, 1]) {
         g.save(); g.translate(0, -s * .74);
-        g.rotate(sg * (0.5 + Math.sin(t * 2 + sg) * .12));
+        /* Blätter sind leicht: schneller Eigenschwung, dazu der Nachlauf des
+           Körpers. Beim Treffer klappen sie zusammen wie eine Mimose. */
+        g.rotate(sg * (0.5 - zuck * .3 + Math.sin(t * 2 + sg) * .12
+          + flattern * .035 * regung));
         g.beginPath(); g.ellipse(0, -s * .66, s * .34, s * .72, 0, 0, 7);
         const lg = g.createLinearGradient(0, -s * 1.3, 0, 0);
         lg.addColorStop(0, shade(col, .5)); lg.addColorStop(1, col);
@@ -2088,9 +2151,14 @@ function drawCreature(g, x, y, s, col, shape, t, opts) {
     }
     case "drop": {
       g.beginPath();
-      g.moveTo(0, -s * 1.4);
-      g.bezierCurveTo(s * 1.18, -s * .18, s * .96, s * 1.06, 0, s * 1.06);
-      g.bezierCurveTo(-s * .96, s * 1.06, -s * 1.18, -s * .18, 0, -s * 1.4);
+      /* Ein Tropfen ist nicht fest. Die Flanken schwingen gegeneinander —
+         wird eine breiter, wird die andere schmaler, so wie Wasser sich
+         verhält, wenn es angestoßen wird. Bei einem Treffer schwappt er. */
+      const sp = Math.sin(t * 4.4 + s) * s * .09 * regung;
+      const sp2 = Math.sin(t * 4.4 + s - .7) * s * .07 * regung;
+      g.moveTo(sp2 * .5, -s * 1.4);
+      g.bezierCurveTo(s * 1.18 + sp, -s * .18, s * .96 - sp2, s * 1.06, 0, s * 1.06);
+      g.bezierCurveTo(-s * .96 - sp2, s * 1.06, -s * 1.18 + sp, -s * .18, sp2 * .5, -s * 1.4);
       const grd = g.createLinearGradient(0, -s, 0, s);
       grd.addColorStop(0, light); grd.addColorStop(.6, col); grd.addColorStop(1, dark);
       g.fillStyle = grd; g.fill(); g.stroke();
@@ -2121,7 +2189,10 @@ function drawCreature(g, x, y, s, col, shape, t, opts) {
       break;
     }
     case "moth": {
-      const fl = Math.sin(t * 10) * .5 + .5;
+      /* Der Flügelschlag wird schneller, wenn der Falter fliegt oder
+         getroffen wird — die Rate hängt an der Regung, nicht an einer
+         festen Zahl. */
+      const fl = Math.sin(t * (10 + regung * 3)) * .5 + .5;
       for (const sg of [-1, 1]) {
         g.save(); g.scale(sg, 1); g.rotate(-0.22 - fl * 0.38);
         g.beginPath(); g.ellipse(s * .98, -s * .28, s * 1.08, s * .58, 0, 0, 7);
@@ -2138,9 +2209,12 @@ function drawCreature(g, x, y, s, col, shape, t, opts) {
       bodyRR(s * .82, s * 1.52, s * .38);
       g.strokeStyle = deep; g.lineWidth = Math.max(1, s * .07);
       for (const sg of [-1, 1]) {
+        /* Fühler. Das Leichteste an der Figur, also das, was am weitesten
+           nachschwingt — der Knopf am Ende umso mehr als der Ansatz. */
+        const fu = flattern * s * .07 + nach * s * .05;
         g.beginPath(); g.moveTo(sg * s * .18, -s * .68);
-        g.quadraticCurveTo(sg * s * .72, -s * 1.34, sg * s * .88, -s * 1.02); g.stroke();
-        g.beginPath(); g.arc(sg * s * .88, -s * 1.02, s * .1, 0, 7); g.fillStyle = dark; g.fill();
+        g.quadraticCurveTo(sg * s * .72, -s * 1.34 + fu * .5, sg * s * .88 + fu, -s * 1.02 + fu); g.stroke();
+        g.beginPath(); g.arc(sg * s * .88 + fu, -s * 1.02 + fu, s * .1, 0, 7); g.fillStyle = dark; g.fill();
       }
       // Flauschkragen
       g.fillStyle = rgba(rim, .55);
@@ -2149,9 +2223,12 @@ function drawCreature(g, x, y, s, col, shape, t, opts) {
       break;
     }
     case "bird": {
-      const fl = Math.sin(t * 12);
+      /* Beide Flügel im selben Takt sähen mechanisch aus. Der eine hängt
+         eine Winzigkeit hinter dem anderen zurück — dieselbe Unschärfe, die
+         ein echter Vogel hat. */
       for (const sg of [-1, 1]) {
-        g.save(); g.translate(0, -s * .1); g.scale(sg, 1); g.rotate(fl * .48);
+        const fls = Math.sin(t * (12 + regung * 2) + sg * .18);
+        g.save(); g.translate(0, -s * .1); g.scale(sg, 1); g.rotate(fls * .48);
         g.beginPath(); g.moveTo(0, 0);
         g.quadraticCurveTo(s * 1.3, -s * .8, s * 1.85, s * .04);
         g.quadraticCurveTo(s * 1.1, s * .38, 0, s * .42);
@@ -2175,7 +2252,9 @@ function drawCreature(g, x, y, s, col, shape, t, opts) {
       g.closePath(); g.fill(); g.stroke();
       // Schwanzfedern
       g.fillStyle = dark;
-      g.beginPath(); g.moveTo(-s * .3, s * .6); g.lineTo(-s * .95, s * 1.1); g.lineTo(-s * .05, s * .82);
+      // Die Steuerfedern folgen dem Flügelschlag verzögert
+      const vs = Math.sin(t * (12 + regung * 2) - .8) * s * .12;
+      g.beginPath(); g.moveTo(-s * .3, s * .6); g.lineTo(-s * .95, s * 1.1 + vs); g.lineTo(-s * .05, s * .82);
       g.closePath(); g.fill(); g.stroke();
       break;
     }
@@ -2183,12 +2262,17 @@ function drawCreature(g, x, y, s, col, shape, t, opts) {
       // Schwanzflosse
       g.fillStyle = dark;
       g.beginPath();
-      g.moveTo(-s * .82, 0);
-      g.lineTo(-s * 1.65, -s * .74 + Math.sin(t * 6) * s * .22);
-      g.quadraticCurveTo(-s * 1.2, 0, -s * 1.65, s * .74 + Math.sin(t * 6) * s * .22);
+      /* Der Schlag läuft vom Körper zur Flosse: Der Ansatz bewegt sich
+         zuerst, die Spitze eine Fünftelsekunde später. Vorher schlug die
+         ganze Flosse als starre Platte. */
+      const fw = Math.sin(t * (6 + regung)) * s * .12;
+      const fs = Math.sin(t * (6 + regung) - .9) * s * .26;
+      g.moveTo(-s * .82, fw);
+      g.lineTo(-s * 1.65, -s * .74 + fs);
+      g.quadraticCurveTo(-s * 1.2, fw * .5, -s * 1.65, s * .74 + fs);
       g.closePath(); g.fill(); g.stroke();
-      // Rückenflosse
-      g.beginPath(); g.moveTo(-s * .34, -s * .74); g.lineTo(s * .06, -s * 1.4); g.lineTo(s * .52, -s * .62);
+      // Rückenflosse — wiegt gegenläufig, wie ein Kiel
+      g.beginPath(); g.moveTo(-s * .34, -s * .74); g.lineTo(s * .06 - fw * .8, -s * 1.4); g.lineTo(s * .52, -s * .62);
       g.closePath(); g.fillStyle = dark; g.fill(); g.stroke();
       g.beginPath(); g.ellipse(0, 0, s * 1.26, s * .88, 0, 0, 7);
       const grd = g.createLinearGradient(0, -s, 0, s);
@@ -2201,7 +2285,8 @@ function drawCreature(g, x, y, s, col, shape, t, opts) {
       }
       // Brustflosse
       g.fillStyle = rgba(rim, .6);
-      g.beginPath(); g.ellipse(s * .16, s * .46, s * .32, s * .18, .5, 0, 7); g.fill(); g.stroke();
+      g.beginPath(); g.ellipse(s * .16, s * .46, s * .32, s * .18,
+        .5 + Math.sin(t * 8 + s) * .3, 0, 7); g.fill(); g.stroke();
       g.strokeStyle = deep; g.lineWidth = Math.max(1, s * .085);
       face(g, s * .5, -s * .12, s, .15, { blink, mouth: false });
       g.strokeStyle = "rgba(13,20,24,.7)";
@@ -2219,10 +2304,14 @@ function drawCreature(g, x, y, s, col, shape, t, opts) {
         g.fillStyle = rgba(light, .3 / i);
         g.beginPath(); g.arc(-Math.cos(a) * s * .3 * i, s * .3 * i + Math.sin(a) * s * .2, s * (.5 - i * .08), 0, 7); g.fill();
       }
-      g.fillStyle = light; g.beginPath(); g.arc(0, 0, s * .64, 0, 7); g.fill();
+      /* Der Kern sitzt nicht fest im Schein, er treibt darin — langsam und
+         auf einer eigenen Bahn. Ein Irrlicht, dessen Mitte stillsteht, ist
+         eine Lampe. */
+      const kx = Math.sin(t * 1.3 + s) * s * .12, ky = Math.cos(t * .9 + s) * s * .1;
+      g.fillStyle = light; g.beginPath(); g.arc(kx, ky, s * .64, 0, 7); g.fill();
       g.fillStyle = "rgba(255,255,255,.7)";
-      g.beginPath(); g.arc(-s * .18, -s * .2, s * .2, 0, 7); g.fill();
-      face(g, 0, 0, s, .26, { blink, mouth: false });
+      g.beginPath(); g.arc(kx - s * .18, ky - s * .2, s * .2, 0, 7); g.fill();
+      face(g, kx, ky, s, .26, { blink, mouth: false });
       break;
     }
     case "eye": {
@@ -2234,11 +2323,18 @@ function drawCreature(g, x, y, s, col, shape, t, opts) {
       for (let i = 0; i < 10; i++) {
         const a = i * (Math.PI * 2 / 10) + t * .25;
         g.beginPath();
+        /* Jede Wimper zittert für sich. Bei einem Treffer stellen sich alle
+           auf — das Einzige, womit ein Auge erschrecken kann. */
+        const lg2 = 1.5 + zuck * .28 + Math.sin(t * 6 + i * 1.7) * .05;
         g.moveTo(Math.cos(a) * s * 1.18, Math.sin(a) * s * 1.18);
-        g.lineTo(Math.cos(a) * s * 1.5, Math.sin(a) * s * 1.5); g.stroke();
+        g.lineTo(Math.cos(a) * s * lg2, Math.sin(a) * s * lg2); g.stroke();
       }
       g.fillStyle = "#F3F7F8"; g.beginPath(); g.ellipse(0, 0, s * .88, s * .62, 0, 0, 7); g.fill();
-      const px = Math.sin(t * 1.7) * s * .3;
+      /* Der Blick springt, statt zu gleiten: lange ruhig, dann in einem Satz
+         woandershin. Ein gleichmäßig hin und her wanderndes Auge sieht
+         schläfrig aus, ein springendes wachsam. */
+      const bl = Math.floor(t * .8 + s) % 3;
+      const px = (bl === 0 ? -.3 : bl === 1 ? .34 : .04) * s + Math.sin(t * 9) * s * .02;
       g.fillStyle = deep; g.beginPath(); g.arc(px, 0, s * .35, 0, 7); g.fill();
       g.fillStyle = "#0D1418"; g.beginPath(); g.arc(px, 0, s * .17, 0, 7); g.fill();
       g.fillStyle = "rgba(255,255,255,.85)";
@@ -2254,7 +2350,9 @@ function drawCreature(g, x, y, s, col, shape, t, opts) {
       const zacken = 13;
       for (let i = 0; i <= zacken; i++) {
         const a = (i / zacken) * Math.PI * 2 - Math.PI / 2;
-        const well = i % 2 === 0 ? 1.14 : .96;
+        /* Die Zotteln stehen nicht still: Über die Silhouette läuft eine
+           Kräuselung, langsam, wie Fell im Wind. */
+        const well = (i % 2 === 0 ? 1.14 : .96) + Math.sin(t * 2.6 + i * .9 + s) * .045 * regung;
         const rx = s * 1.12 * well, ry = s * 1.02 * well;
         const px2 = Math.cos(a) * rx, py2 = Math.sin(a) * ry + s * .1;
         i === 0 ? g.moveTo(px2, py2) : g.lineTo(px2, py2);
@@ -2266,11 +2364,14 @@ function drawCreature(g, x, y, s, col, shape, t, opts) {
       belly(s * .56, s * .42, s * .42);
       // Ohren als kurze Pelzbüschel
       for (const sg of [-1, 1]) {
-        g.beginPath();
-        g.moveTo(sg * s * .56, -s * .62);
-        g.lineTo(sg * s * .78, -s * 1.16);
-        g.lineTo(sg * s * .28, -s * .82);
-        g.closePath(); g.fillStyle = dark; g.fill(); g.stroke();
+        const w = -zuck * .4 + Math.sin(t * 4.1 + sg * 2.6 + s) * .06;
+        teil(sg * s * .42, -s * .72, w, () => {
+          g.beginPath();
+          g.moveTo(sg * s * .56, -s * .62);
+          g.lineTo(sg * s * .78, -s * 1.16);
+          g.lineTo(sg * s * .28, -s * .82);
+          g.closePath(); g.fillStyle = dark; g.fill(); g.stroke();
+        });
       }
       face(g, 0, -s * .04, s, .32, { blink, blush: true });
       // Frosthauch
@@ -2308,7 +2409,10 @@ function drawCreature(g, x, y, s, col, shape, t, opts) {
         g.beginPath(); g.arc(sx * w2 * .68, sy * h2 * .66, s * .09, 0, 7); g.fill();
       }
       // Visierschlitz statt Augen
-      const glut = .55 + Math.sin(t * 2.2) * .3;
+      /* Stahl schwingt nicht nach — das ist der Sinn dieser Form. Was
+         reagiert, ist das Licht hinter dem Visier: Es fährt hoch, wenn der
+         Bolzen getroffen wird. */
+      const glut = Math.min(1, .55 + Math.sin(t * 2.2) * .3 + zuck * .7);
       g.fillStyle = "#0D1418";
       rr(g, -s * .58, -s * .14, s * 1.16, s * .3, s * .12); g.fill();
       g.fillStyle = rgba(blink ? "#4A5A66" : "#9BE8FF", glut);
@@ -2324,9 +2428,13 @@ function drawCreature(g, x, y, s, col, shape, t, opts) {
        Quabbe heraus, still und unbemerkt. Jetzt hat sie einen eigenen Zweig,
        und der Standardfall darunter fällt auf. */
     case "blob": {
-      const wob = Math.sin(t * 3.2) * s * .07;
+      /* Gallert. Die Verformung läuft um den Körper herum, statt ihn nur
+         breit und schmal zu ziehen: Deshalb ein zweiter, versetzter Schwung,
+         der die Achse kippt. Beim Treffer schwappt alles stärker. */
+      const wob = Math.sin(t * 3.2 + s) * s * .07 * regung;
+      const wob2 = Math.sin(t * 3.2 + s - 1.1) * .22 * regung;
       g.beginPath();
-      g.ellipse(0, 0, s * 1.2 + wob, s * 1.06 - wob, 0, 0, 7);
+      g.ellipse(0, 0, s * 1.2 + wob, s * 1.06 - wob, wob2 * .3, 0, 7);
       const grd = g.createLinearGradient(0, -s, 0, s);
       grd.addColorStop(0, light); grd.addColorStop(.55, col); grd.addColorStop(1, dark);
       g.fillStyle = grd; g.fill(); g.stroke();
@@ -6999,12 +7107,32 @@ function showMenu() {
   openVeil(menuHTML());
   wireMenu();
 }
+/* Zahlwörter für den Einführungstext.
+
+   Der Satz stand einmal als "Acht Elemente, drei Routen, vierzig Wellen" da
+   und war es dreimal nicht mehr: Es sind zwölf Elemente, elf Routen und
+   hundert Wellen. Niemand hatte das gemeldet, weil den Satz liest, wer das
+   Spiel noch nicht kennt — und wer es kennt, überliest ihn. Jetzt zählt er
+   selbst nach. */
+const ZAHLWORT = {
+  3: "drei", 8: "acht", 9: "neun", 10: "zehn", 11: "elf", 12: "zwölf",
+  13: "dreizehn", 14: "vierzehn", 15: "fünfzehn", 16: "sechzehn",
+};
+/* Kleingeschrieben abgelegt, weil die Wörter meist mitten im Satz stehen.
+   Nur der Satzanfang wird angehoben. */
+const zahlwort = (n, gross) => {
+  const w = ZAHLWORT[n] || String(n);
+  return gross ? w.charAt(0).toUpperCase() + w.slice(1) : w;
+};
+
 function menuHTML() {
   const left = talentPointsLeft();
   return `
   <h2 class="big">PocketBeast</h2>
-  <p class="lead">Acht Elemente, drei Routen, vierzig Wellen. Stelle Wächter an den Weg, entwickle sie in drei Stufen
-  und nutze Typenvorteile — ein Feuerwächter zerlegt Pflanzenwilde, prallt aber an Wasser ab.</p>
+  <p class="lead">${zahlwort(Object.keys(TYPES).length, true)} Elemente,
+  ${zahlwort(MAPS.length)} Routen, ${WELLEN_JE_KARTE} Wellen je Route. Stelle Wächter an den Weg,
+  entwickle sie in drei Stufen und nutze Typenvorteile — ein Feuerwächter zerlegt Pflanzenwilde,
+  prallt aber an Wasser ab.</p>
 
   <section>
     <h2 style="margin-bottom:8px">Route wählen</h2>
