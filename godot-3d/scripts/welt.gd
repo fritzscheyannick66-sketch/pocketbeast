@@ -19,6 +19,8 @@ const Gelaende = preload("res://scripts/gelaende.gd")
 const Weg = preload("res://scripts/weg.gd")
 const Pflanzen = preload("res://scripts/pflanzen.gd")
 const Daten = preload("res://scripts/daten.gd")
+const Spiel = preload("res://scripts/spiel.gd")
+const Bedienung = preload("res://scripts/bedienung.gd")
 
 # Route des Grünpfads, in Kachelkoordinaten wie im Browserspiel
 const ROUTE := [
@@ -42,11 +44,18 @@ var erledigt := 0
 var durchgebrochen := 0
 
 ## Welche Karte gespielt wird — bestimmt den Schwierigkeitsfaktor.
-var karte_idx := 0
-var welle := 1
-var welle_rest := 0          # wie viele Gegner dieser Welle noch kommen
-var welle_art: Dictionary = {}
-var welle_pause := 3.0
+var spiel = Spiel.new()
+var bedienung: CanvasLayer
+var kamera: Camera3D
+
+## Was gerade zum Bauen gewählt ist, und wo der Zeiger hindeutet.
+var gewaehlt := ""
+var zeiger_kachel := Vector2i(-99, -99)
+var vorschau: Node3D
+var tempo := 1
+
+## Welche Kacheln schon belegt sind — Wegkacheln und gesetzte Wächter.
+var belegt: Dictionary = {}
 
 @onready var _wurzel_gegner := Node3D.new()
 @onready var _wurzel_schuesse := Node3D.new()
@@ -60,14 +69,62 @@ func _ready() -> void:
 	_baue_kamera()
 	_baue_welt()
 	_baue_bewuchs()
-	# Vier Wächter mit echten Werten aus dem Browserspiel
-	_setze_waechter("fire", 2, Vector3(-14.0, 0.0, 2.0))
-	_setze_waechter("grass", 2, Vector3(-2.0, 0.0, 1.0))
-	_setze_waechter("rock", 2, Vector3(6.0, 0.0, -2.0))
-	_setze_waechter("wind", 2, Vector3(14.0, 0.0, 3.0))
-	print("Karte: ", Daten.KARTEN[karte_idx]["name"],
-		"   Wächterfamilien verfügbar: ", Daten.WAECHTER.size(),
-		"   Gegnerarten: ", Daten.ARTEN.size())
+	_sperre_wegkacheln()
+
+	spiel.starte(0)
+	bedienung = Bedienung.new()
+	add_child(bedienung)
+	bedienung.waechter_gewaehlt.connect(_auf_auswahl)
+	bedienung.welle_gerufen.connect(_auf_wellenruf)
+	bedienung.tempo_gewechselt.connect(_auf_tempo)
+	bedienung.zeige(spiel)
+
+	print("PocketBeast 3D — ", Daten.KARTEN[0]["name"],
+		"   ", Daten.WAECHTER.size(), " Wächterfamilien, ",
+		Daten.ARTEN.size(), " Gegnerarten")
+
+
+## Kacheln, durch die der Weg läuft, dürfen nicht bebaut werden.
+##
+## Statt die Route nachzurechnen wird sie abgeschritten: An jedem Punkt
+## werden die Kachel darunter und ihre acht Nachbarn gesperrt, soweit sie
+## nah genug liegen. Das ist derselbe Ansatz wie im Browserspiel und
+## verträgt jede Wegform, auch eine, die sich selbst kreuzt.
+func _sperre_wegkacheln() -> void:
+	var schritt := 0.4
+	var d := 0.0
+	while d < weg_laenge:
+		var p := Weg.punkt_bei(weg_punkte, d)
+		var k := _welt_zu_kachel(p)
+		for dc in range(-1, 2):
+			for dr in range(-1, 2):
+				var nachbar := Vector2i(k.x + dc, k.y + dr)
+				var mitte := _kachel_zu_welt(nachbar)
+				if Vector2(mitte.x - p.x, mitte.z - p.z).length() < Gelaende.KACHEL * 0.85:
+					belegt[nachbar] = "weg"
+		d += schritt
+
+
+func _welt_zu_kachel(p: Vector3) -> Vector2i:
+	var breite: float = Gelaende.SPALTEN * Gelaende.KACHEL
+	var tiefe: float = Gelaende.ZEILEN * Gelaende.KACHEL
+	return Vector2i(
+		int(floor((p.x + breite * 0.5) / Gelaende.KACHEL)),
+		int(floor((p.z + tiefe * 0.5) / Gelaende.KACHEL)))
+
+
+func _kachel_zu_welt(k: Vector2i) -> Vector3:
+	var breite: float = Gelaende.SPALTEN * Gelaende.KACHEL
+	var tiefe: float = Gelaende.ZEILEN * Gelaende.KACHEL
+	var x := (float(k.x) + 0.5) * Gelaende.KACHEL - breite * 0.5
+	var z := (float(k.y) + 0.5) * Gelaende.KACHEL - tiefe * 0.5
+	return Vector3(x, Gelaende.hoehe_bei(x, z, 99.0), z)
+
+
+func _kachel_frei(k: Vector2i) -> bool:
+	if k.x < 0 or k.x >= Gelaende.SPALTEN or k.y < 0 or k.y >= Gelaende.ZEILEN:
+		return false
+	return not belegt.has(k)
 
 
 ## Himmel und Umgebungslicht. Ohne beides wirken Körper wie ausgeschnitten:
@@ -141,7 +198,7 @@ func _baue_licht() -> void:
 ## Schräge Draufsicht: flach genug, dass Körper Höhe zeigen, steil genug,
 ## dass der Weg als Ganzes lesbar bleibt.
 func _baue_kamera() -> void:
-	var kamera := Camera3D.new()
+	kamera = Camera3D.new()
 	kamera.position = Vector3(0.0, 21.0, 19.5)
 	kamera.rotation_degrees = Vector3(-46.0, 0.0, 0.0)
 	kamera.fov = 52.0
@@ -296,6 +353,153 @@ func _baue_bewuchs() -> void:
 		stein_plaetze.size(), " Steine, ", blumen_plaetze.size(), " Blumen")
 
 
+## ============================================================
+## Eingabe
+## ============================================================
+
+func _auf_auswahl(id: String) -> void:
+	gewaehlt = id
+	if vorschau:
+		vorschau.queue_free()
+		vorschau = null
+	if id == "":
+		bedienung.setze_hinweis("Wächter wählen, dann auf eine freie Fläche klicken")
+	else:
+		var def := spiel.waechter_def(id)
+		bedienung.setze_hinweis("%s — %d Beeren. Auf eine freie Fläche klicken." %
+			[def["stufen"][0]["name"], spiel.baukosten(id)])
+
+
+func _auf_wellenruf() -> void:
+	spiel.rufe_welle()
+	bedienung.zeige(spiel)
+
+
+func _auf_tempo() -> void:
+	tempo = 1 if tempo >= 3 else tempo + 1
+	bedienung.setze_tempo(tempo)
+
+
+func _unhandled_input(ereignis: InputEvent) -> void:
+	if ereignis is InputEventKey and ereignis.pressed and not ereignis.echo:
+		var taste: int = ereignis.keycode
+		if taste == KEY_SPACE:
+			_auf_wellenruf()
+			return
+		if taste == KEY_ESCAPE:
+			gewaehlt = ""
+			bedienung.auswahl_loeschen()
+			_auf_auswahl("")
+			return
+		# Zifferntasten wählen die Wächter der Reihe nach
+		if taste >= KEY_1 and taste <= KEY_9:
+			var i := taste - KEY_1
+			var liste: Array = []
+			for d in Daten.WAECHTER:
+				if not d.get("legendaer", false):
+					liste.append(d)
+			if i < liste.size():
+				_auf_auswahl(liste[i]["id"])
+			return
+
+	if ereignis is InputEventMouseButton and ereignis.pressed \
+			and ereignis.button_index == MOUSE_BUTTON_LEFT:
+		_versuche_bauen()
+
+
+## Welche Kachel liegt unter dem Mauszeiger?
+##
+## Der Boden ist ein welliges Mesh; einen Strahl dagegen zu prüfen wäre
+## aufwendig und ungenau. Stattdessen wird der Strahl mit der Ebene y = 0
+## geschnitten — das Gelände weicht davon nur um weniger als eine
+## Kachelhöhe ab, und für die Frage "welche Kachel" reicht das genau.
+func _kachel_unter_maus() -> Vector2i:
+	if kamera == null:
+		return Vector2i(-99, -99)
+	var maus := get_viewport().get_mouse_position()
+	var ursprung := kamera.project_ray_origin(maus)
+	var richtung := kamera.project_ray_normal(maus)
+	if absf(richtung.y) < 0.0001:
+		return Vector2i(-99, -99)
+	var t := -ursprung.y / richtung.y
+	if t < 0.0:
+		return Vector2i(-99, -99)
+	return _welt_zu_kachel(ursprung + richtung * t)
+
+
+func _versuche_bauen() -> void:
+	if gewaehlt == "" or spiel.verloren:
+		return
+	var k := _kachel_unter_maus()
+	if not _kachel_frei(k):
+		bedienung.setze_hinweis("Hier ist kein Platz — der Weg oder ein Wächter belegt die Stelle")
+		return
+	var kosten := spiel.baukosten(gewaehlt)
+	if spiel.beeren < kosten:
+		bedienung.setze_hinweis("Zu wenig Beeren: %d von %d" % [spiel.beeren, kosten])
+		return
+	spiel.beeren -= kosten
+	belegt[k] = "turm"
+	_setze_waechter(gewaehlt, 0, _kachel_zu_welt(k))
+	bedienung.zeige(spiel)
+	bedienung.setze_hinweis("%s gesetzt" % spiel.waechter_def(gewaehlt)["stufen"][0]["name"])
+
+
+## Ein durchscheinender Umriss dort, wo gebaut würde.
+func _pflege_vorschau() -> void:
+	if gewaehlt == "":
+		return
+	var k := _kachel_unter_maus()
+	if k == zeiger_kachel:
+		return
+	zeiger_kachel = k
+	if vorschau:
+		vorschau.queue_free()
+		vorschau = null
+	if not _kachel_frei(k):
+		return
+
+	var def := spiel.waechter_def(gewaehlt)
+	if def.is_empty():
+		return
+	var st: Dictionary = def["stufen"][0]
+	var farbe: Color = Daten.TYPEN[def["typ"]]["farbe"]
+	var reicht: bool = spiel.beeren >= int(st["kosten"])
+
+	vorschau = Node3D.new()
+	vorschau.position = _kachel_zu_welt(k)
+	add_child(vorschau)
+
+	# Reichweitenring, flach auf dem Boden
+	var ring := MeshInstance3D.new()
+	var tm := TorusMesh.new()
+	var reich: float = float(st["reichweite"]) / Spiel.PIXEL_JE_METER
+	tm.inner_radius = reich - 0.09
+	tm.outer_radius = reich
+	tm.rings = 48
+	ring.mesh = tm
+	var rm := StandardMaterial3D.new()
+	rm.albedo_color = Color(farbe.r, farbe.g, farbe.b, 0.55 if reicht else 0.3)
+	rm.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	rm.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	ring.material_override = rm
+	ring.position.y = 0.06
+	vorschau.add_child(ring)
+
+	# Platzhalter für den Wächter selbst
+	var koerper := MeshInstance3D.new()
+	var sm := SphereMesh.new()
+	sm.radius = 0.55
+	sm.height = 1.1
+	koerper.mesh = sm
+	var km := StandardMaterial3D.new()
+	km.albedo_color = Color(farbe.r, farbe.g, farbe.b, 0.42 if reicht else 0.2)
+	km.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	koerper.material_override = km
+	koerper.position.y = 0.85
+	vorschau.add_child(koerper)
+
+
 ## Kürzester Abstand eines Punktes zur Route.
 func _abstand_zum_weg(p: Vector3) -> float:
 	var nah := 999.0
@@ -307,9 +511,8 @@ func _abstand_zum_weg(p: Vector3) -> float:
 ## Setzt einen Wächter anhand seiner Kennung und Stufe.
 ##
 ## Die Werte kommen aus daten.gd, also aus dem Browserspiel — Reichweite,
-## Schaden und Feuerrate sind dieselben. Godot rechnet in Metern, das
-## Browserspiel in Pixeln: eine Kachel misst dort 56 Pixel und hier 2 Meter.
-const PIXEL_JE_METER := 28.0
+## Schaden und Feuerrate sind dieselben. Die Umrechnung Pixel/Meter steht in
+## spiel.gd, weil beide Fassungen sie brauchen.
 
 func _setze_waechter(id: String, stufe: int, pos: Vector3) -> void:
 	var def: Dictionary = {}
@@ -324,14 +527,14 @@ func _setze_waechter(id: String, stufe: int, pos: Vector3) -> void:
 	var typ: String = def["typ"]
 	var farbe: Color = Daten.TYPEN[typ]["farbe"]
 	_setze_turm(pos, farbe,
-		float(st["reichweite"]) / PIXEL_JE_METER,
+		float(st["reichweite"]) / Spiel.PIXEL_JE_METER,
 		float(st["rate"]),
 		float(st["schaden"]),
-		typ, def["luft"])
+		typ, def["luft"], float(st.get("durchschlag", 0)))
 
 
 func _setze_turm(pos: Vector3, farbe: Color, reichweite: float, takt: float, schaden: float,
-		typ: String = "", luft: bool = true) -> void:
+		typ: String = "", luft: bool = true, durchschlag: float = 0.0) -> void:
 	var y := Gelaende.hoehe_bei(pos.x, pos.z, 99.0)
 	var wurzel := Node3D.new()
 	wurzel.position = Vector3(pos.x, y, pos.z)
@@ -369,33 +572,17 @@ func _setze_turm(pos: Vector3, farbe: Color, reichweite: float, takt: float, sch
 	tuerme.append({
 		"knoten": wurzel, "koerper": koerper, "pos": wurzel.position,
 		"reichweite": reichweite, "takt": takt, "schaden": schaden, "abklingen": 0.0,
-		"farbe": farbe, "typ": typ, "luft": luft,
+		"farbe": farbe, "typ": typ, "luft": luft, "durchschlag": durchschlag,
 	})
 
 
-## Stellt die Arten einer Welle zusammen.
-##
-## Vereinfacht gegenüber dem Browserspiel: Dort werden die Lebenspunkte
-## gegen die durchschnittliche Zähigkeit der gezogenen Arten normiert, damit
-## die Wellenstärke allein an der Kurve hängt. Hier genügt vorerst die
-## Kurve mal Kartenfaktor mal Artzähigkeit — der Feinschliff gehört ins
-## Browserspiel, solange dieses die spielbare Fassung ist.
-func _waehle_art() -> Dictionary:
-	# Nur Arten, deren Zähigkeit zur Welle passt
-	var stufe := 1.0 + float(welle) * 0.06
-	var moeglich: Array = []
-	for a in Daten.ARTEN:
-		if float(a["leben"]) <= stufe:
-			moeglich.append(a)
-	if moeglich.is_empty():
-		moeglich = Daten.ARTEN
-	return moeglich[randi() % moeglich.size()]
-
-
 func _spawne_gegner() -> void:
-	if welle_art.is_empty():
-		welle_art = _waehle_art()
-	var art: Dictionary = welle_art
+	if spiel.warteschlange.is_empty():
+		return
+	var eintrag: Dictionary = spiel.warteschlange.pop_front()
+	var art: Dictionary = eintrag["art"]
+	var leben: float = float(eintrag["leben"])
+	var faktor: float = float(spiel.karte()["faktor"])
 	var typ: String = art["typ"]
 	var farbe: Color = Daten.TYPEN[typ]["farbe"]
 	var fliegt: bool = art.get("fliegt", false)
@@ -417,36 +604,41 @@ func _spawne_gegner() -> void:
 	knoten.material_override = mat
 	_wurzel_gegner.add_child(knoten)
 
-	var faktor: float = float(Daten.KARTEN[karte_idx]["faktor"])
-	var kurve: float = float(Daten.WELLE_LEBEN[clampi(welle - 1, 0, Daten.WELLE_LEBEN.size() - 1)])
-	# Zehn Gegner je Welle teilen sich das Lebensbudget
-	var leben: float = kurve * faktor * float(art["leben"]) / 10.0
-
 	gegner.append({
 		"knoten": knoten, "strecke": 0.0,
 		"tempo": 2.6 * float(art["tempo"]),
 		"leben": leben, "max_leben": leben,
 		"wackel": randf() * 6.0,
 		"typ": typ, "fliegt": fliegt,
-		"panzer": float(art.get("panzer", 0)) * (1.0 + float(welle - 1) * 0.038),
+		"art": art,
+		"panzer": Spiel.panzerung(float(art.get("panzer", 0)), spiel.welle, faktor),
 		"name": art["name"],
 		"hoehe": 1.6 if fliegt else 0.0,
 	})
-	welle_rest -= 1
-	if welle_rest <= 0:
-		welle += 1
-		welle_art = {}
-		welle_rest = 10
-		print("Welle ", welle, "  Art: ", art["name"], "  Leben je Stück: ", int(leben))
 
 
 func _process(delta: float) -> void:
 	zeit += delta
+	_pflege_vorschau()
 
-	spawn_uhr -= delta
-	if spawn_uhr <= 0.0:
-		_spawne_gegner()
-		spawn_uhr = 1.2
+	if spiel.verloren:
+		bedienung.setze_hinweis("Das Dorf ist gefallen — %d Wellen gehalten" % (spiel.welle - 1))
+		return
+
+	# Spieltempo: mehrere Rechenschritte je Bild statt größerer Schritte,
+	# damit schnelle Gegner keine Treffer überspringen.
+	for _i in range(tempo):
+		_takt(delta)
+
+	bedienung.zeige(spiel)
+
+
+func _takt(delta: float) -> void:
+	if spiel.welle_laeuft and not spiel.warteschlange.is_empty():
+		spawn_uhr -= delta
+		if spawn_uhr <= 0.0:
+			_spawne_gegner()
+			spawn_uhr = 0.85
 
 	# Gegner den Weg entlang
 	for g in gegner:
@@ -496,13 +688,20 @@ func _process(delta: float) -> void:
 		var kn: MeshInstance3D = g["knoten"]
 		if g["leben"] <= 0.0:
 			erledigt += 1
+			spiel.erledigt(g["art"])
 			kn.queue_free()
 		elif g["strecke"] >= weg_laenge:
 			durchgebrochen += 1
+			spiel.durchbruch()
 			kn.queue_free()
 		else:
 			uebrig.append(g)
 	gegner = uebrig
+
+	# Welle vorbei, wenn nichts mehr unterwegs und nichts mehr in der Schlange
+	if spiel.welle_laeuft and gegner.is_empty() and spiel.warteschlange.is_empty():
+		spiel.welle_geschafft()
+		bedienung.setze_hinweis("Welle %d gehalten — bau aus, dann ruf die nächste" % spiel.welle)
 
 
 ## Kurzer Lichtstrahl als Treffer. Ein eigener Körper statt einer gezeichneten
@@ -523,12 +722,12 @@ func _process(delta: float) -> void:
 ## Ein Rest bleibt immer: Ein Treffer, der gar nichts bewirkt, sieht wie ein
 ## Fehler aus, auch wenn er rechnerisch richtig ist.
 func _schaden(turm: Dictionary, ziel: Dictionary) -> float:
-	var roh: float = float(turm["schaden"])
-	var typ: String = turm.get("typ", "")
-	if typ != "":
-		roh *= Daten.wirksamkeit(typ, ziel.get("typ", ""))
-	var panzer: float = float(ziel.get("panzer", 0.0))
-	return maxf(roh * 0.06, roh - panzer)
+	return Spiel.schaden(
+		float(turm["schaden"]),
+		turm.get("typ", ""),
+		ziel.get("typ", ""),
+		float(ziel.get("panzer", 0.0)),
+		float(turm.get("durchschlag", 0.0)))
 
 
 func _blitz(von: Vector3, nach: Vector3, farbe: Color) -> void:

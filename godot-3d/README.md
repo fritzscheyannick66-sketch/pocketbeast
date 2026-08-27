@@ -6,9 +6,25 @@ Grundgerüst, kein Spiel.
 Das Browserspiel im übergeordneten Ordner bleibt davon unberührt und ist
 weiterhin die spielbare Fassung.
 
-## Starten
+## Spielen
 
 Godot 4.7 öffnen → *Import* → diesen Ordner wählen → *Run* (F5).
+
+**Bedienung**
+
+| | |
+|---|---|
+| Wächter wählen | auf eine Karte unten klicken, oder Taste **1**–**9** |
+| Setzen | auf eine freie Fläche klicken |
+| Auswahl abbrechen | **Esc** |
+| Welle rufen | **Leertaste** oder der Knopf unten links |
+| Tempo | Knopf **1×** — bis dreifach |
+
+Der Ring um die Bauvorschau zeigt die Reichweite. Ist er blass, reichen die
+Beeren nicht. Auf dem Weg und direkt daneben lässt sich nicht bauen.
+
+Beeren kommen aus erledigten Gegnern und einem Bonus nach jeder gehaltenen
+Welle. Jeder durchgelassene Gegner kostet ein Leben.
 
 ## Was steht
 
@@ -64,9 +80,12 @@ Der größere Teil:
 | Gegnerarten | 32 plus 8 Anführer | ✓ übernommen, 1 Art je Welle |
 | Typenvorteil und Panzerung | ja | ✓ wirkt |
 | Flieger | ja | ✓ schweben, nur von Luftwächtern treffbar |
-| Wächter setzen | frei wählbar | vier feste beim Start |
+| Wächter setzen | frei wählbar | ✓ per Klick, mit Vorschau |
+| Beeren, Leben, Punkte | ja | ✓ |
+| Wellen rufen | ja | ✓ zwei Arten je Welle, Bodengarantie |
 | Entwicklung, Mega, Training | ja | nein |
-| Wellen | 100, mit Launen und Segnungen | Dauerstrom, eine Art je Welle |
+| Wächtergestalt | 16 gezeichnete Formen | Kugeln in Elementfarbe |
+| Launen und Segnungen | ja | nein |
 | Sonderfelder | Wasser, Vulkan, Kraft, Höhe | nein |
 | Tag und Nacht | ja | nein |
 | Klang | 12 Arten, prozedural | keiner |
