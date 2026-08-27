@@ -97,11 +97,10 @@ const ist = { mul: karte.mul, gold: karte.gold, lives: karte.lives };
    ablesen lässt, dann Kombinationen. */
 const varianten = [
   ["wie jetzt", {}],
-  ["alle Reichweite +15 %", { tower: [["fire","range",1.15],["water","range",1.15],["grass","range",1.15],
-    ["electric","range",1.15],["rock","range",1.15],["psychic","range",1.15],["ice","range",1.15],
-    ["steel","range",1.15],["fairy","range",1.15],["dark","range",1.15],["wind","range",1.15]] }],
-  ["Feuer+Stahl zurück", { tower: [["fire","range",1.35],["steel","range",1.38]] }],
-  ["Nahkämpfer +25 %", { tower: [["fire","range",1.25],["steel","range",1.25],["grass","range",1.15],["dark","range",1.15]] }],
+  ["Multiplikator 1,62", { mul: 1.62 }],
+  ["Multiplikator 1,50", { mul: 1.50 }],
+  ["Startbeeren 700", { gold: 700 }],
+  ["1,62 + 660 Beeren", { mul: 1.62, gold: 660 }],
 ];
 
 console.log("");

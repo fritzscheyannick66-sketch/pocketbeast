@@ -1,10 +1,73 @@
 {
- "zeit": "2026-08-26T22:31:13.290Z",
+ "zeit": "2026-08-27T09:02:48.828Z",
  "karten": [
   {
    "name": "Grünpfad",
    "idx": 0,
-   "laeufe": 5,
+   "laeufe": 2,
+   "geschafft": 0,
+   "welleMedian": 100,
+   "welleMin": 100,
+   "welleMax": 100,
+   "tuermeMedian": 45,
+   "megaMedian": 17.5,
+   "typenMedian": 11,
+   "goldUebrigMedian": 255314.5,
+   "enden": {
+    "100": 2
+   },
+   "verlustJeWelle": {
+    "7": 0.5
+   },
+   "typAnteil": {
+    "ice": 0.275,
+    "rock": 0.253,
+    "fairy": 0.184,
+    "electric": 0.114,
+    "dark": 0.062,
+    "fire": 0.044,
+    "grass": 0.035,
+    "psychic": 0.017,
+    "wind": 0.013,
+    "steel": 0.002,
+    "water": 0
+   }
+  },
+  {
+   "name": "Glutschlucht",
+   "idx": 1,
+   "laeufe": 2,
+   "geschafft": 0,
+   "welleMedian": 100,
+   "welleMin": 100,
+   "welleMax": 100,
+   "tuermeMedian": 45,
+   "megaMedian": 21,
+   "typenMedian": 10,
+   "goldUebrigMedian": 340604.5,
+   "enden": {
+    "100": 2
+   },
+   "verlustJeWelle": {
+    "5": 1
+   },
+   "typAnteil": {
+    "rock": 0.352,
+    "steel": 0.215,
+    "electric": 0.188,
+    "dark": 0.06,
+    "psychic": 0.055,
+    "ice": 0.046,
+    "fire": 0.036,
+    "fairy": 0.036,
+    "wind": 0.01,
+    "grass": 0.004
+   }
+  },
+  {
+   "name": "Flutruine",
+   "idx": 2,
+   "laeufe": 2,
    "geschafft": 0,
    "welleMedian": 100,
    "welleMin": 100,
@@ -12,88 +75,271 @@
    "tuermeMedian": 45,
    "megaMedian": 20,
    "typenMedian": 11,
-   "goldUebrigMedian": 258571,
+   "goldUebrigMedian": 387118.5,
    "enden": {
-    "100": 5
+    "100": 2
    },
-   "verlustJeWelle": {
-    "7": 1.4
-   },
+   "verlustJeWelle": {},
    "typAnteil": {
-    "rock": 0.453,
-    "water": 0.217,
-    "steel": 0.095,
-    "electric": 0.09,
-    "ice": 0.045,
-    "psychic": 0.028,
-    "fairy": 0.025,
-    "fire": 0.023,
-    "dark": 0.009,
-    "grass": 0.009,
+    "rock": 0.313,
+    "electric": 0.209,
+    "steel": 0.171,
+    "water": 0.055,
+    "dark": 0.055,
+    "fairy": 0.054,
+    "ice": 0.05,
+    "psychic": 0.037,
+    "fire": 0.036,
+    "grass": 0.015,
     "wind": 0.005
    }
   },
   {
-   "name": "Glutschlucht",
-   "idx": 1,
-   "laeufe": 5,
+   "name": "Gewitterkamm",
+   "idx": 3,
+   "laeufe": 2,
    "geschafft": 0,
    "welleMedian": 100,
-   "welleMin": 97,
+   "welleMin": 100,
    "welleMax": 100,
    "tuermeMedian": 45,
-   "megaMedian": 19,
-   "typenMedian": 10,
-   "goldUebrigMedian": 240421,
+   "megaMedian": 16.5,
+   "typenMedian": 11,
+   "goldUebrigMedian": 264683,
    "enden": {
-    "97": 2,
-    "100": 3
+    "100": 2
    },
    "verlustJeWelle": {
-    "4": 1.2,
-    "5": 0.8
+    "40": 2.5
    },
    "typAnteil": {
-    "rock": 0.363,
-    "steel": 0.178,
-    "electric": 0.123,
-    "fairy": 0.105,
-    "ice": 0.079,
-    "dark": 0.065,
-    "grass": 0.028,
-    "psychic": 0.027,
-    "fire": 0.02,
-    "wind": 0.013
+    "electric": 0.345,
+    "rock": 0.241,
+    "water": 0.156,
+    "fairy": 0.09,
+    "dark": 0.085,
+    "fire": 0.035,
+    "grass": 0.024,
+    "psychic": 0.021,
+    "steel": 0.002,
+    "ice": 0.001,
+    "wind": 0.001
    }
   },
   {
-   "name": "Flutruine",
-   "idx": 2,
-   "laeufe": 5,
+   "name": "Steinkessel",
+   "idx": 4,
+   "laeufe": 2,
    "geschafft": 0,
-   "welleMedian": 27,
-   "welleMin": 27,
-   "welleMax": 27,
+   "welleMedian": 100,
+   "welleMin": 100,
+   "welleMax": 100,
    "tuermeMedian": 45,
-   "megaMedian": 0,
+   "megaMedian": 19,
    "typenMedian": 11,
-   "goldUebrigMedian": 1367,
+   "goldUebrigMedian": 304609,
    "enden": {
-    "27": 5
+    "100": 2
+   },
+   "verlustJeWelle": {
+    "40": 5
+   },
+   "typAnteil": {
+    "rock": 0.445,
+    "electric": 0.233,
+    "steel": 0.123,
+    "ice": 0.094,
+    "water": 0.056,
+    "psychic": 0.02,
+    "fire": 0.013,
+    "wind": 0.008,
+    "grass": 0.007,
+    "fairy": 0,
+    "dark": 0
+   }
+  },
+  {
+   "name": "Traumhain",
+   "idx": 5,
+   "laeufe": 2,
+   "geschafft": 0,
+   "welleMedian": 100,
+   "welleMin": 100,
+   "welleMax": 100,
+   "tuermeMedian": 45,
+   "megaMedian": 24,
+   "typenMedian": 11,
+   "goldUebrigMedian": 376554.5,
+   "enden": {
+    "100": 2
    },
    "verlustJeWelle": {},
    "typAnteil": {
-    "rock": 0.348,
-    "steel": 0.193,
-    "psychic": 0.087,
-    "electric": 0.083,
-    "ice": 0.07,
-    "water": 0.05,
-    "fire": 0.049,
-    "grass": 0.043,
-    "fairy": 0.032,
+    "rock": 0.398,
+    "electric": 0.161,
+    "steel": 0.123,
+    "ice": 0.087,
+    "fire": 0.078,
+    "water": 0.064,
+    "psychic": 0.062,
+    "grass": 0.015,
+    "wind": 0.01,
+    "fairy": 0.002,
+    "dark": 0
+   }
+  },
+  {
+   "name": "Firnfeld",
+   "idx": 6,
+   "laeufe": 2,
+   "geschafft": 0,
+   "welleMedian": 100,
+   "welleMin": 100,
+   "welleMax": 100,
+   "tuermeMedian": 45,
+   "megaMedian": 22,
+   "typenMedian": 11,
+   "goldUebrigMedian": 429302,
+   "enden": {
+    "100": 2
+   },
+   "verlustJeWelle": {},
+   "typAnteil": {
+    "rock": 0.235,
+    "water": 0.235,
+    "fairy": 0.185,
+    "ice": 0.115,
+    "electric": 0.079,
+    "fire": 0.052,
+    "dark": 0.034,
+    "psychic": 0.031,
+    "wind": 0.023,
+    "grass": 0.006,
+    "steel": 0.004
+   }
+  },
+  {
+   "name": "Erzwerk",
+   "idx": 7,
+   "laeufe": 2,
+   "geschafft": 0,
+   "welleMedian": 100,
+   "welleMin": 100,
+   "welleMax": 100,
+   "tuermeMedian": 45,
+   "megaMedian": 19,
+   "typenMedian": 11,
+   "goldUebrigMedian": 330561.5,
+   "enden": {
+    "100": 2
+   },
+   "verlustJeWelle": {
+    "40": 2.5
+   },
+   "typAnteil": {
+    "rock": 0.469,
+    "fairy": 0.188,
+    "water": 0.187,
+    "ice": 0.071,
+    "steel": 0.031,
+    "fire": 0.02,
+    "psychic": 0.019,
+    "electric": 0.009,
+    "grass": 0.004,
+    "wind": 0.002,
+    "dark": 0.001
+   }
+  },
+  {
+   "name": "Glanzwiese",
+   "idx": 8,
+   "laeufe": 2,
+   "geschafft": 0,
+   "welleMedian": 100,
+   "welleMin": 100,
+   "welleMax": 100,
+   "tuermeMedian": 45,
+   "megaMedian": 15.5,
+   "typenMedian": 11,
+   "goldUebrigMedian": 356689,
+   "enden": {
+    "100": 2
+   },
+   "verlustJeWelle": {},
+   "typAnteil": {
+    "rock": 0.343,
+    "electric": 0.155,
+    "water": 0.143,
+    "ice": 0.115,
+    "steel": 0.093,
+    "dark": 0.059,
+    "fairy": 0.054,
+    "psychic": 0.022,
+    "fire": 0.013,
+    "grass": 0.001,
+    "wind": 0
+   }
+  },
+  {
+   "name": "Nachtgrund",
+   "idx": 9,
+   "laeufe": 2,
+   "geschafft": 0,
+   "welleMedian": 100,
+   "welleMin": 100,
+   "welleMax": 100,
+   "tuermeMedian": 45,
+   "megaMedian": 22,
+   "typenMedian": 11,
+   "goldUebrigMedian": 319503,
+   "enden": {
+    "100": 2
+   },
+   "verlustJeWelle": {
+    "40": 2.5
+   },
+   "typAnteil": {
+    "rock": 0.378,
+    "water": 0.331,
+    "electric": 0.094,
+    "steel": 0.077,
+    "ice": 0.054,
     "dark": 0.029,
-    "wind": 0.015
+    "wind": 0.012,
+    "grass": 0.011,
+    "psychic": 0.011,
+    "fire": 0.001,
+    "fairy": 0.001
+   }
+  },
+  {
+   "name": "Böenkuppe",
+   "idx": 10,
+   "laeufe": 2,
+   "geschafft": 0,
+   "welleMedian": 100,
+   "welleMin": 100,
+   "welleMax": 100,
+   "tuermeMedian": 45,
+   "megaMedian": 17,
+   "typenMedian": 11,
+   "goldUebrigMedian": 459675.5,
+   "enden": {
+    "100": 2
+   },
+   "verlustJeWelle": {},
+   "typAnteil": {
+    "rock": 0.353,
+    "water": 0.346,
+    "electric": 0.091,
+    "ice": 0.069,
+    "steel": 0.052,
+    "fairy": 0.034,
+    "wind": 0.025,
+    "psychic": 0.017,
+    "fire": 0.007,
+    "dark": 0.006,
+    "grass": 0.001
    }
   }
  ]

@@ -79,6 +79,18 @@ button{font-family:inherit;color:inherit}
 .stat.wave .v{color:var(--t-water)}
 .stat.score .v{color:var(--t-grass)}
 .stat.sterne .v{color:#F5C542}
+.cx.unbekannt{opacity:.45}
+.erfliste{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:8px}
+.erf{display:flex;gap:9px;align-items:flex-start;background:var(--panel2);border:1px solid var(--line);
+  border-radius:9px;padding:9px 11px}
+.erf .ec{color:var(--amber);font-size:15px;line-height:1.2}
+.erf b{display:block;font-size:13px}
+.erf span span{display:block;font-size:11px;color:var(--muted);line-height:1.35;margin-top:1px}
+.erf.zu{opacity:.42}
+.erf.zu .ec{color:var(--muted)}
+table.best td{padding:7px 10px;border-bottom:1px solid var(--line)}
+table.best .num{text-align:right;font-variant-numeric:tabular-nums}
+.cx.unbekannt .nm{color:var(--muted);letter-spacing:.2em}
 
 /* ---------- layout ---------- */
 .main{display:grid;grid-template-columns:minmax(0,1fr) 330px;gap:12px;align-items:start}
@@ -420,6 +432,7 @@ table.eff th{color:var(--muted);font-weight:700;font-size:9.5px;letter-spacing:.
         <div class="row-sub">
           <button class="btn ghost sm" id="b-target" aria-label="Zielauswahl aller Wächter umschalten">Ziel: Erster</button>
           <button class="btn ghost sm" id="b-codex">Bestiarium</button>
+          <button class="btn ghost sm" id="b-uebersicht">Übersicht</button>
           <button class="btn ghost sm" id="b-sound">Ton an</button>
           <button class="btn ghost sm" id="b-help">Anleitung</button>
           <button class="btn ghost sm" id="b-menu">Hauptmenü</button>
@@ -846,6 +859,7 @@ function megaBereit(t) {
 }
 
 function megaEntwickeln(t) {
+  if (megaBereit(t) && G.gold >= MEGA_KOSTEN) statPlus("mega");
   if (!megaBereit(t)) return;
   if (G.gold < MEGA_KOSTEN) { warnGold(); return; }
   G.gold -= MEGA_KOSTEN;
@@ -1235,7 +1249,18 @@ const MAPS = [
       namen: ["Schattenhüter", "Nachtwächter", "Finsterthron"],
       text: "Er wirft keinen Schatten — er ist einer." },
     sonderfelder: [["hoehe", 4], ["kraft", 4], ["wasser", 5]],
-    name: "Nachtgrund", diff: "Brutal", mul: 1.78, gold: 580, lives: 16,
+    /* Multiplikator von 1,78 auf 1,55.
+
+       Gemessen über je vier Läufe: Mehr Startbeeren halfen gar nicht (700
+       statt 470 ergaben unverändert Welle 34) — anders als auf der
+       Flutruine, wo genau das die Karte rettete. Nachtgrund ist kein
+       Anlaufproblem, sondern durchgehend zu zäh. Der Multiplikator ist hier
+       die richtige Schraube: 1,62 ergab Welle 70, 1,50 ergab 86.
+
+       Die Karte wurde härter, als sie gedacht war, weil ihre eigenen
+       Unlicht-Gegner den Heimvorteil bekamen — dieselbe Änderung, die sie
+       thematisch stimmig macht. */
+    name: "Nachtgrund", diff: "Brutal", mul: 1.55, gold: 520, lives: 16,
     himmel: ["#1E1A2A", "#453C58"],
     ground: ["#1A1622", "#221E2E"], accent: "#463C58", foliage: "#5A4C72",
     path: "#6E6478", pathEdge: "#2A2434", soil: "#8E82A0",
@@ -1283,7 +1308,11 @@ const TAL_BY_ID = Object.fromEntries(TALENTS.map(t => [t.id, t]));
    Spielstand darunter ab. Würde er mitumbenannt, fänden vorhandene Stände
    keinen Anschluss mehr und alle Talentpunkte wären verloren. */
 const SAVE_KEY = "wildwacht.v1";
-const save = { points: 0, spent: 0, ranks: {}, cleared: {}, best: 0, run: null, tut: false, endless: 0, sound: true, sterne: {} };
+const save = { points: 0, spent: 0, ranks: {}, cleared: {}, best: 0, run: null, tut: false,
+  endless: 0, sound: true, sterne: {},
+  /* Was über alle Runden hinweg zusammenkommt. Getrennt von den Sternen,
+     weil Sterne den Fortschritt messen und die Statistik das Erlebte. */
+  stat: {}, bestlauf: {}, erfolge: {}, gesehen: {} };
 function loadSave() {
   try {
     const raw = localStorage.getItem(SAVE_KEY);
@@ -1293,6 +1322,10 @@ function loadSave() {
     if (!save.ranks) save.ranks = {};
     if (!save.cleared) save.cleared = {};
     if (!save.sterne) save.sterne = {};   // ältere Stände kennen sie noch nicht
+    if (!save.stat) save.stat = {};
+    if (!save.bestlauf) save.bestlauf = {};
+    if (!save.erfolge) save.erfolge = {};
+    if (!save.gesehen) save.gesehen = {};
   } catch (e) { /* Speicher nicht verfügbar — Spiel läuft trotzdem */ }
 }
 function writeSave() {
@@ -2731,6 +2764,149 @@ function startWave() {
 }
 
 /* ============================================================
+   Statistik
+   ============================================================
+   Was über alle Runden hinweg zusammenkommt. Ohne das bleibt vom Spielen
+   nichts als eine Zahl im Menü — man weiß, dass man dreihundert Wellen
+   gehalten hat, aber nicht, womit.
+
+   Bewusst wenige Werte: Eine Statistik, die alles zählt, wird nicht
+   gelesen. Diese hier beantwortet fünf Fragen, die man sich wirklich
+   stellt — wie lange, wie viele, womit, wie oft daneben. */
+const STAT_FELDER = {
+  runden:     "Runden gespielt",
+  wellen:     "Wellen gehalten",
+  erledigt:   "Wilde erledigt",
+  durch:      "durchgelassen",
+  beeren:     "Beeren verdient",
+  gebaut:     "Wächter gerufen",
+  entwickelt: "Entwicklungen",
+  mega:       "Megaentwicklungen",
+  spielzeit:  "Spielzeit",
+};
+
+function statPlus(feld, n) {
+  if (!save.stat) save.stat = {};
+  save.stat[feld] = (save.stat[feld] || 0) + (n === undefined ? 1 : n);
+}
+
+function statWert(feld) { return (save.stat && save.stat[feld]) || 0; }
+
+/* Spielzeit lesbar machen — Sekunden sagen niemandem etwas. */
+function zeitText(sek) {
+  const s2 = Math.floor(sek);
+  if (s2 < 60) return s2 + " s";
+  const min = Math.floor(s2 / 60);
+  if (min < 60) return min + " min";
+  const std = Math.floor(min / 60);
+  return std + " h " + (min % 60) + " min";
+}
+
+/* ============================================================
+   Bestenliste
+   ============================================================
+   Je Karte der beste Lauf. Gespeichert wird, was den Lauf ausmachte —
+   nicht nur die Punktzahl, sondern auch womit man ihn geschafft hat.
+   Eine bloße Zahl erinnert an nichts. */
+function bestlaufMerken() {
+  if (!save.bestlauf) save.bestlauf = {};
+  const alt = save.bestlauf[G.mapIdx];
+  const neu = {
+    welle: G.sent,
+    punkte: G.score,
+    leben: G.lives,
+    tuerme: G.towers.length,
+    mega: G.towers.filter(t => t.mega).length,
+    datum: Date.now(),
+    /* Der Wächter, der am meisten ausgeteilt hat. Er erzählt mehr über den
+       Lauf als jede Gesamtsumme. */
+    traeger: (() => {
+      let b = null;
+      for (const t of G.towers) if (!b || (t.dealt || 0) > (b.dealt || 0)) b = t;
+      return b ? { name: tierOf(b).name, schaden: Math.round(b.dealt || 0) } : null;
+    })(),
+  };
+  if (!alt || neu.punkte > alt.punkte) {
+    save.bestlauf[G.mapIdx] = neu;
+    return true;
+  }
+  return false;
+}
+
+/* ============================================================
+   Erfolge
+   ============================================================
+   Meilensteine, die man beiläufig erreicht. Sie sollen nicht zum Abhaken
+   verleiten, sondern rückblickend zeigen, was man schon getan hat — deshalb
+   keine Aufgaben wie "besiege 50 Gegner mit Feuer", sondern Dinge, die beim
+   normalen Spielen ohnehin geschehen. */
+const ERFOLGE = [
+  { id: "erste",     name: "Erster Anlauf",     text: "Eine Runde gespielt",
+    p: () => statWert("runden") >= 1 },
+  { id: "zehn",      name: "Zehn gehalten",     text: "Zehn Wellen in einer Runde",
+    p: () => (save.bestlauf && Object.values(save.bestlauf).some(b => b.welle >= 10)) },
+  { id: "route",     name: "Route gehalten",    text: "Eine Karte vollständig durchgespielt",
+    p: () => Object.keys(save.cleared || {}).length >= 1 },
+  { id: "dreirouten",name: "Wegkundig",         text: "Drei Karten durchgespielt",
+    p: () => Object.keys(save.cleared || {}).length >= 3 },
+  { id: "allerouten",name: "Kartenmeister",     text: "Alle Karten durchgespielt",
+    p: () => Object.keys(save.cleared || {}).length >= MAPS.length },
+  { id: "mega1",     name: "Erwacht",           text: "Eine Megaentwicklung vollzogen",
+    p: () => statWert("mega") >= 1 },
+  { id: "mega25",    name: "Fünfundzwanzig",    text: "25 Megaentwicklungen",
+    p: () => statWert("mega") >= 25 },
+  { id: "legend",    name: "Legendär",          text: "Einen legendären Wächter erweckt",
+    p: () => MAPS.some((_, i) => legendaerFrei(i)) },
+  { id: "makellos",  name: "Makellos",          text: "Zwanzig Wellen ohne Verlust",
+    p: () => (save.bestlauf && Object.values(save.bestlauf).some(b => b.welle >= 20 && b.leben >= 20)) },
+  { id: "sammler",   name: "Sammler",           text: "Hundert Sterne",
+    p: () => sterneGesamt() >= 100 },
+  { id: "hort",      name: "Hort",              text: "Fünfhundert Sterne",
+    p: () => sterneGesamt() >= 500 },
+  { id: "kundig",    name: "Kundig",            text: "Alle Gegnerarten gesehen",
+    p: () => Object.keys(save.gesehen || {}).length >= SPECIES.length + BOSSES.length },
+  { id: "tausend",   name: "Tausend Wilde",     text: "Tausend Gegner erledigt",
+    p: () => statWert("erledigt") >= 1000 },
+  { id: "endlos",    name: "Ohne Ende",         text: "Welle 120 im Endlosmodus",
+    p: () => (save.endless || 0) >= 120 },
+];
+
+/* Prüft alle Erfolge und meldet neu erreichte. */
+function erfolgePruefen() {
+  if (!save.erfolge) save.erfolge = {};
+  const neu = [];
+  for (const e of ERFOLGE) {
+    if (save.erfolge[e.id]) continue;
+    let erreicht = false;
+    try { erreicht = !!e.p(); } catch (err) { erreicht = false; }
+    if (erreicht) { save.erfolge[e.id] = Date.now(); neu.push(e); }
+  }
+  if (neu.length) {
+    writeSave();
+    for (const e of neu) {
+      addLog(`<b>Erfolg:</b> ${e.name} — ${e.text}`);
+    }
+    banner("Erfolg: " + neu[0].name);
+  }
+  return neu;
+}
+
+/* ============================================================
+   Bestiarium-Fortschritt
+   ============================================================
+   Wer eine Art zum ersten Mal sieht, trägt sie ein. Vorher steht im
+   Bestiarium nur ihr Umriss — was man noch nicht getroffen hat, soll man
+   auch nicht nachlesen können. */
+function gesehenMerken(id) {
+  if (!save.gesehen) save.gesehen = {};
+  if (save.gesehen[id]) return false;
+  save.gesehen[id] = true;
+  return true;
+}
+
+function istGesehen(id) { return !!(save.gesehen && save.gesehen[id]); }
+
+/* ============================================================
    Sterne
    ============================================================
    Je gehaltener Welle ein Stern, hundert je Karte.
@@ -2782,6 +2958,8 @@ function endWave() {
   G.gold += clearBonus + interest;
   G.score += 120 + G.wave * 20;
   save.points += isBossWave(G.wave) ? 6 : 1;
+  statPlus("wellen");
+  statPlus("beeren", clearBonus + interest);
   const neueSterne = G.endless ? 0 : sternVergeben(G.mapIdx, G.wave);
   writeSave();
   if (G.endless) renderHain();
@@ -2793,6 +2971,7 @@ function endWave() {
       banner("★ Legendärer Wächter freigeschaltet");
   }
   if (G.endless && G.wave > (save.endless || 0)) { save.endless = G.wave; writeSave(); }
+  erfolgePruefen();
   if (!G.endless && G.wave >= G.maxWave) return victory();
   sfxWaveClear();
   banner("Welle gehalten  ·  +" + (clearBonus + interest));
@@ -3221,6 +3400,7 @@ function placeTowerDef(def, c, r) {
     variante: (c * 7 + r * 13 + def.id.length) % 3,
   };
   G.towers.push(t);
+  statPlus("gebaut");
   recalcAuras();
   G.sel = t;
   fx({ kind: "ring", x: t.x, y: t.y, r0: 6, r1: 44, life: .5, col: TYPES[def.type].col });
@@ -3253,6 +3433,7 @@ function darfEntwickeln(t) {
 }
 
 function upgradeTower(t) {
+  if (t.tier < 2 && G.gold >= t.def.tiers[t.tier + 1].cost) statPlus("entwickelt");
   if (t.tier >= 2) return;
   if (!darfEntwickeln(t)) {
     banner(t.def.nurBei === "nacht" ? "Entwickelt sich nur bei Nacht"
@@ -3329,6 +3510,8 @@ function damage(en, amount, type, src) {
 function kill(en, src) {
   if (en.dead) return;
   en.dead = true;
+  statPlus("erledigt");
+  statPlus("beeren", 0);   // Beeren zählen unten mit dem echten Betrag
   const g = Math.round(en.bounty * (1 + rank("kopfgeld") * .06) * (1 + boon("gold") * .18)
     * (1 + hainStufe("futter") * .04));
   G.gold += g;
@@ -3896,6 +4079,8 @@ function splashHit(s) {
    Update
    ============================================================ */
 function spawnEnemy(s, hp, spd, bounty, boss, d, isSplit) {
+  // Fürs Bestiarium: Was einmal aufgetaucht ist, bleibt eingetragen
+  if (gesehenMerken(s.id || s.name)) writeSave();
   /* Heimvorteil der Gegner: Wer auf der Karte seines Elements antritt, ist
      dort ebenfalls zu Hause. Hier statt in der Wellenberechnung, damit auch
      abgespaltene Gegner davon erfasst werden. */
@@ -4002,6 +4187,7 @@ function update(dt) {
       e.dead = true; e.leaked = true;
       const dmgL = e.boss ? 5 : 1;
       G.lives -= dmgL; G.leaked += dmgL;
+      statPlus("durch", dmgL);
       float(W - 40, e.y, "−" + dmgL, "#FF6E45", 1);
       sfxLeak(); G.shake = Math.min(16, 5 + dmgL * 2.5);
       fx({ kind: "burst", x: e.x, y: e.y, col: "#FF6E45", n: 8, life: .4 });
@@ -6269,7 +6455,10 @@ function iconInto(cvs, type, shape, size, tierOpt) {
   cvs.width = px * dpr; cvs.height = px * dpr;
   g.setTransform(dpr, 0, 0, dpr, 0, 0);
   g.clearRect(0, 0, px, px);
-  drawCreature(g, px / 2, px / 2 + px * .04, px * .3, TYPES[type].col, shape, 0.7, { tier: tierOpt || 0, type });
+  /* type darf null sein: Dann steht die Art im Bestiarium noch als Umriss,
+     weil man ihr nie begegnet ist. Grau statt Elementfarbe. */
+  const farbe = type ? TYPES[type].col : "#3E464C";
+  drawCreature(g, px / 2, px / 2 + px * .04, px * .3, farbe, shape, 0.7, { tier: tierOpt || 0, type: type || "rock" });
 }
 
 function updateStats() {
@@ -6746,6 +6935,7 @@ $("b-target").addEventListener("click", () => {
 })();
 
 $("b-codex").addEventListener("click", showCodex);
+$("b-uebersicht").addEventListener("click", showUebersicht);
 $("b-help").addEventListener("click", showHelp);
 $("b-sound").addEventListener("click", () => {
   SND.on = !SND.on;
@@ -6848,6 +7038,7 @@ function menuHTML() {
     <button class="btn primary" id="b-start" style="flex:1;min-width:180px">${G.running ? "Neue Runde auf dieser Route" : "Runde starten"}</button>
     ${G.running ? `<button class="btn" id="b-resume">Zurück zur Runde</button>` : ""}
     <button class="btn ghost" id="b-codex2">Bestiarium</button>
+    <button class="btn ghost" id="b-uebersicht2">Übersicht</button>
   </div>`;
 }
 function wireMenu() {
@@ -6881,6 +7072,7 @@ function wireMenu() {
   });
   if ($("b-resume")) $("b-resume").addEventListener("click", () => { closeVeil(); G.paused = false; $("b-pause").textContent = "Pause"; });
   $("b-codex2").addEventListener("click", showCodex);
+  $("b-uebersicht2").addEventListener("click", showUebersicht);
 }
 function drawMini(cvs, map) {
   const g = cvs.getContext("2d");
@@ -6914,6 +7106,85 @@ function drawMini(cvs, map) {
   g.fillStyle = "#F0A83C"; g.beginPath(); g.arc(l.x * k - 6, l.y * sy, 4, 0, 7); g.fill();
 }
 
+/* ============================================================
+   Übersicht — was man bisher erreicht hat
+   ============================================================
+   Sterne messen den Fortschritt, aber nicht das Erlebte. Diese Seite
+   beantwortet, was nach dem Spielen bleibt: womit man gespielt hat, wie
+   weit man kam, und was noch offen ist.
+
+   Drei Abschnitte, bewusst in dieser Reihenfolge: erst die Erfolge, weil
+   sie am ehesten zeigen, wo man steht; dann die besten Läufe, weil sie an
+   einzelne Runden erinnern; zuletzt die Zahlen, die nur im Rückblick
+   interessieren. */
+function showUebersicht() {
+  const erreicht = ERFOLGE.filter(e => save.erfolge && save.erfolge[e.id]);
+  const offen = ERFOLGE.filter(e => !(save.erfolge && save.erfolge[e.id]));
+
+  const erfolgKarte = (e, hat) => `
+    <div class="erf${hat ? "" : " zu"}">
+      <span class="ec">${hat ? "★" : "☆"}</span>
+      <span><b>${e.name}</b><span>${e.text}</span></span>
+    </div>`;
+
+  const laeufe = MAPS.map((m, i) => [m, save.bestlauf && save.bestlauf[i]])
+    .filter(([, b]) => b)
+    .sort((a, b) => b[1].punkte - a[1].punkte);
+
+  const laufZeile = ([m, b]) => `
+    <tr>
+      <td><b>${m.name}</b></td>
+      <td class="num">${b.welle}</td>
+      <td class="num">${b.punkte.toLocaleString("de-DE")}</td>
+      <td class="num">${b.tuerme}${b.mega ? " · ★" + b.mega : ""}</td>
+      <td>${b.traeger ? `${b.traeger.name} <span class="dd">${b.traeger.schaden.toLocaleString("de-DE")}</span>` : "—"}</td>
+    </tr>`;
+
+  const statZeile = (k, txt) => {
+    const v = statWert(k);
+    const anzeige = k === "spielzeit" ? zeitText(v) : v.toLocaleString("de-DE");
+    return `<div class="kv"><div class="k">${txt}</div><div class="v">${anzeige}</div></div>`;
+  };
+
+  openVeil(`
+    <h2 class="big">Übersicht</h2>
+    <p class="lead">${sterneGesamt()} von ${sterneMoeglich()} Sternen ·
+      ${erreicht.length} von ${ERFOLGE.length} Erfolgen ·
+      ${Object.keys(save.gesehen || {}).length} von ${SPECIES.length + BOSSES.length} Arten begegnet</p>
+
+    <section>
+      <h2 style="margin-bottom:8px">Erfolge</h2>
+      <div class="erfliste">
+        ${erreicht.map(e => erfolgKarte(e, true)).join("")}
+        ${offen.map(e => erfolgKarte(e, false)).join("")}
+      </div>
+    </section>
+
+    <section>
+      <h2 style="margin-bottom:8px">Beste Läufe</h2>
+      ${laeufe.length ? `<div class="scrollx"><table class="eff best">
+        <tr><th style="text-align:left">Route</th><th>Welle</th><th>Punkte</th><th>Wächter</th><th style="text-align:left">Träger des Laufs</th></tr>
+        ${laeufe.map(laufZeile).join("")}
+      </table></div>
+      <p class="empty" style="margin-top:6px">Träger des Laufs ist der Wächter, der am meisten ausgeteilt hat.</p>`
+      : `<p class="empty">Noch keine Runde beendet.</p>`}
+    </section>
+
+    <section>
+      <h2 style="margin-bottom:8px">Insgesamt</h2>
+      <div class="grid2" style="max-width:640px">
+        ${Object.entries(STAT_FELDER).map(([k, t]) => statZeile(k, t)).join("")}
+      </div>
+    </section>
+
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:14px">
+      <button class="btn primary" id="b-uez">Schließen</button>
+      <button class="btn" id="b-uecodex">Bestiarium</button>
+    </div>`);
+  $("b-uez").addEventListener("click", () => closeVeil());
+  $("b-uecodex").addEventListener("click", showCodex);
+}
+
 function showCodex() {
   const tags = o => {
     const t = [];
@@ -6927,14 +7198,29 @@ function showCodex() {
     if (o.regen) t.push("regeneriert");
     return t.join(" · ");
   };
-  const cell = (o, boss) => `<div class="cx"><canvas data-t="${o.type}" data-s="${o.shape}"></canvas>
+  /* Was man noch nie getroffen hat, steht auch nicht im Bestiarium.
+     Der Umriss bleibt sichtbar, damit man sieht, dass da etwas fehlt — aber
+     Name, Typ und Eigenheiten erfährt man erst, wenn die Art einmal
+     aufgetaucht ist. Ein Nachschlagewerk, das alles von Anfang an verrät,
+     ist keines. */
+  const cell = (o, boss) => {
+    const id = o.id || o.name;
+    if (!istGesehen(id)) {
+      return `<div class="cx unbekannt"><canvas data-t="unbekannt" data-s="${o.shape}"></canvas>
+        <div><div class="nm">? ? ?</div>
+        <div class="dd">noch nicht begegnet</div></div></div>`;
+    }
+    return `<div class="cx"><canvas data-t="${o.type}" data-s="${o.shape}"></canvas>
     <div><div class="nm">${o.name}${boss ? " ★" : ""}</div>
     <div class="dd" style="color:${TYPES[o.type].col}">${TYPES[o.type].name}${tags(o) ? " · " + tags(o) : ""}</div>
     ${boss && o.abText ? `<div class="dd" style="margin-top:2px">${o.abText}</div>` : ""}</div></div>`;
-  const head = ["fire","water","grass","electric","rock","psychic","ice","steel","fairy","dark"];
+  };
+  const head = ["fire","water","grass","electric","rock","psychic","ice","steel","fairy","dark","wind"];
   openVeil(`
     <h2 class="big">Bestiarium</h2>
     <p class="lead">Typenvorteile entscheiden die Runde. Rot = doppelter Schaden, blass = halber Schaden.</p>
+    <p class="lead" style="margin-top:-6px"><b style="color:var(--amber)">${Object.keys(save.gesehen || {}).length}
+      von ${SPECIES.length + BOSSES.length}</b> Arten begegnet.</p>
     <section><h2 style="margin-bottom:8px">Typentabelle — Angreifer (Reihe) gegen Verteidiger (Spalte)</h2>
       <div class="scrollx"><table class="eff"><tr><th></th>${head.map(d => `<th style="color:${TYPES[d].col}">${TYPES[d].name}</th>`).join("")}</tr>
       ${head.map(a => `<tr><th style="color:${TYPES[a].col};text-align:left">${TYPES[a].name}</th>${head.map(d => {
@@ -6971,7 +7257,8 @@ function showCodex() {
       <div><div class="nm">${d.tiers.map(t => t.name).join(" → ")}</div>
       <div class="dd" style="color:${TYPES[d.type].col}">${TYPES[d.type].name} · ${d.blurb}</div></div></div>`).join("")}</div></section>
     <button class="btn primary" id="b-close">Schließen</button>`);
-  document.querySelectorAll("#sheet .cx canvas").forEach(c => iconInto(c, c.dataset.t, c.dataset.s, 36));
+  document.querySelectorAll("#sheet .cx canvas").forEach(c =>
+    iconInto(c, c.dataset.t === "unbekannt" ? null : c.dataset.t, c.dataset.s, 36));
   $("b-close").addEventListener("click", closeVeil);
 }
 
@@ -7039,7 +7326,10 @@ function beerenAbrechnen() {
 
 function gameOver() {
   G.over = true; G.running = false;
+  statPlus("spielzeit", G.time);
+  bestlaufMerken();
   const beerenPunkte = beerenAbrechnen();
+  erfolgePruefen();
   clearRun(); sfxLose();
   const bb = $("bossbar"); if (bb) bb.hidden = true;
   if (G.score > (save.best || 0)) { save.best = G.score; }
@@ -7067,7 +7357,10 @@ function victory() {
   const bb = $("bossbar"); if (bb) bb.hidden = true;
   save.cleared[G.mapIdx] = true;
   save.points += 15;
+  statPlus("spielzeit", G.time);
+  bestlaufMerken();
   const beerenPunkte = beerenAbrechnen();
+  erfolgePruefen();
   if (G.score > (save.best || 0)) save.best = G.score;
   writeSave();
   openVeil(`<h2 class="big">Route gehalten</h2>
@@ -7122,6 +7415,7 @@ function newRun(mapIdx, quiet) {
   G.lives = G.map.lives + rank("zaeh") * 2;
   G.wave = 0; G.sent = 0; G.score = 0; G.leaked = 0;
   G.waveActive = false; G.paused = false; G.over = false; G.running = true;
+  statPlus("runden");
   G.place = null; G.sel = null; G.ghost = null; G.speed = 1; G.time = 0; G.shake = 0; G.endless = false;
   G.boons = {}; G.hain = {}; G.mod = null;
   clearRun();
