@@ -1,6 +1,6 @@
 # Werkzeuge
 
-Drei Dateien, die zusammen das Spiel messbar machen.
+Fünf Dateien, die zusammen das Spiel messbar machen.
 
 ## Schnellstart
 
@@ -8,9 +8,17 @@ Drei Dateien, die zusammen das Spiel messbar machen.
 node tools/testlauf.js
 ```
 
-Spielt drei Runden je Karte durch — dauert etwa zwei Minuten — und druckt,
-wie weit der Bot kam, woran er scheiterte und welche Wächter die Arbeit
-gemacht haben.
+Spielt drei Runden je Karte durch und druckt, wie weit der Bot kam, woran
+er scheiterte und welche Wächter die Arbeit gemacht haben.
+
+Das dauert. Gemessen: fünf Läufe über alle elf Karten brauchen 25 Minuten,
+drei entsprechend rund 15. Als die Karten noch vierzig Wellen hatten und es
+drei davon gab, waren es zwei Minuten — die Zahl ist mit dem Spiel gewachsen.
+Für den schnellen Blick zwischendurch lieber eine Karte einzeln:
+
+```
+node tools/testlauf.js --karte 2 --laeufe 3
+```
 
 Nach einer Änderung:
 
@@ -27,7 +35,7 @@ node tools/testlauf.js --merken
 
 Weitere Schalter: `--laeufe 5` für mehr Läufe, `--karte 0` für eine einzelne.
 
-## Die drei Teile
+## Die fünf Teile
 
 **`pruefstand.js`** lädt das Spiel aus `index.html` in Node und macht es
 taktbar. Das Spiel braucht vom Browser wenig — 19 Zugriffe auf `document`,
@@ -44,6 +52,17 @@ auch.
 
 **`testlauf.js`** führt mehrere Läufe aus, fasst zusammen und vergleicht
 gegen einen früheren Stand.
+
+**`varianten.js`** dreht einzelne Stellschrauben einer Karte und misst, was
+dabei herauskommt — ohne `index.html` anzufassen. Nützlich, weil zwei Werte,
+die beide „die Karte leichter machen", sich sehr verschieden verhalten
+können: Auf der Flutruine war es eine Schwelle (unter 480 Startbeeren kam die
+Runde nie in Gang, darüber schon), auf dem Nachtgrund half mehr Geld gar
+nicht — 700 statt 470 Beeren ergaben unverändert Welle 34.
+
+**`daten-nach-godot.js`** erzeugt `godot-3d/scripts/daten.gd` aus
+`index.html`. Eine von Hand gepflegte zweite Fassung wäre binnen Tagen
+falsch, ohne dass es jemandem auffiele.
 
 ## Was der Bot nicht kann
 
@@ -70,9 +89,11 @@ Typen, keinen einzigen Wasser-Wächter bei vier Wasserfeldern, und neun seiner
 zwanzig Wächter waren derselbe billige Typ. Was er maß, war seine eigene
 veraltete Strategie.
 
-## Zwei Lehren aus dem Bau dieses Bots
+## Vier Lehren aus dem Bau dieses Bots
 
-Beide zeigen, wie leicht ein Messinstrument in die Irre führt.
+Alle zeigen, wie leicht ein Messinstrument in die Irre führt — und jede
+einzelne verschob die Ergebnisse um mehr als vierzig Wellen, ohne dass sich
+am Spiel etwas geändert hätte.
 
 **Segnungen.** Der erste Anlauf nahm keine einzige an — der Aufruf lief ins
 Leere und der Fehler wurde stillschweigend verschluckt. Der Bot starb bei
@@ -83,6 +104,24 @@ jeden Nachbarn um bis zu 28 Prozent. Wer nur den eigenen Schaden je Beere
 rechnet, baut ihn nie. Nachdem der Bot die Feldwirkung mitrechnete, sprang
 sein Ergebnis von Welle 40 auf 88 — dieselbe Spielfassung, nur ein
 Messinstrument, das eine Regel mehr verstand.
+
+**Der Abstand zum Weg.** Der Bot maß ihn über die Wegpunkte der Route statt
+über den tatsächlichen Verlauf. Die Flutruine hat nur zehn Wegpunkte; ein
+Feld, das 57 Pixel vom Weg entfernt lag, maß er als 177 und baute nicht
+darauf. Ich stand kurz davor, die Feldverteilung der Karte zu ändern —
+aufgrund einer Zahl, die mein Messgerät erfunden hatte. Gerettet hat nur die
+Frage, ob mein Maß oder das Spiel falsch liegt.
+
+**Nebenwirkungen.** Fläche, Bremse, Fessel, Brand, Kette, Marke,
+Durchschlag — nichts davon zählte er. Der Wasser-Wächter hat den geringsten
+Schaden je Beere im ganzen Spiel und eine der stärksten Flächenwirkungen; er
+wurde nie gebaut. Nachdem die Nebenwirkungen mitzählten, ging die Flutruine
+von Welle 38 auf 100.
+
+**Und zweimal falscher Alarm aus zu wenigen Läufen.** „Glutschlucht bricht
+bei Welle 40 ein" und „Flutruine nur bis 27" — mit fünf Läufen statt vier
+lagen beide Mediane bei 97 und 100. Bei dieser Streuung trägt ein Median aus
+vier Läufen keine Aussage.
 
 Wer hier weiterbaut, sollte bei jedem überraschenden Ergebnis zuerst fragen,
 ob der Bot etwas nicht kennt, und erst danach, ob das Spiel unausgewogen ist.
