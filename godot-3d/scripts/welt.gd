@@ -25,9 +25,9 @@ const ROUTE := [
 	# Dieselbe Führung wie der Grünpfad im Browserspiel — Kachelkoordinaten,
 	# damit beide Fassungen dieselbe Karte zeigen. Wird die Route dort
 	# geändert, gehört sie auch hier nachgezogen.
-	Vector2(-1, 9), Vector2(4, 9), Vector2(4, 4), Vector2(9, 4),
-	Vector2(9, 10), Vector2(15, 10), Vector2(15, 4), Vector2(19, 4),
-	Vector2(19, 7), Vector2(12, 7), Vector2(12, 9), Vector2(20, 9),
+	Vector2(-1, 6), Vector2(3, 6), Vector2(3, 3), Vector2(9, 3),
+	Vector2(9, 9), Vector2(5, 9), Vector2(5, 5), Vector2(13, 5),
+	Vector2(13, 10), Vector2(17, 10), Vector2(17, 4), Vector2(20, 5),
 ]
 
 var weg_punkte: PackedVector3Array

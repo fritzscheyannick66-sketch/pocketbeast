@@ -969,28 +969,30 @@ const MAPS = [
        Alle Routen meiden die oberen Ecken: dort schweben die Steuerknöpfe
        (Zeilen 0–2 in den Spalten 0–5 und 15–19). Lief der Weg darunter hindurch,
        verschwanden Gegner an dieser Stelle hinter einem Knopf. */
-    /* Neue Führung: Zickzack statt Doppelschlinge.
+    /* Mäandernder Waldweg: geglättet, viele Wegpunkte mit Versatz — weiche
+       S-Bögen statt rechter Winkel. Der Weg schlingt sich einmal über sich
+       selbst; ein Wächter an der Kreuzung bestreicht zwei getrennte
+       Abschnitte und feuert damit zweimal auf denselben Gegner. Die Stelle
+       ist der wertvollste Bauplatz der Karte.
 
-       Die alte Route drängte sich in der linken Bildhälfte zusammen, während
-       rechts kaum etwas geschah. Jetzt läuft der Weg in drei Kehren
-       gleichmäßig über die ganze Breite und biegt am rechten Rand zurück —
-       dabei kreuzt er sich selbst. Ein Wächter an der Kreuzung bestreicht
-       zwei getrennte Abschnitte und feuert doppelt.
+       Ein Zickzack über die ganze Breite wurde ausprobiert und wieder
+       verworfen. Gemessen deckte er nur 65 Prozent der freien Felder ab
+       gegenüber 69 hier — und er gefiel auch nicht. Die Enge dieser Führung
+       ist kein Mangel, sondern der Grund, warum so viele Plätze etwas
+       taugen: Wo der Weg dicht liegt, feuert fast jeder Wächter.
 
-       Fünf Entwürfe wurden durchgemessen. Die alte Route deckte 69 Prozent
-       der freien Felder ab, diese 65 — dafür bleiben 188 statt 192 Plätze
-       übrig, und sie liegen verteilt statt geballt. Der Verlust ist der
-       Preis der Kehren; wer die Route dichter packt, gewinnt Abdeckung und
-       verliert Übersicht.
-
-       Kein Wegpunkt liegt in den Zeilen 0 bis 2 der Spalten 0–5 und 15–19:
-       dort schweben die Steuerknöpfe über dem Feld. */
-    wp:  [[-1,9],[4,9],[4,4],[9,4],[9,10],[15,10],[15,4],[19,4],[19,7],[12,7],[12,9],[20,9]],
+       Alle Routen meiden die oberen Ecken: dort schweben die Steuerknöpfe
+       (Zeilen 0–2 in den Spalten 0–5 und 15–19). */
+    wp:  [[-1,6],[3,6],[3,3],[9,3],[9,9],[5,9],[5,5],[13,5],[13,10],[17,10],[17,4],[20,5]],
     /* Zweiter Zweig: teilt sich den Weg bis (13,5), führt dann oben statt
        unten herum und trifft bei (17,4) wieder auf die Hauptroute. Beide
        Listen müssen im gemeinsamen Teil Punkt für Punkt gleich sein, sonst
        driften die Linien nach der Glättung auseinander. */
-    wpB: [[-1,9],[4,9],[4,4],[9,4],[9,10],[15,10],[15,4],[19,4],[19,6],[16,6],[16,9],[20,9]],
+    /* Zweiter Zweig: teilt sich den Weg bis (13,5), führt dann oben statt
+       unten herum und trifft bei (17,4) wieder auf die Hauptroute. Beide
+       Listen müssen im gemeinsamen Teil Punkt für Punkt gleich sein, sonst
+       driften die Linien nach der Glättung auseinander. */
+    wpB: [[-1,6],[3,6],[3,3],[9,3],[9,9],[5,9],[5,5],[13,5],[13,8],[16,8],[17,6],[17,4],[20,5]],
   },
   {
     /* Vulkanschlote statt Wasserstellen. In einer Schlucht aus Glut und
