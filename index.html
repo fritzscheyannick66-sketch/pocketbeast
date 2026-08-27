@@ -896,22 +896,30 @@ const SPECIES = [
 ];
 const SPEC_BY_ID = Object.fromEntries(SPECIES.map(s => [s.id, s]));
 
+/* Anführer.
+
+   Namen nach demselben Prinzip wie die Wächter-Endstufen: durchgehend
+   deutsch, zweigliedrig, wuchtig — und passend zur Gestalt, die sie tragen.
+
+   Vorher mischten sich hier Griechisch (Gorgolith, Abyssgrund), Latein
+   (Vulkanox, Somnul, Glazior) und reine Kunstwörter (Fulmax, Amboloss) in
+   eine Liste, die neben Flammenkralle und Wogenfürst steht. */
 const BOSSES = [
-  { id: "vulcanox",  name: "Vulkanox",    type: "fire",     shape: "ox",      hp: 24, spd: .5,  bounty: 16, size: 34, armor: 8,
+  { id: "vulcanox",  name: "Glutochse",    type: "fire",     shape: "ox",      hp: 24, spd: .5,  bounty: 16, size: 34, armor: 8,
     ability: "stun", abEvery: 6.5, abText: "Glutstoß — betäubt reihum einen Wächter" },
-  { id: "abyssal",   name: "Abyssgrund",  type: "water",    shape: "fish",    hp: 26, spd: .55, bounty: 18, size: 34, regen: .008,
+  { id: "abyssal",   name: "Tiefenschlund",  type: "water",    shape: "fish",    hp: 26, spd: .55, bounty: 18, size: 34, regen: .008,
     ability: "cleanse", abEvery: 5, abText: "Strömung — streift Effekte ab und heilt sich" },
-  { id: "titanroot", name: "Titanwurz",   type: "grass",    shape: "sprout",  hp: 30, spd: .45, bounty: 20, size: 36, armor: 11,
+  { id: "titanroot", name: "Wurzelriese",   type: "grass",    shape: "sprout",  hp: 30, spd: .45, bounty: 20, size: 36, armor: 11,
     ability: "summon", abEvery: 7, abText: "Austrieb — ruft Ranklinge herbei" },
-  { id: "fulmax",    name: "Fulmax",      type: "electric", shape: "bird",    hp: 25, spd: .8,  bounty: 20, size: 32, flying: true,
+  { id: "fulmax",    name: "Gewitteraar",      type: "electric", shape: "bird",    hp: 25, spd: .8,  bounty: 20, size: 32, flying: true,
     ability: "haste", abEvery: 8, abText: "Sturmruf — treibt alle Wilden an" },
-  { id: "gorgolith", name: "Gorgolith",   type: "rock",     shape: "crystal", hp: 34, spd: .38, bounty: 24, size: 38, armor: 17, tough: true,
+  { id: "gorgolith", name: "Felsenherz",   type: "rock",     shape: "crystal", hp: 34, spd: .38, bounty: 24, size: 38, armor: 17, tough: true,
     ability: "shield", abEvery: 9, abText: "Steinhaut — legt sich einen Panzer zu, unbeirrbar" },
-  { id: "somnul",    name: "Somnul",      type: "psychic",  shape: "eye",     hp: 32, spd: .6,  bounty: 30, size: 36, heal: true,
+  { id: "somnul",    name: "Nimmerauge",      type: "psychic",  shape: "eye",     hp: 32, spd: .6,  bounty: 30, size: 36, heal: true,
     ability: "stun", abEvery: 5, abText: "Trugbild — legt Wächter schlafen und heilt Verbündete" },
-  { id: "glacior",   name: "Glazior",     type: "ice",      shape: "zottel",  hp: 31, spd: .48, bounty: 26, size: 36, armor: 12, shield: .5,
+  { id: "glacior",   name: "Frostmähne",     type: "ice",      shape: "zottel",  hp: 31, spd: .48, bounty: 26, size: 36, armor: 12, shield: .5,
     ability: "shield", abEvery: 8, abText: "Firnpanzer — überzieht sich mit Eis und wird unbeirrbar" },
-  { id: "ambosskoloss", name: "Amboloss", type: "steel",    shape: "bolzen",  hp: 33, spd: .42, bounty: 28, size: 37, armor: 24, tough: true,
+  { id: "ambosskoloss", name: "Erzhammer", type: "steel",    shape: "bolzen",  hp: 33, spd: .42, bounty: 28, size: 37, armor: 24, tough: true,
     ability: "stun", abEvery: 7, abText: "Hammerschlag — bringt einen Wächter zum Schweigen" },
 ];
 
@@ -2361,7 +2369,7 @@ function refSpecHP(w) {
    Bosswelle ist um BOSS_SURGE stärker als die Kurve, davon entfällt BOSS_SHARE
    auf den Boss. Der Aufschlag ist damit in jeder Bosswelle gleich groß.
    BOSS_REF ist die mittlere Zähigkeit der sechs Bosse; das Verhältnis b.hp/BOSS_REF
-   erhält ihre relative Stärke untereinander (Vulkanox 0,82 … Gorgolith 1,17).
+   erhält ihre relative Stärke untereinander (Glutochse 0,82 … Felsenherz 1,17).
 
    Die Werte sind empirisch kalibriert (je fünf Bot-Läufe pro Kandidat), nicht
    geschätzt. Sie fallen bewusst moderat aus, weil ein Boss-Durchbruch binär

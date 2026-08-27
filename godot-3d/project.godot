@@ -1,6 +1,10 @@
-; PocketBeast 3D
-; Eigenständiges Projekt neben dem Browserspiel und dem 2D-Prototyp.
-; Ziel: echte dreidimensionale Darstellung derselben Spielidee.
+; Engine configuration file.
+; It's best edited using the editor UI and not directly,
+; since the parameters that go here are not all obvious.
+;
+; Format:
+;   [section] ; section goes between []
+;   param=value ; assign values to parameters
 
 config_version=5
 
@@ -17,6 +21,4 @@ window/size/viewport_height=768
 
 [rendering]
 
-renderer/rendering_method="forward_plus"
-lights_and_shadows/directional_shadow/size=4096
 anti_aliasing/quality/msaa_3d=2
