@@ -1446,6 +1446,36 @@ function sfxWave(boss) {
 function sfxWaveClear() { [523, 784].forEach((f, i) => tone({ f, d: .2, type: "sine", g: .17, dl: i * .1 })); }
 function sfxUI() { if (!sndOK("u", 60)) return; tone({ f: 620, d: .05, type: "square", g: .07 }); }
 function sfxWin() { [523, 659, 784, 1047].forEach((f, i) => tone({ f, d: .45, type: "triangle", g: .22, dl: i * .16 })); }
+
+/* Erfolg: zwei helle Töne, eine Quinte auseinander.
+
+   Bewusst kurz und deutlich anders als der Wellenklang — ein Erfolg kann
+   mitten in einer Welle fallen, und man soll ihn nicht für "Welle gehalten"
+   halten. Ein Dreieck statt Sinus, weil es sich gegen das Kampfgeschehen
+   durchsetzt, ohne laut zu sein. */
+function sfxErfolg() {
+  [880, 1319].forEach((f, i) => tone({ f, d: .22, type: "triangle", g: .16, dl: i * .09 }));
+  tone({ f: 2637, d: .12, type: "sine", g: .05, dl: .18 });
+}
+
+/* Erweckung des legendären Wächters.
+
+   Der seltenste Klang im Spiel — man hört ihn elfmal, wenn man alles
+   durchspielt. Deshalb darf er lang sein: ein tiefer Bordun, der stehen
+   bleibt, darüber eine steigende Folge, zuletzt ein Nachklang, der
+   ausschwingt.
+
+   Der Bordun trägt das Ganze. Ohne ihn wäre es nur eine schnellere Fassung
+   des Siegklangs; mit ihm klingt es nach etwas, das aufwacht. */
+function sfxLegendaer() {
+  tone({ f: 98, f2: 131, d: 2.6, type: "sawtooth", g: .07, at: .35 });
+  tone({ f: 196, d: 2.4, type: "sine", g: .06, at: .4, dl: .1 });
+  [262, 330, 392, 523, 659, 784].forEach((f, i) =>
+    tone({ f, d: .7, type: "triangle", g: .17, dl: .25 + i * .17 }));
+  [1047, 1319, 1568].forEach((f, i) =>
+    tone({ f, d: 1.6, type: "sine", g: .11, dl: 1.3 + i * .1 }));
+  noise({ d: 1.2, hz: 2600, g: .035, dl: 1.25 });
+}
 function sfxLose() { [392, 330, 262, 196].forEach((f, i) => tone({ f, d: .5, type: "sawtooth", g: .18, dl: i * .2 })); }
 
 /* ============================================================
@@ -3003,6 +3033,7 @@ function erfolgePruefen() {
       addLog(`<b>Erfolg:</b> ${e.name} — ${e.text}`);
     }
     banner("Erfolg: " + neu[0].name);
+    sfxErfolg();
   }
   return neu;
 }
@@ -3083,8 +3114,13 @@ function endWave() {
     + (neueSterne ? ` · <b>★</b> Stern ${sterne(G.mapIdx)}/${WELLEN_JE_KARTE}` : ""));
   if (neueSterne) {
     G.floats.push({ x: W / 2, y: H * .42, txt: "★ " + sterne(G.mapIdx), col: "#F0A83C", life: 1.6, max: 1.6 });
-    if (legendaerFrei(G.mapIdx) && sterne(G.mapIdx) === WELLEN_JE_KARTE)
-      banner("★ Legendärer Wächter freigeschaltet");
+    if (legendaerFrei(G.mapIdx) && sterne(G.mapIdx) === WELLEN_JE_KARTE) {
+      const leg = MAPS[G.mapIdx].legendaer;
+      banner("★ " + (leg ? leg.namen[2] : "Legendärer Wächter") + " erwacht");
+      sfxLegendaer();
+      addLog(`<b>★ ${leg ? leg.namen[2] : "Legendärer Wächter"}</b> erwacht — `
+        + `alle ${WELLEN_JE_KARTE} Wellen gehalten. Der Endlosmodus dieser Route steht offen.`);
+    }
   }
   if (G.endless && G.wave > (save.endless || 0)) { save.endless = G.wave; writeSave(); }
   erfolgePruefen();
