@@ -4302,7 +4302,11 @@ function update(dt) {
     if (e.d >= rt.len) {
       e.dead = true; e.leaked = true;
       const dmgL = e.boss ? 5 : 1;
-      G.lives -= dmgL; G.leaked += dmgL;
+      /* Bei null abgefangen. Ein Anführer nimmt fünf Leben — wer noch drei
+         hat, stand sonst mit "−2 Leben" in der Kopfzeile da, weil
+         updateStats() vor der Prüfung auf Spielende läuft. Negative Leben
+         sehen wie ein Fehler aus, nicht wie eine Niederlage. */
+      G.lives = Math.max(0, G.lives - dmgL); G.leaked += dmgL;
       statPlus("durch", dmgL);
       float(W - 40, e.y, "−" + dmgL, "#FF6E45", 1);
       sfxLeak(); G.shake = Math.min(16, 5 + dmgL * 2.5);
