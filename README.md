@@ -1,8 +1,8 @@
 # PocketBeast
 
 Kreaturen-Tower-Defense. Eine einzelne HTML-Datei, kein Build, keine Abhängigkeiten,
-keine Asset-Dateien — Grafik ist prozedural auf Canvas gezeichnet, Sound prozedural
-über WebAudio erzeugt.
+**keine Asset-Dateien** — jede Grafik ist prozedural auf Canvas gezeichnet, jeder Klang
+prozedural über WebAudio erzeugt. Was du siehst, steht als Code da.
 
 ## Spielen
 
@@ -14,100 +14,116 @@ Oder lokal — Datei doppelklicken, beziehungsweise:
 open index.html
 ```
 
-Läuft direkt über `file://`, ohne Server. Die einzige Netzwerkanfrage ist
-Google Fonts — ohne Internet greifen die Fallback-Schriften.
+Läuft direkt über `file://`, ohne Server. Die einzige Netzwerkanfrage geht an
+Google Fonts; ohne Internet greifen die Ersatzschriften.
 
-Der Spielstand hängt an der Herkunft: Die online gespielte Runde und die
-lokal geöffnete Datei führen getrennte Fortschritte.
+Der Spielstand hängt an der Herkunft: Die online gespielte Runde und die lokal
+geöffnete Datei führen getrennte Fortschritte.
+
+## Was drin ist
+
+| | |
+|---|---|
+| **11 Routen** | Je eine für jedes baubare Element, mit eigener Wegführung, eigenem Bewuchs und eigenem Wetter |
+| **100 Wellen je Route** | Dreistufige Kurve: erst steil, dann zweimal abgeflacht — sonst wären die letzten dreißig Wellen unerreichbar |
+| **11 Wächterfamilien** | Je drei Stufen, dazu eine vierte, die sich nicht kaufen lässt |
+| **11 legendäre Wächter** | Einer je Route, verdient durch alle 100 Wellen |
+| **12 Elementtypen** | Mit voller Wirksamkeitstabelle |
+| **44 Gegnerarten, 11 Anführer** | Flieger, Gepanzerte, Heiler, Schilde, Beschwörer |
+| **8 Wetter, 11 Fassungen** | Regen, Sturm, Böen, Schnee, Nebel, Staub, Ruß, Pollen, Glut, Sonne, Traum |
+
+## Wie es sich spielt
+
+**Typen** schlagen einander. Feuer zerlegt Pflanze, prallt an Wasser ab. Über
+getroffenen Gegnern steht, ob der Treffer wirkt.
+
+**Entwickeln statt vermehren.** Zwei entwickelte Wächter schlagen fünf schwache.
+Auf der Endstufe geht es mit Training weiter, und wer einen Wächter über die
+ganze Runde pflegt — 40 erledigte Gegner, Training 6 — erreicht die
+**Megaentwicklung**.
+
+**Der Ort entscheidet.** Wasser-Wächter stehen ausschließlich auf Wasserstellen.
+Vulkanschlote nehmen nur Feuer auf. Erhöhungen geben Gestein und Wind mehr
+Sicht. Jede Route kreuzt sich einmal selbst — dort feuert ein Wächter auf zwei
+Abschnitte.
+
+**Jede Route hat ein Heimatelement.** Dessen Wächter sind dort stärker — dessen
+Wilde aber auch zäher. Auf dem Firnfeld ist Eis beides.
+
+**Tag und Nacht** wechseln alle vier Wellen. Feen entwickeln sich nur bei Tag,
+Unlicht nur bei Nacht.
+
+**Sterne** zählen die höchste je gehaltene Welle, 100 je Route. Wer alle hält,
+erweckt den legendären Wächter der Route — und erst mit ihm lässt sich ihr
+**Endlosmodus** bestreiten. Dort werden übrige Beeren zu Trainerpunkten, und im
+**Hain der Ahnen** lassen sich dauerhafte Aufwertungen kaufen.
+
+## Steuerung
+
+`Leertaste` Welle starten · `P` Pause · `1`–`9` Wächter wählen · `U` entwickeln ·
+`V` entlassen · `Esc` abwählen
+
+Am Handy zeigt der erste Tipp die Reichweite, der zweite setzt den Wächter.
 
 ## Dateien
 
 | Datei | Inhalt |
 |---|---|
-| [index.html](index.html) | Das Spiel. Heißt `index.html`, damit GitHub Pages es direkt ausliefert. |
-| [pocketbeast.original.html](pocketbeast.original.html) | Fassung vor dem Balance-Fix, zum Vergleich. |
-| [ANALYSE.md](ANALYSE.md) | Review: Performance, Balance, gefundene Schwachstellen. |
-| [daten/](daten/) | Gemessene HP-Kurven aller 40 Wellen, vor und nach dem Fix. |
-| [tools/autoplay-bot.js](tools/autoplay-bot.js) | Bot, der eine komplette Runde ohne Zutun durchspielt. |
+| [index.html](index.html) | Das Spiel. Heißt so, damit GitHub Pages es direkt ausliefert. |
+| [tools/](tools/) | Prüfstand, Bot und Messwerkzeuge — siehe [tools/README.md](tools/README.md) |
+| [godot-3d/](godot-3d/) | Die 3D-Fassung, im Bau — siehe [godot-3d/README.md](godot-3d/README.md) |
+| [ANALYSE.md](ANALYSE.md) | Was gemessen wurde, was sich als Messfehler herausstellte |
+| [daten/](daten/) | Gemessene Wellenkurven, vor und nach dem Balance-Fix |
+| [pocketbeast.original.html](pocketbeast.original.html) | Fassung vor dem Balance-Fix, zum Vergleich |
+| [godot-prototyp/](godot-prototyp/) | Erster Godot-Versuch, abgelöst durch `godot-3d/` |
 
-## Steuerung
+## Werkzeuge
 
-`Leertaste` Welle starten · `P` Pause · `1`–`6` Wächter wählen · `U` entwickeln ·
-`V` entlassen · `Esc` abwählen
+Das Spiel lässt sich ohne Browser durchspielen. `tools/pruefstand.js` lädt
+`index.html` in Node, `tools/bot.js` spielt eine Runde, `tools/testlauf.js`
+misst über alle Karten:
 
-## Stand
+```bash
+node tools/testlauf.js --laeufe 5
+```
 
-Spielbar und vollständig.
+Das dauert etwa 25 Minuten und sagt, wie weit jede Karte trägt. `tools/varianten.js`
+dreht einzelne Stellschrauben, ohne `index.html` anzufassen.
 
-**Behoben (24.08.2026):** Die Wellenstärke schwankte um bis zu Faktor 6 zwischen
-benachbarten Wellen, je nachdem welche Gegnerarten der Zufall zog. Die Abweichung
-von der Sollkurve liegt jetzt in jeder Welle bei exakt 1,00.
+**Der Bot ist ein Messgerät, und Messgeräte gehen kaputt.** Drei seiner blinden
+Flecken haben die Ergebnisse um jeweils über vierzig Wellen verschoben, ohne dass
+sich am Spiel etwas geändert hätte. Wer ihm glaubt, ohne zu prüfen, ob er selbst
+oder das Spiel falsch liegt, ändert die falsche Sache. Die Fälle stehen in
+[ANALYSE.md](ANALYSE.md) — sie sind lehrreicher als die Befunde.
 
-**Behoben (24.08.2026):** Bosswellen wurden zusätzlich zur vollen Welle gestellt und
-sprangen dadurch um das 1,5- bis 2,7-fache der Vorwelle. Welle 24 kostete reproduzierbar
-14–18 Leben und war die einzige Verlustwelle im ganzen Durchlauf. Boss und normale
-Gegner teilen sich jetzt ein Budget; die Sprünge liegen bei 1,12–1,60.
+## Zwei Fassungen
 
-**Aufgeräumt (24.08.2026):** Toter `flying`-Eintrag in der Typentabelle entfernt,
-Artenwahl zieht ohne Zurücklegen (keine doppelten Gruppen mehr). Beides ohne
-Balance-Änderung, gemessen.
-
-**Zurückgezogen:** Der zuvor gemeldete Gold-Überschuss ab Welle 20 war ein Messfehler
-meinerseits — die Ökonomie ist gesund. Details in [ANALYSE.md](ANALYSE.md).
-
-**Großes Feature-Paket (26.08.2026):**
-
-- **Wasserstellen** nehmen ausschließlich Wasser-Wächter auf — und die dürfen
-  nirgendwo sonst stehen. Aus einer freien Wahl wird ein Standortproblem.
-- **Kraftfelder** erweitern die Reichweite des Wächters darauf um 30 %.
-- **Tag-und-Nacht-Zyklus**: alle vier Wellen wechselt die Tageszeit, sichtbar
-  an Beleuchtung, Sternen und Lichtkegeln der Wächter.
-- **Zwei neue Familien**: Fee und Unlicht. Feen entwickeln sich nur bei Tag,
-  Unlicht nur bei Nacht — gesetzt werden dürfen beide jederzeit.
-- **Megaentwicklung**: eine vierte Stufe, die sich nicht kaufen lässt. Ein
-  Wächter auf Endstufe braucht 40 erledigte Gegner und Training 6.
-- **Mehr Tiefe**: Geländerelief, Luftperspektive, Vignette, eingesenkter Weg
-  und versetzte Schatten. Fliegende werfen einen kleineren, blasseren Schatten
-  als laufende — daran liest man die Flughöhe ab.
-- **Routen** meiden jetzt die oberen Ecken, wo die Steuerknöpfe schweben.
-
-Bestand: 10 Wächterfamilien, 10 Elementtypen, 32 Gegnerarten, 8 Bosse.
-Balance gemessen unverändert (siehe [ANALYSE.md](ANALYSE.md)).
-
-**Kreuzungen (25.08.2026):** Jede Route kreuzt sich jetzt einmal selbst — als weiche
-Schlinge, spitzwinklig oder als Straßenkreuzung. Wächter an der Kreuzung bestreichen
-zwei Wegabschnitte und feuern doppelt. Das machte die Karten deutlich leichter,
-ausgeglichen über eine höhere Wellenstärke (`mul` 1,25 / 1,5 / 1,95).
-
-**Kreaturen (25.08.2026):** Die drei Entwicklungsstufen sehen jetzt unterschiedlich
-aus — der Grundkörper bleibt gleich, Kranz, Kragen, Schulterplatten und ein Zeichen
-des Elements kommen hinzu. Neue Typen **Eis** und **Stahl** mit eigenen Körperformen,
-je einem Wächter, sieben Gegnerarten und zwei Bossen. Der Aufstieg wird animiert.
-Bestand: 8 Wächter, 32 Gegnerarten, 8 Bosse.
-
-**Gestaltung (24.08.2026):** Die drei Karten unterschieden sich nur in der Farbe —
-gleiches rechteckiges Zickzack, gleicher flacher Boden, gleichmäßig gestreuter
-Bewuchs. Jetzt hat jede Route eine Handschrift (mäandernder Waldweg / schroffe
-Spalte / rechtwinkliger Straßenzug), der Bewuchs bildet Wäldchen und Lichtungen,
-der Boden hat zwei Texturebenen, und die Wegkante franst aus. Balance gemessen
-unverändert.
-
-**Neu (24.08.2026):** Die Wellenvorschau zeigt jetzt das Kräfteverhältnis — eine Ampel
-sagt, ob die Verteidigung die nächste Welle trägt, und jede Gegnerart bekommt ihren
-Faktor. Die Schwellen sind an 120 gemessenen Wellen kalibriert. Reines Feedback, die
-Balance ist nachweislich unverändert.
-
-**Offen:** Der Übergang bleibt scharf — reicht die Feuerkraft, stirbt alles unterwegs;
-reicht sie nicht, kommt fast alles durch. Das ist genretypisch und bewusst so gelassen;
-die Vorschau warnt jetzt rechtzeitig davor. Siehe „Befund 4" in [ANALYSE.md](ANALYSE.md).
+Das Browserspiel ist die maßgebliche Fassung. Die Godot-Fassung zieht nach:
+`node tools/daten-nach-godot.js` erzeugt `godot-3d/scripts/daten.gd` aus
+`index.html`. Eine von Hand gepflegte zweite Fassung wäre binnen Tagen falsch,
+ohne dass es jemandem auffiele.
 
 ## Speicherstand
 
-Talentpunkte und Fortschritt liegen in `localStorage` unter dem Schlüssel
-`wildwacht.v1` — der Schlüssel trägt noch den früheren Namen, damit
-vorhandene Spielstände nach der Umbenennung erhalten bleiben. Getrennt pro Herkunft. Die Datei über `file://` zu öffnen ergibt
-also einen anderen Speicherstand als über einen lokalen Server. Zurücksetzen geht
-im Hauptmenü über „Fortschritt zurücksetzen".
+Fortschritt liegt in `localStorage` unter `wildwacht.v1` — der Schlüssel trägt
+noch den früheren Namen, damit vorhandene Spielstände die Umbenennung überlebt
+haben. Getrennt pro Herkunft: Die Datei über `file://` zu öffnen ergibt einen
+anderen Stand als über einen Server. Zurücksetzen im Hauptmenü über
+„Fortschritt zurücksetzen".
+
+## Historie
+
+Die ausführliche Fassung steht in der Git-Historie; hier nur die Wendepunkte.
+
+- **Wellenstärke schwankte um Faktor 6** zwischen benachbarten Wellen, je nachdem
+  welche Arten der Zufall zog. Die Abweichung von der Sollkurve liegt jetzt bei 1,00.
+- **Bosswellen kamen zusätzlich** zur vollen Welle und sprangen aufs 2,7-fache.
+  Boss und Gegner teilen sich jetzt ein Budget.
+- **Heilung stapelte sich unbegrenzt.** Zwanzig Heiler heilten 24 % der Lebenskraft
+  je Sekunde — mehr, als die meisten Aufstellungen austeilen. Beide „Brutal"-Karten
+  kippten genau bei der Welle, in der der Heiler auftauchte. Gedeckelt auf 4,5 %.
+- **Zurückgezogen:** Ein gemeldeter Gold-Überschuss ab Welle 20 war ein Messfehler
+  meinerseits. Die Ökonomie ist gesund.
 
 ## Lizenz
 
@@ -115,16 +131,14 @@ im Hauptmenü über „Fortschritt zurücksetzen".
 kommerziell. Einzige Bedingung: Der Copyright-Hinweis aus `LICENSE` bleibt
 erhalten.
 
-Zwei Dinge im Projekt stammen nicht von mir und fallen nicht unter diese
-Lizenz:
+Zwei Dinge im Projekt stammen nicht von mir und fallen nicht unter diese Lizenz:
 
-- **`icon.svg`** ist das Standard-Projektsymbol von Godot, das die Engine in
-  jedes neue Projekt legt. Es gehört dem Godot-Projekt und steht unter
+- **`icon.svg`** ist das Standard-Projektsymbol von Godot, das die Engine in jedes
+  neue Projekt legt. Es gehört dem Godot-Projekt und steht unter
   [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/).
-- **Die Schriften** (Fraunces, Sora, JetBrains Mono) werden zur Laufzeit von
-  Google Fonts geladen und liegen nicht in diesem Repository. Sie stehen unter
-  der SIL Open Font License beziehungsweise der Apache-Lizenz 2.0.
+- **Die Schriften** (Fraunces, Sora, JetBrains Mono) werden zur Laufzeit von Google
+  Fonts geladen und liegen nicht in diesem Repository. Sie stehen unter der SIL Open
+  Font License beziehungsweise der Apache-Lizenz 2.0.
 
-Alles Übrige — Spielcode, Grafik, Klang, Dokumentation — ist eigenständig.
-Kreaturen, Namen und Regeln sind frei erfunden und haben keinen Bezug zu
-bestehenden Marken.
+Alles Übrige — Spielcode, Grafik, Klang, Dokumentation — ist eigenständig. Kreaturen,
+Namen und Regeln sind frei erfunden und haben keinen Bezug zu bestehenden Marken.

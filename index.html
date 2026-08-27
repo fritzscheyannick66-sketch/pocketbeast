@@ -7625,7 +7625,7 @@ function victory() {
   writeSave();
   openVeil(`<h2 class="big">Route gehalten</h2>
     <p class="lead">Alle ${WELLEN_JE_KARTE} Wellen auf ${G.map.name} abgewehrt, mit ${G.lives} Leben übrig.
-    +15 Trainerpunkte${beerenPunkte ? `, dazu ${beerenPunkte} aus ${G.gold} übrigen Beeren` : ""}. ${MAPS.filter((_, i) => !save.cleared[i]).length ? "Die härteren Routen warten." : "Alle drei Routen gemeistert."}</p>
+    +15 Trainerpunkte${beerenPunkte ? `, dazu ${beerenPunkte} aus ${G.gold} übrigen Beeren` : ""}. ${MAPS.filter((_, i) => !save.cleared[i]).length ? "Die härteren Routen warten." : `Alle ${zahlwort(MAPS.length)} Routen gemeistert.`}</p>
     <div class="grid2" style="max-width:420px;margin-bottom:16px">
       <div class="kv"><div class="k">Punkte</div><div class="v">${G.score}</div></div>
       <div class="kv"><div class="k">Leben übrig</div><div class="v">${G.lives}</div></div>
