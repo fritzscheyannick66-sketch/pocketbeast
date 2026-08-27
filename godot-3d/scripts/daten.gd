@@ -212,14 +212,14 @@ const ARTEN := [
 
 ## Anführer. Deutlich größer und zäher als gewöhnliche Arten.
 const ANFUEHRER := [
-	{ "name": "Glutochse", "typ": "fire", "gestalt": "ox", "leben": 24, "tempo": 0.5, "beute": 16, "groesse": 34, "panzer": 8 },
-	{ "name": "Tiefenschlund", "typ": "water", "gestalt": "fish", "leben": 26, "tempo": 0.55, "beute": 18, "groesse": 34, "heilt": 0.008 },
-	{ "name": "Wurzelriese", "typ": "grass", "gestalt": "sprout", "leben": 30, "tempo": 0.45, "beute": 20, "groesse": 36, "panzer": 11 },
-	{ "name": "Gewitteraar", "typ": "electric", "gestalt": "bird", "leben": 25, "tempo": 0.8, "beute": 20, "groesse": 32, "fliegt": true },
-	{ "name": "Felsenherz", "typ": "rock", "gestalt": "crystal", "leben": 34, "tempo": 0.38, "beute": 24, "groesse": 38, "panzer": 17, "zaeh": true },
-	{ "name": "Nimmerauge", "typ": "psychic", "gestalt": "eye", "leben": 32, "tempo": 0.6, "beute": 30, "groesse": 36 },
-	{ "name": "Frostmähne", "typ": "ice", "gestalt": "zottel", "leben": 31, "tempo": 0.48, "beute": 26, "groesse": 36, "panzer": 12, "schild": 0.5 },
-	{ "name": "Erzhammer", "typ": "steel", "gestalt": "bolzen", "leben": 33, "tempo": 0.42, "beute": 28, "groesse": 37, "panzer": 24, "zaeh": true },
+	{ "name": "Vulkanox", "typ": "fire", "gestalt": "ox", "leben": 24, "tempo": 0.5, "beute": 16, "groesse": 34, "panzer": 8 },
+	{ "name": "Abyssgrund", "typ": "water", "gestalt": "fish", "leben": 26, "tempo": 0.55, "beute": 18, "groesse": 34, "heilt": 0.008 },
+	{ "name": "Titanwurz", "typ": "grass", "gestalt": "sprout", "leben": 30, "tempo": 0.45, "beute": 20, "groesse": 36, "panzer": 11 },
+	{ "name": "Fulmax", "typ": "electric", "gestalt": "bird", "leben": 25, "tempo": 0.8, "beute": 20, "groesse": 32, "fliegt": true },
+	{ "name": "Gorgolith", "typ": "rock", "gestalt": "crystal", "leben": 34, "tempo": 0.38, "beute": 24, "groesse": 38, "panzer": 17, "zaeh": true },
+	{ "name": "Somnul", "typ": "psychic", "gestalt": "eye", "leben": 32, "tempo": 0.6, "beute": 30, "groesse": 36 },
+	{ "name": "Glazior", "typ": "ice", "gestalt": "zottel", "leben": 31, "tempo": 0.48, "beute": 26, "groesse": 36, "panzer": 12, "schild": 0.5 },
+	{ "name": "Amboloss", "typ": "steel", "gestalt": "bolzen", "leben": 33, "tempo": 0.42, "beute": 28, "groesse": 37, "panzer": 24, "zaeh": true },
 ]
 
 ## Wellenkurve, vorberechnet.
