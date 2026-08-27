@@ -31,14 +31,14 @@ const TYPEN := {
 ## Angreifer -> Verteidiger. Fehlender Eintrag bedeutet 1.0 —
 ## genau wie eff() im Browserspiel.
 const CHART := {
-	"fire": { "grass": 2, "ice": 2, "steel": 2, "water": 0.5, "rock": 0.5, "fire": 0.5, "psychic": 1 },
+	"fire": { "grass": 2, "ice": 2, "steel": 2, "wind": 0.5, "water": 0.5, "rock": 0.5, "fire": 0.5, "psychic": 1 },
 	"water": { "fire": 2, "rock": 2, "water": 0.5, "grass": 0.5, "electric": 0.5, "ice": 0.5 },
 	"grass": { "water": 2, "rock": 2, "grass": 0.5, "fire": 0.5, "psychic": 1, "ice": 0.5, "steel": 0.5 },
 	"electric": { "water": 2, "steel": 2, "electric": 0.5, "grass": 0.5, "rock": 0.5 },
-	"rock": { "fire": 2, "electric": 2, "ice": 2, "rock": 0.5, "water": 0.5, "grass": 0.5, "steel": 0.5 },
+	"rock": { "fire": 2, "electric": 2, "ice": 2, "wind": 2, "rock": 0.5, "water": 0.5, "grass": 0.5, "steel": 0.5 },
 	"psychic": { "psychic": 0.5, "steel": 0.5, "fire": 1.25, "water": 1.25, "grass": 1.25, "electric": 1.25, "rock": 1.25, "ice": 1.25 },
-	"ice": { "grass": 2, "rock": 2, "ice": 0.5, "fire": 0.5, "water": 0.5, "steel": 0.5 },
-	"steel": { "ice": 2, "rock": 2, "fairy": 2, "steel": 0.5, "fire": 0.5, "water": 0.5, "electric": 0.5 },
+	"ice": { "grass": 2, "rock": 2, "wind": 1.5, "ice": 0.5, "fire": 0.5, "water": 0.5, "steel": 0.5 },
+	"steel": { "ice": 2, "rock": 2, "fairy": 2, "wind": 1.5, "steel": 0.5, "fire": 0.5, "water": 0.5, "electric": 0.5 },
 	"fairy": { "dark": 2, "rock": 2, "psychic": 1.5, "fairy": 0.5, "fire": 0.5, "steel": 0.5 },
 	"dark": { "psychic": 2, "dark": 2, "fairy": 0.5, "steel": 0.5 },
 	"wind": { "grass": 2, "psychic": 1.5, "fairy": 1.25, "rock": 0.5, "steel": 0.5, "ice": 0.75 },
@@ -208,6 +208,18 @@ const ARTEN := [
 	{ "id": "eisnadel", "name": "Eisnadel", "typ": "ice", "gestalt": "crystal", "leben": 0.95, "tempo": 1.5, "beute": 1.1, "groesse": 14 },
 	{ "id": "federstahl", "name": "Federstahl", "typ": "steel", "gestalt": "moth", "leben": 1.2, "tempo": 1.4, "beute": 1.3, "groesse": 16, "panzer": 3, "fliegt": true },
 	{ "id": "schraubling", "name": "Schraubling", "typ": "steel", "gestalt": "wisp", "leben": 1, "tempo": 1.35, "beute": 1.2, "groesse": 15, "panzer": 2 },
+	{ "id": "glimmling", "name": "Glimmling", "typ": "fairy", "gestalt": "wisp", "leben": 0.85, "tempo": 1.4, "beute": 1.1, "groesse": 14, "fliegt": true },
+	{ "id": "tanzmotte", "name": "Tanzmotte", "typ": "fairy", "gestalt": "moth", "leben": 1.4, "tempo": 1.25, "beute": 1.4, "groesse": 17, "fliegt": true },
+	{ "id": "feenbalg", "name": "Feenbalg", "typ": "fairy", "gestalt": "blob", "leben": 2.1, "tempo": 0.95, "beute": 1.6, "groesse": 19, "schild": 0.5 },
+	{ "id": "prunkfalter", "name": "Prunkfalter", "typ": "fairy", "gestalt": "moth", "leben": 2.8, "tempo": 1.1, "beute": 2, "groesse": 20, "fliegt": true },
+	{ "id": "nachtschlick", "name": "Nachtschlick", "typ": "dark", "gestalt": "blob", "leben": 1.2, "tempo": 1, "beute": 1.1, "groesse": 16 },
+	{ "id": "duesterfalter", "name": "Düsterfalter", "typ": "dark", "gestalt": "moth", "leben": 1.5, "tempo": 1.35, "beute": 1.4, "groesse": 16, "fliegt": true },
+	{ "id": "grufthund", "name": "Grufthund", "typ": "dark", "gestalt": "fox", "leben": 2.4, "tempo": 1.15, "beute": 1.8, "groesse": 19 },
+	{ "id": "schlundaug", "name": "Schlundaug", "typ": "dark", "gestalt": "eye", "leben": 3.3, "tempo": 0.62, "beute": 2.2, "groesse": 22, "panzer": 8, "zaeh": true },
+	{ "id": "boeling", "name": "Böling", "typ": "wind", "gestalt": "wisp", "leben": 0.8, "tempo": 1.6, "beute": 1.1, "groesse": 14, "fliegt": true },
+	{ "id": "fetzenflug", "name": "Fetzenflug", "typ": "wind", "gestalt": "moth", "leben": 1.3, "tempo": 1.5, "beute": 1.3, "groesse": 15, "fliegt": true },
+	{ "id": "sturmvogel", "name": "Sturmvogel", "typ": "wind", "gestalt": "bird", "leben": 2.2, "tempo": 1.45, "beute": 1.8, "groesse": 18, "fliegt": true },
+	{ "id": "wirbelbock", "name": "Wirbelbock", "typ": "wind", "gestalt": "ox", "leben": 2.9, "tempo": 0.9, "beute": 2, "groesse": 21, "panzer": 4 },
 ]
 
 ## Anführer. Deutlich größer und zäher als gewöhnliche Arten.
@@ -220,6 +232,9 @@ const ANFUEHRER := [
 	{ "name": "Somnul", "typ": "psychic", "gestalt": "eye", "leben": 32, "tempo": 0.6, "beute": 30, "groesse": 36 },
 	{ "name": "Glazior", "typ": "ice", "gestalt": "zottel", "leben": 31, "tempo": 0.48, "beute": 26, "groesse": 36, "panzer": 12, "schild": 0.5 },
 	{ "name": "Amboloss", "typ": "steel", "gestalt": "bolzen", "leben": 33, "tempo": 0.42, "beute": 28, "groesse": 37, "panzer": 24, "zaeh": true },
+	{ "name": "Sylphara", "typ": "fairy", "gestalt": "wisp", "leben": 28, "tempo": 0.7, "beute": 22, "groesse": 33, "fliegt": true, "schild": 0.45 },
+	{ "name": "Umbraxis", "typ": "dark", "gestalt": "eye", "leben": 33, "tempo": 0.5, "beute": 26, "groesse": 36, "panzer": 14 },
+	{ "name": "Zephyron", "typ": "wind", "gestalt": "bird", "leben": 27, "tempo": 0.95, "beute": 24, "groesse": 32, "fliegt": true },
 ]
 
 ## Wellenkurve, vorberechnet.
@@ -242,7 +257,7 @@ const KARTEN := [
 	{ "name": "Firnfeld", "grad": "Fordernd", "faktor": 1.48, "beeren": 330, "leben": 17 },
 	{ "name": "Erzwerk", "grad": "Brutal", "faktor": 1.72, "beeren": 460, "leben": 16 },
 	{ "name": "Glanzwiese", "grad": "Ruhig", "faktor": 1.28, "beeren": 300, "leben": 20 },
-	{ "name": "Nachtgrund", "grad": "Brutal", "faktor": 1.78, "beeren": 470, "leben": 16 },
+	{ "name": "Nachtgrund", "grad": "Brutal", "faktor": 1.78, "beeren": 580, "leben": 16 },
 	{ "name": "Böenkuppe", "grad": "Fordernd", "faktor": 1.4, "beeren": 320, "leben": 18 },
 ]
 

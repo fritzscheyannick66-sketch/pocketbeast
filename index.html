@@ -544,20 +544,22 @@ const TYPE_KEYS = Object.keys(TYPES);
 
 /* Angreifer → Verteidiger. Fehlender Eintrag = 1.0 */
 const CHART = {
-  fire:     { grass: 2,   ice: 2,  steel: 2, water: .5, rock: .5, fire: .5, psychic: 1 },
+  fire:     { grass: 2,   ice: 2,  steel: 2, wind: .5, water: .5, rock: .5, fire: .5, psychic: 1 },
   water:    { fire: 2,    rock: 2,  water: .5, grass: .5, electric: .5, ice: .5 },
   grass:    { water: 2,   rock: 2,  grass: .5, fire: .5,  psychic: 1, ice: .5, steel: .5 },
   /* Flieger sind kein Typ, sondern ein Merkmal (spec.flying) — der Bonus dafür
      steht in damage() und beträgt 1,5×, so wie ihn auch das Bestiarium ausweist.
      Ein Eintrag "flying" wäre hier wirkungslos: eff() bekommt immer spec.type. */
   electric: { water: 2,   steel: 2, electric: .5, grass: .5, rock: .5 },
-  rock:     { fire: 2,    electric: 2, ice: 2, rock: .5, water: .5, grass: .5, steel: .5 },
+  /* Gegen Wind hilft, was ihn nicht mitreißt: Gestein steht fest, Eis
+     erstarrt ihn, Stahl schneidet hindurch. Feuer dagegen facht er an. */
+  rock:     { fire: 2,    electric: 2, ice: 2, wind: 2, rock: .5, water: .5, grass: .5, steel: .5 },
   psychic:  { psychic: .5, steel: .5, fire: 1.25, water: 1.25, grass: 1.25, electric: 1.25, rock: 1.25, ice: 1.25 },
   /* Eis bricht Pflanze und Gestein auf, prallt aber an allem ab, was Hitze hält
      oder ohnehin hart gefroren ist. Stahl zermalmt Eis und Gestein und steht
      gegen Psycho-Kräfte fest — schmilzt dafür unter Feuer. */
-  ice:      { grass: 2,   rock: 2,  ice: .5,   fire: .5, water: .5, steel: .5 },
-  steel:    { ice: 2,     rock: 2,  fairy: 2,  steel: .5, fire: .5, water: .5, electric: .5 },
+  ice:      { grass: 2,   rock: 2,  wind: 1.5, ice: .5,   fire: .5, water: .5, steel: .5 },
+  steel:    { ice: 2,     rock: 2,  fairy: 2,  wind: 1.5, steel: .5, fire: .5, water: .5, electric: .5 },
   /* Fee bricht Unlicht und Gestein auf, prallt aber an Feuer, Stahl und Gift-
      losem Metall ab. Unlicht trifft Psycho und die eigene Sippe hart, versagt
      jedoch gegen Feen — die klassische Gegenrechnung zu Psycho. */
@@ -902,6 +904,23 @@ const SPECIES = [
   { id: "eisnadel", name: "Eisnadel",   type: "ice",      shape: "crystal", hp: .95,  spd: 1.5,  bounty: 1.1, size: 14 },
   { id: "federstahl", name: "Federstahl", type: "steel",  shape: "moth",    hp: 1.2,  spd: 1.4,  bounty: 1.3, size: 16, flying: true, armor: 3 },
   { id: "schraubling", name: "Schraubling", type: "steel", shape: "wisp",   hp: 1.0,  spd: 1.35, bounty: 1.2, size: 15, armor: 2 },
+  /* Fee, Unlicht und Wind hatten bisher keine Gegner — auf der Feenkarte
+     liefen keine Feen, und drei Wächterfamilien standen ohne natürliches
+     Gegenüber da. Der Heimvorteil der Gegner lief dort ins Leere. */
+  { id: "glimmling",  name: "Glimmling",  type: "fairy",    shape: "wisp",    hp: .85, spd: 1.4,  bounty: 1.1, size: 14, flying: true },
+  { id: "tanzmotte",  name: "Tanzmotte",  type: "fairy",    shape: "moth",    hp: 1.4,  spd: 1.25, bounty: 1.4, size: 17, flying: true },
+  { id: "feenbalg",   name: "Feenbalg",   type: "fairy",    shape: "blob",    hp: 2.1,  spd: .95,  bounty: 1.6, size: 19, shield: .5 },
+  { id: "prunkfalter",name: "Prunkfalter",type: "fairy",    shape: "moth",    hp: 2.8,  spd: 1.1,  bounty: 2.0, size: 20, flying: true, heal: true },
+
+  { id: "nachtschlick",name:"Nachtschlick",type: "dark",    shape: "blob",    hp: 1.2,  spd: 1.0,  bounty: 1.1, size: 16 },
+  { id: "duesterfalter",name:"Düsterfalter",type:"dark",    shape: "moth",    hp: 1.5,  spd: 1.35, bounty: 1.4, size: 16, flying: true },
+  { id: "grufthund",  name: "Grufthund",  type: "dark",     shape: "fox",     hp: 2.4,  spd: 1.15, bounty: 1.8, size: 19, dash: 1 },
+  { id: "schlundaug", name: "Schlundaug", type: "dark",     shape: "eye",     hp: 3.3,  spd: .62,  bounty: 2.2, size: 22, armor: 8, tough: true },
+
+  { id: "boeling",    name: "Böling",     type: "wind",     shape: "wisp",    hp: .8,   spd: 1.6,  bounty: 1.1, size: 14, flying: true },
+  { id: "fetzenflug", name: "Fetzenflug", type: "wind",     shape: "moth",    hp: 1.3,  spd: 1.5,  bounty: 1.3, size: 15, flying: true },
+  { id: "sturmvogel", name: "Sturmvogel", type: "wind",     shape: "bird",    hp: 2.2,  spd: 1.45, bounty: 1.8, size: 18, flying: true },
+  { id: "wirbelbock", name: "Wirbelbock", type: "wind",     shape: "ox",      hp: 2.9,  spd: .9,   bounty: 2.0, size: 21, armor: 4 },
 ];
 const SPEC_BY_ID = Object.fromEntries(SPECIES.map(s => [s.id, s]));
 
@@ -931,6 +950,14 @@ const BOSSES = [
     ability: "shield", abEvery: 8, abText: "Firnpanzer — überzieht sich mit Eis und wird unbeirrbar" },
   { id: "ambosskoloss", name: "Amboloss", type: "steel",    shape: "bolzen",  hp: 33, spd: .42, bounty: 28, size: 37, armor: 24, tough: true,
     ability: "stun", abEvery: 7, abText: "Hammerschlag — bringt einen Wächter zum Schweigen" },
+  /* Anführer der drei jüngsten Elemente. Ihre Namen folgen derselben
+     fremdartigen Bauart wie die übrigen. */
+  { name: "Sylphara",  type: "fairy",   shape: "wisp",   hp: 28, spd: .7,  bounty: 22, size: 33, flying: true, shield: .45,
+    ability: "shield", abEvery: 7, abText: "Schutzglanz — legt einen Schild um sich" },
+  { name: "Umbraxis",  type: "dark",    shape: "eye",    hp: 33, spd: .5,  bounty: 26, size: 36, armor: 14,
+    ability: "stun", abEvery: 6, abText: "Bannblick — betäubt reihum einen Wächter" },
+  { name: "Zephyron",  type: "wind",    shape: "bird",   hp: 27, spd: .95, bounty: 24, size: 32, flying: true,
+    ability: "haste", abEvery: 7, abText: "Rückenwind — treibt alle Wilden an" },
 ];
 
 /* ---------------- Wellen-Launen ---------------- */
