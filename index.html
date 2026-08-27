@@ -5131,8 +5131,22 @@ function drawLiveDecor(g) {
   for (const it of decorCache.items) if (LIVE_KINDS[it.k]) drawFlora(g, it, m, fol);
 }
 
+/* Wie groß etwas erscheint, das weiter hinten steht.
+
+   Die Kippung staucht die Tiefe, lässt aber alle Dinge gleich groß — dadurch
+   drängen sich hintere Pflanzen dicht zusammen, während vorne Lücken
+   klaffen. Im Bild las sich das als Waldband im oberen Drittel statt als
+   Wald, der überall steht.
+
+   Der zweite Teil jeder Perspektive fehlte: Entferntes ist auch kleiner.
+   Von 0,78 hinten auf 1,16 vorne — genug, dass Tiefe entsteht, wenig
+   genug, dass eine Tanne eine Tanne bleibt. */
+function tiefenGroesse(y) {
+  return 0.78 + (y / H) * 0.38;
+}
+
 function drawFlora(g, it, m, fol, forceSway) {
-  const x = it.x, y = it.y, s = it.s;
+  const x = it.x, y = it.y, s = it.s * tiefenGroesse(it.y);
   const sway = forceSway !== undefined ? forceSway : Math.sin(G.time * 1.2 + it.seed) * 1.4 * s;
   const dark = shade(fol, -.45), lite = shade(fol, .22);
   const stone = shade(m.soil || m.accent, -.28);
