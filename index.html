@@ -1182,7 +1182,7 @@ const MAPS = [
     ground: ["#2E2440", "#3A2E50"], accent: "#6A5490", foliage: "#8A6EB4",
     path: "#9C8AB4", pathEdge: "#40325A", soil: "#C4B2DC",
     gras: "#7E68A4", gras2: "#5A4A7A", erde: "#6A5A84",
-    weather: "pollen", tint: "rgba(195,130,255,.07)",
+    weather: "traum", tint: "rgba(195,130,255,.07)",
     flora: ["grass","grass","mushroom","mushroom","broadleaf","broadleaf","flower","flower","bush","wisp"],
     smooth: 3,
     wp: [[-1,6],[4,6],[4,3],[10,3],[10,9],[6,9],[6,6],[14,6],[14,10],[18,10],[18,4],[20,5]],
@@ -1218,7 +1218,7 @@ const MAPS = [
     ground: ["#32363C", "#3E434A"], accent: "#666E78", foliage: "#78828E",
     path: "#8E8E92", pathEdge: "#3A3C40", soil: "#B2B2B6",
     gras: "#6E767E", gras2: "#525A62", erde: "#5E6068",
-    weather: "dust", tint: "rgba(169,190,205,.05)",
+    weather: "russ", tint: "rgba(169,190,205,.05)",
     flora: ["rubble","rubble","rock","pillar","deadtree","crystalrock","grass"],
     smooth: 0,
     wp: [[-1,3],[4,3],[4,9],[8,9],[8,4],[12,4],[12,10],[16,10],[16,5],[10,5],[10,7],[20,7]],
@@ -1283,7 +1283,7 @@ const MAPS = [
     ground: ["#3A4A44", "#485A52"], accent: "#6E8A7E", foliage: "#8AA69A",
     path: "#AEA890", pathEdge: "#4A4A3C", soil: "#D2CCB2",
     gras: "#7E9A86", gras2: "#5E7666", erde: "#6E6E58",
-    weather: "storm", tint: "rgba(159,227,214,.05)",
+    weather: "boen", tint: "rgba(159,227,214,.05)",
     flora: ["grass","grass","grass","bush","conifer","rock","deadtree","flower"],
     smooth: 3,
     wp: [[-1,5],[4,5],[4,10],[9,10],[9,4],[14,4],[14,10],[18,10],[18,5],[11,5],[11,8],[20,8]],
@@ -5937,14 +5937,23 @@ function drawFlora(g, it, m, fol, forceSway) {
       break;
     }
     case "crystalrock": {
+      /* Der Kristall trug eine fest verdrahtete Glutfarbe. Gedacht war er
+         für die Glutschlucht — gewachsen ist er auf fünf Karten, und im
+         Firnfeld standen damit orange glühende Kristalle im Schnee.
+
+         Jetzt nimmt er die Farbe des Heimatelements der Karte: Eis leuchtet
+         eisblau, Stahl kühl, Feuer weiter orange. Wer eine Karte ergänzt,
+         bekommt passende Kristalle, ohne hier etwas zu ändern. */
+      const kc = (TYPES[m.heim] && TYPES[m.heim].col) || "#FF8A4A";
       shadow(7 * s, 2.6 * s);
-      g.fillStyle = rgba("#FF8A4A", .18);
+      g.fillStyle = rgba(kc, .18);
       g.beginPath(); g.arc(x, y - 5 * s, 9 * s, 0, 7); g.fill();
       g.beginPath();
       g.moveTo(x, y - 12 * s); g.lineTo(x + 4 * s, y - 3 * s); g.lineTo(x, y); g.lineTo(x - 4 * s, y - 3 * s);
       g.closePath();
       const gr = g.createLinearGradient(x, y - 12 * s, x, y);
-      gr.addColorStop(0, "#FFB067"); gr.addColorStop(1, "#8A3A1E");
+      /* Spitze hell, Fuß tief — ein Kristall fängt das Licht oben. */
+      gr.addColorStop(0, shade(kc, .34)); gr.addColorStop(1, shade(kc, -.52));
       g.fillStyle = gr; g.fill();
       break;
     }
@@ -6151,13 +6160,30 @@ function drawWeather(g) {
   } else if (m.weather === "dust") {
     /* Staub: bodennah, waagerecht ziehend, körnig. Anders als Pollen steigt
        er nicht, sondern wird getrieben. */
-    for (let i = 0; i < 70; i++) {
+    /* Gemessen war Staub das schwächste Wetter im Spiel: Er bewegte 1,2
+       Prozent der Bildpunkte, der Regen 5,3. Siebzig Körner auf einer
+       Fläche von über siebenhunderttausend Punkten sind schlicht nicht zu
+       sehen. Jetzt hundertzwanzig — und vor allem Schleier: Staub in der
+       Luft ist nicht eine Ansammlung von Körnern, sondern eine Trübung,
+       die vorbeizieht. Die Körner geben ihr nur die Richtung. */
+    for (let i = 0; i < 120; i++) {
       const sp = 34 + (i % 5) * 22;
       const sx = ((i * 167.9 + t * sp) % (W + 60)) - 30;
-      const sy = H * .35 + ((i * 53.7) % (H * .65)) + Math.sin(t * 1.1 + i) * 9;
-      const a = .10 + Math.abs(Math.sin(t * .8 + i)) * .18;
-      g.fillStyle = `rgba(214,196,164,${a})`;
-      g.beginPath(); g.ellipse(sx, sy, 1.6 + (i % 3) * .8, .9, 0, 0, 7); g.fill();
+      const sy = H * .28 + ((i * 53.7) % (H * .72)) + Math.sin(t * 1.1 + i) * 11;
+      const a = .12 + Math.abs(Math.sin(t * .8 + i)) * .22;
+      g.fillStyle = `rgba(220,202,168,${a})`;
+      g.beginPath(); g.ellipse(sx, sy, 1.7 + (i % 3) * .9, 1.0, 0, 0, 7); g.fill();
+    }
+    // Schleier: breite, weiche Bahnen, die waagerecht durchziehen
+    for (let i = 0; i < 5; i++) {
+      const sx = ((i * 389.1 + t * (26 + i * 9)) % (W + 420)) - 210;
+      const sy = H * (.34 + i * .14) + Math.sin(t * .5 + i) * 18;
+      const gr = g.createRadialGradient(sx, sy, 0, sx, sy, 190);
+      gr.addColorStop(0, `rgba(212,190,150,${.085 + Math.sin(t * .6 + i) * .03})`);
+      gr.addColorStop(1, "rgba(212,190,150,0)");
+      g.fillStyle = gr;
+      g.save(); g.translate(sx, sy); g.scale(1, .42); g.translate(-sx, -sy);
+      g.beginPath(); g.arc(sx, sy, 190, 0, 7); g.fill(); g.restore();
     }
     g.fillStyle = "rgba(190,168,130,.04)"; g.fillRect(0, 0, W, H);
   } else if (m.weather === "storm") {
@@ -6182,7 +6208,92 @@ function drawWeather(g) {
       g.fillRect(0, 0, W, H);
     }
     g.fillStyle = "rgba(110,140,175,.05)"; g.fillRect(0, 0, W, H);
-  } else {
+  } else if (m.weather === "traum") {
+    /* Traum: Es fällt nichts und es zieht nichts — es steigt. Die Motive
+       wandern langsam nach oben und wechseln dabei ihre Farbe, weil ein
+       Traumhain nicht ein Wetter hat, sondern eine Stimmung. Dazu ganz
+       langsame Schwaden, die sich quer über das Bild schieben. */
+    for (let i = 0; i < 54; i++) {
+      const sp = 12 + (i % 5) * 7;
+      const sx = (i * 173.9) % W + Math.sin(t * .5 + i) * 22;
+      const sy = H - ((t * sp + i * 83) % (H + 40));
+      const a = .12 + Math.abs(Math.sin(t * .9 + i)) * .26;
+      /* Der Farbton kreist, statt zwischen zwei Werten zu springen:
+         Fliederrosa, Mint, Blassgold und zurück. */
+      const ton = (t * .18 + i * .11) % 3;
+      const c = ton < 1 ? "222,186,240" : ton < 2 ? "180,232,214" : "240,224,176";
+      g.fillStyle = `rgba(${c},${a})`;
+      g.beginPath(); g.arc(sx, sy, 1.2 + (i % 4) * .6, 0, 7); g.fill();
+    }
+    for (let i = 0; i < 4; i++) {
+      const sx = ((i * 421.7 + t * 9) % (W + 260)) - 130;
+      const sy = H * .28 + i * 74 + Math.sin(t * .3 + i) * 26;
+      const gr = g.createRadialGradient(sx, sy, 0, sx, sy, 130);
+      gr.addColorStop(0, "rgba(206,180,236,.075)");
+      gr.addColorStop(1, "rgba(206,180,236,0)");
+      g.fillStyle = gr; g.beginPath(); g.arc(sx, sy, 130, 0, 7); g.fill();
+    }
+  } else if (m.weather === "russ") {
+    /* Ruß: dunkle Flocken, die aus der Tiefe aufsteigen und dabei
+       auskühlen — unten noch glühend, oben nur noch Asche. Sie taumeln
+       seitlich, statt gerade zu steigen, sonst sähen sie aus wie Funken
+       rückwärts. Darüber liegt der Schein der Essen. */
+    for (let i = 0; i < 64; i++) {
+      const sp = 22 + (i % 6) * 11;
+      const hoehe = (t * sp + i * 97) % (H + 50);
+      const sy = H + 20 - hoehe;
+      const sx = (i * 149.3) % W + Math.sin(t * 1.4 + i * .7) * 16;
+      /* Je höher, desto kälter: Glut geht in Asche über. */
+      const k = Math.min(1, hoehe / (H * .55));
+      const a = (.30 - k * .17) * (.6 + Math.abs(Math.sin(t + i)) * .4);
+      const c = k < .5 ? `${Math.round(214 - k * 180)},${Math.round(120 - k * 60)},70`
+                       : `${Math.round(96 - k * 30)},${Math.round(92 - k * 28)},${Math.round(90 - k * 26)}`;
+      g.fillStyle = `rgba(${c},${Math.max(0, a)})`;
+      g.beginPath(); g.ellipse(sx, sy, 1.5 + (i % 3) * .7, 1.1, i * .4, 0, 7); g.fill();
+    }
+    // Essenschein am unteren Rand, langsam pulsierend
+    const glut = .05 + Math.abs(Math.sin(t * .55)) * .04;
+    const eg = g.createLinearGradient(0, H, 0, H * .62);
+    eg.addColorStop(0, `rgba(224,128,52,${glut})`);
+    eg.addColorStop(1, "rgba(224,128,52,0)");
+    g.fillStyle = eg; g.fillRect(0, H * .62, W, H * .38);
+  } else if (m.weather === "boen") {
+    /* Böen: Wind ist unsichtbar, seine Wirkung nicht. Deshalb keine
+       gleichmäßige Strömung, sondern Stöße — eine Böe zieht in zwei
+       Sekunden durch, dann ist Ruhe, dann kommt die nächste. Gleichmäßiger
+       Wind sähe aus wie waagerechter Regen.
+
+       Was mitgerissen wird, sind Blätter und Halme, keine Tropfen. */
+    for (let b = 0; b < 4; b++) {
+      const phase = ((t * .42 + b * .28) % 1);
+      // Stärke: schnell an, langsam ab — so fühlt sich ein Stoß an
+      const kraft = phase < .18 ? phase / .18 : Math.max(0, 1 - (phase - .18) / .5);
+      if (kraft <= .01) continue;
+      /* Jede Böe nimmt ein breites Band mit, kein Band überdeckt das
+         nächste vollständig. Vorher lagen drei schmale Streifen im Bild und
+         dazwischen war Windstille — was aussah, als zöge etwas vorbei,
+         nicht als wehe es. */
+      const bahn = H * (.12 + b * .23);
+      for (let i = 0; i < 42; i++) {
+        const fort = (phase * 1.5 + i * .0235) % 1;
+        const sx = fort * (W + 200) - 100;
+        const sy = bahn + Math.sin(fort * 7 + i + t * 3) * 30 + (i % 9) * 11;
+        const a = kraft * (.20 + (i % 3) * .09);
+        g.strokeStyle = `rgba(212,228,212,${a})`;
+        g.lineWidth = .9 + (i % 2) * .6;
+        g.beginPath();
+        g.moveTo(sx, sy);
+        g.lineTo(sx - 18 - kraft * 14, sy + Math.sin(fort * 9 + i) * 5);
+        g.stroke();
+        // jedes dritte ein mitgerissenes Blatt
+        if (i % 3 === 0) {
+          g.fillStyle = `rgba(150,182,138,${a * 1.6})`;
+          g.beginPath();
+          g.ellipse(sx - 6, sy - 2, 2.8, 1.2, t * 6 + i, 0, 7); g.fill();
+        }
+      }
+    }
+  } else if (m.weather === "pollen") {
     for (let i = 0; i < 46; i++) {
       const sp = 9 + (i % 4) * 5;
       const sx = (i * 211.3 + t * sp) % (W + 40) - 20;
@@ -6200,6 +6311,11 @@ function drawWeather(g) {
       g.fillStyle = gr; g.beginPath(); g.arc(sx, sy, 11, 0, 7); g.fill();
     }
   }
+  /* Kein Standardzweig mehr. Pollen stand hier und fing damit jeden
+     Tippfehler in einem Wetternamen still auf — die Karte bekam einfach
+     Pollen, und niemandem fiel auf, dass ihr Wetter nie ankam. Dieselbe
+     Falle hatte die Quabbe-Form. Fehlt ein Wetter, ist der Himmel jetzt
+     klar, und das sieht man. */
   if (m.tint) { g.fillStyle = m.tint; g.fillRect(0, 0, W, H); }
   // Vignette
   const vg = g.createRadialGradient(W/2, H/2, H*.3, W/2, H/2, H*.92);
