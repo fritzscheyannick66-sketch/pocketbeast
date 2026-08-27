@@ -4203,6 +4203,30 @@ function zeichneGrasnarbe(g, m) {
   const gras2 = m.gras2 || shade(m.ground[1], .3);
   const erde = m.erde || m.soil || shade(m.ground[1], .35);
 
+  /* Zonen unterschiedlicher Sattheit.
+
+     Eine Wiese ist nirgends gleichmäßig grün: Wo mehr Wasser steht, ist sie
+     satt und dunkel, auf Kuppen ausgetrocknet und blass. Große, sehr weiche
+     Flächen legen das an, bevor Halme und Erde daraufkommen — ohne sie
+     bleibt der Boden eine Farbfläche, egal wie viele Halme darauf stehen. */
+  const satt = shade(gras2, -.22);
+  const trocken = shade(m.erde || gras, .22);
+  for (let i = 0; i < 11; i++) {
+    const x = rn() * W, y = rn() * H;
+    const rx = 130 + rn() * 220, ry = 90 + rn() * 150;
+    const grd = g.createRadialGradient(x, y, 0, x, y, Math.max(rx, ry));
+    const ton = rn() > .5 ? satt : trocken;
+    grd.addColorStop(0, rgba(ton, .20 + rn() * .14));
+    grd.addColorStop(1, rgba(ton, 0));
+    g.save();
+    g.translate(x, y);
+    g.scale(1, ry / rx);
+    g.translate(-x, -y);
+    g.fillStyle = grd;
+    g.beginPath(); g.arc(x, y, rx, 0, 7); g.fill();
+    g.restore();
+  }
+
   // Erdstellen: unregelmäßige Lichtungen, an denen der Boden durchkommt
   for (let i = 0; i < 26; i++) {
     const x = rn() * W, y = rn() * H;
@@ -4263,6 +4287,45 @@ function zeichneGrasnarbe(g, m) {
   }
 }
 
+/* Lichtflecken auf dem Waldboden.
+
+   Das Kennzeichen jeder Lichtung: Sonne fällt in Flecken durchs Blätterdach,
+   scharf gegen den Schatten ringsum. Ohne sie bleibt ein Waldboden eine
+   Fläche, so viele Halme man auch darauf setzt — die Halme geben Struktur,
+   aber kein Licht.
+
+   Die Flecken liegen über allem anderen und werden addiert statt gemalt:
+   Licht ersetzt keine Farbe, es kommt dazu. Und sie liegen im gebackenen
+   Hintergrund, kosten im Spiel also nichts.
+
+   Wenige und große statt vieler kleiner — ein Blätterdach wirft kein
+   gleichmäßiges Muster, sondern ein paar helle Inseln. */
+function zeichneLichtflecken(g, m) {
+  const rn = mulberry(G.mapIdx * 5501 + 71);
+  const licht = shade(m.gras || m.ground[1], .58);
+  g.save();
+  g.globalCompositeOperation = "lighter";
+  for (let i = 0; i < 15; i++) {
+    const x = rn() * W, y = rn() * H;
+    const r = 34 + rn() * 78;
+    const staerke = .05 + rn() * .085;
+    const grd = g.createRadialGradient(x, y, 0, x, y, r);
+    grd.addColorStop(0, rgba(licht, staerke));
+    grd.addColorStop(.55, rgba(licht, staerke * .45));
+    grd.addColorStop(1, rgba(licht, 0));
+    g.fillStyle = grd;
+    g.save();
+    // leicht länglich und schräg, wie ein Lichtstrahl ihn wirft
+    g.translate(x, y);
+    g.rotate(rn() * 3.14);
+    g.scale(1, .62 + rn() * .3);
+    g.translate(-x, -y);
+    g.beginPath(); g.arc(x, y, r, 0, 7); g.fill();
+    g.restore();
+  }
+  g.restore();
+}
+
 function drawGroundTexture(g) {
   const m = G.map;
   if (!decorCache || decorCache.map !== G.mapIdx) buildDecor();
@@ -4271,6 +4334,7 @@ function drawGroundTexture(g) {
     g.beginPath(); g.ellipse(b.x, b.y, b.w, b.h, b.a, 0, 7); g.fill();
   }
   zeichneGrasnarbe(g, m);
+  zeichneLichtflecken(g, m);
   if (decorCache.cracks) {
     g.save();
     g.lineCap = "round"; g.lineJoin = "round";
