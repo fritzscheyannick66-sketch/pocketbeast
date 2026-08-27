@@ -4519,29 +4519,112 @@ function zeichneWegStruktur(g, m) {
   }
 }
 
+/* Wegränder.
+
+   Der Weg entsteht als Linie mit gleichbleibender Breite — die Kante ist
+   dadurch mathematisch glatt und liest sich wie gezogen, nicht wie
+   getreten. Ein Trampelpfad hat aber keine Kante, sondern eine Zone: Hier
+   greift das Gras noch über, dort ist die Erde breiter aufgetreten.
+
+   Drei Lagen brechen sie auf:
+
+     Buchten   Große, weiche Flecken in Wegfarbe, die nach außen greifen —
+               dort, wo der Weg breiter getreten wurde.
+     Zungen    Große Flecken in Bodenfarbe, die nach innen greifen —
+               Gras, das sich zurückgeholt hat.
+     Krümel    Kleines Streugut über beides, wie bisher.
+
+   Alle drei aus demselben festen Zufall, damit die Ränder liegen bleiben.
+   Kostet nichts: Der Weg wird einmal je Karte gerendert. */
 function drawPathFringe(g) {
   const m = G.map;
-  for (const p of G.routes) {
-  const rn = mulberry(G.mapIdx * 4409 + 31);
-  const halb = TILE * .48;
   const boden = m.soil || shade(m.accent, .2);
-  const rand = shade(m.ground[1], .35);
-  for (let d = 0; d < p.len; d += 5) {
-    const a = pathAt(p, d), b = pathAt(p, Math.min(p.len, d + 6));
-    const dx = b.x - a.x, dy = b.y - a.y;
-    const l = Math.hypot(dx, dy) || 1;
-    const nx = -dy / l, ny = dx / l;               // Normale zum Weg
-    for (const s of [1, -1]) {
-      if (rn() > .5) continue;                      // unregelmäßig, nicht als Kette
-      const aus = halb + rn() * 5 - 1.5;
-      const innen = rn() > .45;
-      const off = innen ? aus - 4 - rn() * 5 : aus + rn() * 4;
-      const x = a.x + nx * s * off, y = a.y + ny * s * off;
-      g.fillStyle = innen ? rgba(boden, .10 + rn() * .13) : rgba(rand, .14 + rn() * .16);
-      const rr2 = 1.3 + rn() * 2.9;
-      g.beginPath(); g.ellipse(x, y, rr2, rr2 * (.6 + rn() * .5), rn() * 3, 0, 7); g.fill();
+  /* Die echte Grasfarbe der Karte, nicht die aufgehellte Grundfarbe.
+     shade(ground[1], .3) ergab auf dem Grünpfad #687b6b — ein trübes
+     Graugrün, das die Ränder wie Schmutz aussehen ließ. Die Karte trägt
+     mit m.gras ein sattes #5B9A5F, das gehört hierher. */
+  const gras = m.gras || shade(m.ground[1], .34);
+  const wegfarbe = m.path || boden;
+
+  for (const p of G.routes) {
+    const rn = mulberry(G.mapIdx * 4409 + 31);
+    const halb = TILE * .48;
+
+    // --- Lage 1: Buchten und Zungen, groß genug um die Kante zu verformen ---
+    for (let d = 0; d < p.len; d += 11) {
+      const a = pathAt(p, d), b = pathAt(p, Math.min(p.len, d + 12));
+      const dx = b.x - a.x, dy = b.y - a.y;
+      const l = Math.hypot(dx, dy) || 1;
+      const nx = -dy / l, ny = dx / l;
+      for (const sg of [1, -1]) {
+        if (rn() > .62) continue;
+        const nachAussen = rn() > .5;
+        /* Eine Bucht sitzt auf der Kante und greift hinaus, eine Zunge
+           sitzt darauf und greift herein. Beide überlappen die Kante um
+           etwa ihren halben Durchmesser — sonst bliebe die gerade Linie
+           darunter sichtbar. */
+        const gr = 4 + rn() * 7;
+        const off = halb + (nachAussen ? gr * .35 : -gr * .45);
+        const x = a.x + nx * sg * off, y = a.y + ny * sg * off;
+        g.fillStyle = nachAussen
+          ? rgba(wegfarbe, .30 + rn() * .22)
+          : rgba(gras, .26 + rn() * .2);
+        // unregelmäßige Form statt Kreis
+        g.beginPath();
+        const ecken = 7;
+        for (let i = 0; i <= ecken; i++) {
+          const w = (i / ecken) * Math.PI * 2;
+          const r2 = gr * (.7 + Math.sin(w * 2.3 + d * .11) * .22 + rn() * .16);
+          const px = x + Math.cos(w) * r2, py = y + Math.sin(w) * r2 * .78;
+          if (i) g.lineTo(px, py); else g.moveTo(px, py);
+        }
+        g.closePath(); g.fill();
+      }
     }
-  }
+
+    // --- Lage 2: Krümel und Grashalme, feines Streugut ---
+    for (let d = 0; d < p.len; d += 5) {
+      const a = pathAt(p, d), b = pathAt(p, Math.min(p.len, d + 6));
+      const dx = b.x - a.x, dy = b.y - a.y;
+      const l = Math.hypot(dx, dy) || 1;
+      const nx = -dy / l, ny = dx / l;
+      for (const sg of [1, -1]) {
+        if (rn() > .5) continue;
+        const aus = halb + rn() * 6 - 1.5;
+        const innen = rn() > .45;
+        const off = innen ? aus - 4 - rn() * 6 : aus + rn() * 5;
+        const x = a.x + nx * sg * off, y = a.y + ny * sg * off;
+        g.fillStyle = innen ? rgba(boden, .10 + rn() * .13) : rgba(gras, .14 + rn() * .16);
+        const rr2 = 1.3 + rn() * 2.9;
+        g.beginPath(); g.ellipse(x, y, rr2, rr2 * (.6 + rn() * .5), rn() * 3, 0, 7); g.fill();
+      }
+    }
+
+    /* --- Lage 3: Grashalme, die über die Kante hängen ---
+       Kurze Striche, die vom Gras aus auf den Weg reichen. Sie tun mehr für
+       den Eindruck als jede Farbfläche: Wo Halme überstehen, gibt es keine
+       saubere Grenze mehr. */
+    g.lineCap = "round";
+    for (let d = 0; d < p.len; d += 7) {
+      const a = pathAt(p, d), b = pathAt(p, Math.min(p.len, d + 8));
+      const dx = b.x - a.x, dy = b.y - a.y;
+      const l = Math.hypot(dx, dy) || 1;
+      const nx = -dy / l, ny = dx / l;
+      for (const sg of [1, -1]) {
+        if (rn() > .42) continue;
+        const fuss = halb + 1 + rn() * 3;
+        const laenge = 3 + rn() * 5;
+        const x = a.x + nx * sg * fuss, y = a.y + ny * sg * fuss;
+        const neig = (rn() - .5) * .9;
+        g.strokeStyle = rgba(gras, .3 + rn() * .3);
+        g.lineWidth = .8 + rn() * .9;
+        g.beginPath();
+        g.moveTo(x, y);
+        g.lineTo(x - nx * sg * laenge + dx / l * neig * laenge,
+                 y - ny * sg * laenge + dy / l * neig * laenge);
+        g.stroke();
+      }
+    }
   }
 }
 
