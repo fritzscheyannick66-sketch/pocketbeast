@@ -146,8 +146,16 @@ canvas{display:block;width:100%;height:auto;touch-action:manipulation}
   .topbar{flex-direction:column;align-items:stretch;gap:8px}
   .brand{margin-right:0}
   .brand .sub{display:none}          /* Kartenname steht ohnehin im Menü */
-  .stats{width:100%}
   .stat .k{font-size:9px}
+  /* Raster statt Flexzeile.
+
+     Mit flex:1 teilten sich alle fünf Kacheln eine Zeile und schrumpften
+     unter ihre eigene Textbreite: Auf 375 Pixeln blieben je 46 Pixel
+     Inhalt, "100/100" braucht 63 — die Sternekachel lief rechts aus dem
+     Bild. Ein Raster mit Mindestbreite bricht stattdessen um, sobald es
+     eng wird. Zwei volle Zeilen sind lesbar, eine abgeschnittene nicht. */
+  .stats{width:100%;display:grid;grid-template-columns:repeat(auto-fit,minmax(92px,1fr));gap:6px}
+  .stat{flex:none;min-width:0}
 }
 
 /* Hochkant ist das Feld zwangsläufig klein. Ein dezenter Hinweis, dass
@@ -7256,7 +7264,7 @@ function menuHTML() {
       <button class="mapcard" data-i="${i}" data-sel="${i === menuMap ? 1 : 0}">
         <canvas width="300" height="180"></canvas>
         <div class="nm">${m.name}</div>
-        <div class="dd">${m.diff} · ${m.lives} Leben · ${m.gold} Beeren${m.wpB ? " · ⑂ Gabelung" : ""}</div>
+        <div class="dd">${m.diff} · ${m.lives} Leben · ${m.gold} Beeren${m.wpB ? " · Gabelung" : ""}</div>
         <div class="dd" style="color:${sterne(i) >= WELLEN_JE_KARTE ? "#F5C542" : "var(--muted)"}">★ ${sterne(i)} / ${WELLEN_JE_KARTE}${legendaerFrei(i) ? " · legendärer Wächter erweckt" : ""}</div>
       </button>`).join("")}</div>
   </section>
