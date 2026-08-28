@@ -857,11 +857,28 @@ const TOWERS = [
        Keine Fläche, keine Kette, kein Brand — reines Einzelziel. Seine
        Stärke ist, dass er nie aufhört zu feuern. */
     id: "wind", type: "wind", shape: "falke", air: true,
-    blurb: "Feuert unaufhörlich über große Weite — prallt aber an Panzerung ab.",
+    /* Stärker gemacht, und zwar an der Stelle, an der es nötig war.
+
+       Gerechnet gegen die tatsächliche Gegnermischung später Wellen — 480
+       Gegner aus acht Wellen mit ihrer echten Panzerung — kam er auf 63
+       Schaden je Sekunde. Zum Vergleich in derselben Rechnung: Elektro 68,
+       Feuer 82, Gestein 95, Stahl 133. Er war der schwächste im Spiel.
+
+       Mehr Schaden allein hätte das nur halb behoben. Panzerung wird je
+       TREFFER abgezogen, und wer viele kleine Treffer setzt, verliert
+       dadurch fast alles: Bei Panzerung 66 in Welle 90 kamen von 15 Schaden
+       noch 0,9 an — der Mindestwert von sechs Prozent. Auch 22 Schaden
+       wären dort verpufft.
+
+       Deshalb Schaden UND Durchschlag. Der Wind findet die Lücken, statt
+       gegen die Platte zu drücken. Gerechnet steht er damit bei 97 — auf
+       Höhe von Gestein, unter Stahl. Das ist der richtige Platz für den
+       Wächter mit der mit Abstand größten Reichweite. */
+    blurb: "Feuert unaufhörlich über große Weite und findet dabei jede Lücke im Panzer.",
     tiers: [
-      { name: "Windling",     cost: 105, dmg: 4,  rate: 4.2, range: 250 },
-      { name: "Sturmfalke",   cost: 160, dmg: 8,  rate: 5.0, range: 285 },
-      { name: "Wirbelwacht",  cost: 300, dmg: 15, rate: 6.0, range: 325 },
+      { name: "Windling",     cost: 105, dmg: 6,  rate: 4.2, range: 250, pierce: 4 },
+      { name: "Sturmfalke",   cost: 160, dmg: 11, rate: 5.0, range: 285, pierce: 8 },
+      { name: "Wirbelwacht",  cost: 300, dmg: 21, rate: 6.0, range: 325, pierce: 14 },
     ],
   },
   {
@@ -1110,7 +1127,7 @@ const MAPS = [
        Das kostet bewusst den wertvollsten Bauplatz der Karte: Ein Wächter in
        der Schleife bestreicht zwei Wegabschnitte. Wer ihn haben will, muss
        jetzt einen Wasser-Wächter dorthin stellen — oder darum herum bauen. */
-    sonderfelder: [["wasser", 7, "see", [7, 7]], ["kraft", 3], ["hoehe", 3]],
+    sonderfelder: [["wasser", 7, "see", [7, 7]], ["kraft", 6], ["hoehe", 3]],
     heim: "grass", legendaer: { typ: "grass", gestalt: "hueter",
       namen: ["Hainhüter", "Waldwächter", "Wurzelthron"],
       text: "Der Hüter des Grünpfads — hier gewachsen, hier verwurzelt." },
@@ -1181,7 +1198,7 @@ const MAPS = [
        Gemessen über fünf Läufe hebt das den Median von 97 auf 100. Mehr sagt
        die Messung nicht — die Streuung reicht von 42 bis 100 und überdeckt
        alles Feinere. */
-    sonderfelder: [["vulkan", 8], ["kraft", 3], ["hoehe", 3]],
+    sonderfelder: [["vulkan", 8], ["kraft", 6], ["hoehe", 3]],
     heim: "fire", legendaer: { typ: "fire", gestalt: "hueter",
       namen: ["Aschehüter", "Glutwächter", "Schlundthron"],
       text: "Aus der Asche der Schlucht erwacht — er kennt kein Verlöschen." },
@@ -1223,7 +1240,7 @@ const MAPS = [
        Problem saß im Anlauf. */
     /* Mehr Erhöhungen als anderswo: In einer Ruine stehen überall Mauerreste,
        und die Karte ist die schwerste — gute Stellungen sind hier am nötigsten. */
-    sonderfelder: [["wasser", 5], ["kraft", 4], ["hoehe", 5]],
+    sonderfelder: [["wasser", 5], ["kraft", 6], ["hoehe", 5]],
     heim: "water", legendaer: { typ: "water", gestalt: "hueter",
       namen: ["Tiefenhüter", "Flutwächter", "Strömungsthron"],
       text: "Was in der Ruine versank, wacht wieder — und hält die Flut." },
@@ -1246,7 +1263,7 @@ const MAPS = [
     legendaer: { typ: "electric", gestalt: "hueter",
       namen: ["Blitzhüter", "Sturmwächter", "Wetterthron"],
       text: "Über dem Kamm gebar ihn ein Schlag, der nie verhallte." },
-    sonderfelder: [["hoehe", 7], ["kraft", 4], ["wasser", 4]],
+    sonderfelder: [["hoehe", 7], ["kraft", 6], ["wasser", 4]],
     name: "Gewitterkamm", diff: "Fordernd", mul: 1.38, gold: 320, lives: 18,
     himmel: ["#2F3A52", "#6E7B96"],
     ground: ["#2A2E3C", "#353B4C"], accent: "#5A6480", foliage: "#6B7A96",
@@ -1264,7 +1281,7 @@ const MAPS = [
     legendaer: { typ: "rock", gestalt: "hueter",
       namen: ["Steinhüter", "Felswächter", "Grundthron"],
       text: "Er stand schon, als der Kessel noch Meer war." },
-    sonderfelder: [["hoehe", 6], ["kraft", 4], ["wasser", 4]],
+    sonderfelder: [["hoehe", 6], ["kraft", 6], ["wasser", 4]],
     name: "Steinkessel", diff: "Fordernd", mul: 1.42, gold: 310, lives: 18,
     himmel: ["#4A4038", "#8C7E6C"],
     ground: ["#3A342C", "#463E34"], accent: "#6E6252", foliage: "#7A6E5A",
@@ -1300,7 +1317,7 @@ const MAPS = [
     legendaer: { typ: "ice", gestalt: "hueter",
       namen: ["Firnhüter", "Frostwächter", "Ewigthron"],
       text: "Unter dem Firn schlief er, bis die Wildnis ihn weckte." },
-    sonderfelder: [["wasser", 7], ["kraft", 3], ["hoehe", 4]],
+    sonderfelder: [["wasser", 7], ["kraft", 6], ["hoehe", 4]],
     name: "Firnfeld", diff: "Fordernd", mul: 1.48, gold: 330, lives: 17,
     himmel: ["#54687E", "#AEC2D4"],
     ground: ["#3E4C5A", "#4E5E6E"], accent: "#7A8EA2", foliage: "#96AABE",
@@ -1318,7 +1335,7 @@ const MAPS = [
     legendaer: { typ: "steel", gestalt: "hueter",
       namen: ["Erzhüter", "Schmiedwächter", "Ambossthron"],
       text: "Im Erz geschmiedet, vom Erz getragen." },
-    sonderfelder: [["hoehe", 5], ["kraft", 5], ["wasser", 4]],
+    sonderfelder: [["hoehe", 5], ["kraft", 6], ["wasser", 4]],
     name: "Erzwerk", diff: "Brutal", mul: 1.72, gold: 460, lives: 16,
     himmel: ["#3A4048", "#7E868E"],
     ground: ["#32363C", "#3E434A"], accent: "#666E78", foliage: "#78828E",
@@ -1354,7 +1371,7 @@ const MAPS = [
     legendaer: { typ: "dark", gestalt: "hueter",
       namen: ["Schattenhüter", "Nachtwächter", "Finsterthron"],
       text: "Er wirft keinen Schatten — er ist einer." },
-    sonderfelder: [["hoehe", 4], ["kraft", 4], ["wasser", 5]],
+    sonderfelder: [["hoehe", 4], ["kraft", 6], ["wasser", 5]],
     /* Multiplikator von 1,78 auf 1,55.
 
        Gemessen über je vier Läufe: Mehr Startbeeren halfen gar nicht (700
@@ -1383,7 +1400,7 @@ const MAPS = [
     legendaer: { typ: "wind", gestalt: "hueter",
       namen: ["Böenhüter", "Windwächter", "Wirbelthron"],
       text: "Man hört ihn kommen, lange bevor man ihn sieht." },
-    sonderfelder: [["hoehe", 8], ["kraft", 4], ["wasser", 4]],
+    sonderfelder: [["hoehe", 8], ["kraft", 6], ["wasser", 4]],
     name: "Böenkuppe", diff: "Fordernd", mul: 1.40, gold: 320, lives: 18,
     himmel: ["#5A7280", "#A6C0C6"],
     ground: ["#3A4A44", "#485A52"], accent: "#6E8A7E", foliage: "#8AA69A",
@@ -1699,7 +1716,7 @@ const TIER_MARK = {
    Der Kranz sitzt bewusst weit oben und ragt über die Kopflinie hinaus —
    säße er auf Rückenhöhe, verdeckte ihn der Körper und Stufe 2 wäre von
    Stufe 1 nicht zu unterscheiden. */
-function tierBehind(g, s, col, tier, type, t) {
+function tierBehind(g, s, col, tier, type, t, mega) {
   if (!tier) return;
   const mark = TIER_MARK[type] || TIER_MARK.rock;
   // Reif der Endstufe liegt am Boden, damit er die Figur nicht zerschneidet
@@ -1710,9 +1727,51 @@ function tierBehind(g, s, col, tier, type, t) {
     g.beginPath(); g.ellipse(0, s * 1.12, s * 1.35, s * .34, 0, 0, 7); g.stroke();
     g.restore();
   }
+
+  /* Die Megastufe bekommt, was keine andere hat: zwei gegenläufige Ringe
+     über dem Haupt und aufsteigende Splitter.
+
+     Gegenläufig, weil ein einzelner Ring wie ein Heiligenschein aussieht und
+     zwei im Gleichlauf wie ein Fehler. Zwei, die sich kreuzen, lesen sich als
+     etwas, das sich bewegt — und darum geht es: Mega ist nicht eine Stufe
+     mehr, sondern ein anderer Zustand.
+
+     Sie liegen HINTER der Figur, damit sie das Gesicht nicht zerschneiden. */
+  if (mega) {
+    g.save();
+    for (const [tempo, neig, weite] of [[0.9, 0.28, 1.5], [-1.3, -0.34, 1.28]]) {
+      const w = t * tempo;
+      const puls = .5 + Math.sin(t * 1.7 + tempo) * .22;
+      g.strokeStyle = rgba(mark.c, puls * .85);
+      g.lineWidth = Math.max(1.1, s * .075);
+      g.save();
+      g.translate(0, -s * 1.05);
+      g.rotate(neig + Math.sin(w * .4) * .12);
+      g.beginPath();
+      g.ellipse(0, 0, s * weite, s * (.30 + Math.sin(w) * .16), 0, 0, 7);
+      g.stroke();
+      g.restore();
+    }
+    // Splitter, die vom Boden aufsteigen und oben vergehen
+    for (let i = 0; i < 5; i++) {
+      const k = (t * .55 + i * .2) % 1;
+      const a = i * 2.51 + t * .3;
+      const rr = s * (1.05 - k * .35);
+      g.fillStyle = rgba(mark.c, (1 - k) * .7);
+      const px = Math.cos(a) * rr, py = s * 1.1 - k * s * 2.2;
+      g.beginPath();
+      g.moveTo(px, py - s * .16);
+      g.lineTo(px + s * .07, py);
+      g.lineTo(px, py + s * .16);
+      g.lineTo(px - s * .07, py);
+      g.closePath(); g.fill();
+    }
+    g.restore();
+  }
+
   // Stachelkranz: Stufe 2 knapp über dem Kopf, Stufe 3 höher und in Elementfarbe
-  const n = tier >= 2 ? 7 : 5;
-  const hoch = tier >= 2 ? s * .7 : s * .42;
+  const n = tier >= 2 ? (mega ? 9 : 7) : 5;
+  const hoch = tier >= 2 ? s * (mega ? .84 : .7) : s * .42;
   const rx = s * 1.02, ry = s * .95;
   g.save();
   g.fillStyle = tier >= 2 ? rgba(mark.c, .92) : rgba(shade(col, .28), .95);
@@ -2001,7 +2060,7 @@ function drawCreature(g, x, y, s, col, shape, t, opts) {
 
   // Aufsätze der Entwicklungsstufe, hinter dem Körper
   const tier = opts.tier || 0;
-  if (tier) tierBehind(g, s, col, tier, opts.type, t);
+  if (tier) tierBehind(g, s, col, tier, opts.type, t, !!opts.mega);
 
   switch (shape) {
     case "cat": {
@@ -3641,7 +3700,7 @@ function baueFelder() {
 
   /* Welche Sonderfelder eine Karte trägt, steht bei der Karte selbst. Die
      Glutschlucht ist eine Feuerlandschaft — Tümpel wirkten dort aufgesetzt. */
-  for (const eintrag of (G.map.sonderfelder || [["wasser", 4], ["kraft", 3], ["hoehe", 3]])) {
+  for (const eintrag of (G.map.sonderfelder || [["wasser", 4], ["kraft", 6], ["hoehe", 3]])) {
     const [art, n, form, wunsch] = eintrag;
     if (form === "see") setzeSee(n, art, wunsch);
     else setze(n + Math.floor(rnd() * 2), art);
@@ -6890,10 +6949,36 @@ function zeichnePodest(g, t, col) {
       g.fillStyle = shade(col, -.35);
     }
   }
-  // Mega: goldener Reif
+  /* Mega: ein eigener Sockel statt nur eines Reifs.
+
+     Vorher lag ein schmaler goldener Ring um das Podest der dritten Stufe —
+     bei Spielgröße kaum von der Kante der dritten Stufe zu unterscheiden.
+     Jetzt trägt Mega eine zweite, breitere Stufe darunter, goldene Ecksteine
+     und ein Lichtband, das umläuft. Man sieht auf einen Blick, welcher
+     Wächter durch ist. */
   if (t.mega) {
-    g.strokeStyle = rgba("#F5C542", .5 + Math.sin(G.time * 2.2 + x) * .22);
-    g.lineWidth = 2;
+    // untere, breitere Stufe
+    g.fillStyle = rgba("#2A2418", .92);
+    g.beginPath();
+    if (g.roundRect) g.roundRect(x - br - 6, y + 9, (br + 6) * 2, 9, 4);
+    else g.rect(x - br - 6, y + 9, (br + 6) * 2, 9);
+    g.fill();
+    g.strokeStyle = rgba("#F5C542", .55); g.lineWidth = 1.3; g.stroke();
+    // goldene Ecksteine
+    g.fillStyle = "#F5C542";
+    for (const vz of [-1, 1]) {
+      g.beginPath();
+      g.ellipse(x + vz * (br + 3), y + 13, 2.6, 2.2, 0, 0, 7); g.fill();
+    }
+    // umlaufendes Lichtband
+    const lauf = (G.time * .55 + x * .01) % 1;
+    g.strokeStyle = rgba("#FFE9A8", .75);
+    g.lineWidth = 2.2;
+    g.beginPath();
+    g.ellipse(x, y + 8, br + 4, 8, 0, lauf * 6.28, lauf * 6.28 + 1.5);
+    g.stroke();
+    g.strokeStyle = rgba("#F5C542", .38 + Math.sin(G.time * 2.2 + x) * .16);
+    g.lineWidth = 1.6;
     g.beginPath(); g.ellipse(x, y + 8, br + 4, 8, 0, 0, 7); g.stroke();
   }
 
@@ -7033,7 +7118,13 @@ function drawTower(g, t) {
   if (t.stunT > 0) g.globalAlpha = .45;
   // Während der Verwandlung Größe modulieren und aufleuchten lassen
   const evoP = t.evo > 0 ? 1 - t.evo / EVO_DAUER : -1;
-  const gr = (13 + t.tier * 1.7) * (evoP >= 0 ? evoSkala(evoP) : 1);
+  /* Mega ist größer. Vorher war sie exakt so groß wie Stufe 3 und nur an
+     einem schmalen goldenen Reif am Podest zu erkennen — die vierte Stufe,
+     die man sich über eine ganze Runde verdient, sah aus wie die dritte.
+     Ein Drittel mehr ist genug, dass sie in einer Reihe von Wächtern sofort
+     heraussticht, und wenig genug, dass sie nicht die Nachbarfelder
+     überragt. */
+  const gr = (13 + t.tier * 1.7) * (t.mega ? 1.34 : 1) * (evoP >= 0 ? evoSkala(evoP) : 1);
   if (evoP >= 0) {
     const gl = evoLeuchten(evoP);
     g.save();
@@ -7047,7 +7138,7 @@ function drawTower(g, t) {
   drawCreature(g, t.x, t.y - 9 + rec * 2 + ausholen * 1.6, gr, col, t.def.shape,
     G.time + t.x * .01, {
       dir: (t.face !== undefined && Math.cos(t.face) < 0) ? -1 : 1,
-      tier: t.tier, type: t.def.type, variante: t.variante || 0,
+      tier: t.tier, type: t.def.type, variante: t.variante || 0, mega: !!t.mega,
       // Ausholen wirkt wie ein Zucken, nur andersherum: erst ducken, dann Schuss
       zuck: ausholen * .55,
       brems: t.stunT > 0 ? 1 : 0,
