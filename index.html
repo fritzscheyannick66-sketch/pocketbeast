@@ -206,6 +206,36 @@ canvas{display:block;width:100%;height:auto;touch-action:manipulation}
    Ecke, die auf allen drei Karten frei bleibt, gibt es nicht. Die Knöpfe sind
    deshalb bewusst durchscheinend — ein Gegner darunter bleibt als Bewegung
    erkennbar, statt ganz zu verschwinden. Beim Berühren werden sie deckend. */
+/* Handeln, wo man hinschaut.
+
+   Entwickeln, Mega und Entlassen standen nur in der Auswahltafel unter dem
+   Feld. Auf dem Handy hieß das: Wächter antippen, scrollen, entwickeln,
+   zurückscrollen — dreimal den Blick vom Geschehen nehmen, während die
+   Welle läuft. Jetzt erscheint der Knopf beim ausgewählten Wächter und
+   verschwindet, sobald man ihn abwählt.
+
+   Er sitzt ÜBER der Figur, nicht darauf: Ein Knopf auf dem Wächter
+   verdeckt genau das, worüber man entscheidet. */
+.feldknopf{
+  position:absolute; z-index:8; display:flex; gap:5px;
+  transform:translate(-50%,-100%); pointer-events:auto;
+}
+.feldknopf.unten{transform:translate(-50%,0)}
+.feldknopf .fk{
+  background:rgba(13,20,26,.9); backdrop-filter:blur(4px);
+  border:1px solid var(--line); border-radius:9px; color:var(--ink);
+  padding:7px 11px; font-family:var(--f-mono); font-size:12px; font-weight:700;
+  letter-spacing:.04em; cursor:pointer; white-space:nowrap;
+  box-shadow:0 3px 12px rgba(0,0,0,.45);
+}
+.feldknopf .fk:hover{background:rgba(29,47,60,.95)}
+.feldknopf .fk.gut{border-color:var(--amber); color:var(--amber)}
+.feldknopf .fk.mega{border-color:#C58BFF; color:#C58BFF}
+.feldknopf .fk[disabled]{opacity:.45; cursor:not-allowed}
+.feldknopf .fk .pr{color:var(--muted); font-weight:400; margin-left:5px}
+.feldknopf .fk.gut .pr{color:inherit; opacity:.75}
+@media (max-width:560px){ .feldknopf .fk{padding:8px 10px; font-size:12.5px} }
+
 .stagectl .btn{opacity:.8}
 .stagectl .btn:hover,.stagectl .btn:active{opacity:1}
 .stagectl .btn.primary{opacity:.88}
@@ -432,6 +462,7 @@ table.eff th{color:var(--muted);font-weight:700;font-size:9.5px;letter-spacing:.
       <div class="stagebox">
         <div class="stagewrap" id="stagewrap">
           <canvas id="board" width="1120" height="672" aria-label="Spielfeld"></canvas>
+          <div class="feldknopf" id="feldknopf" hidden></div>
         </div>
         <div class="bossbar" id="bossbar" hidden><div class="bn"><span id="boss-name"></span><span id="boss-hp"></span></div><div class="track"><div class="fill" id="boss-fill"></div></div></div>
         <div class="banner" id="banner" role="status" aria-live="polite"></div>
@@ -7146,6 +7177,10 @@ function updateStats() {
     const d = TOWER_BY_ID[el.dataset.id];
     el.dataset.afford = G.gold >= d.tiers[0].cost ? "1" : "0";
   });
+  /* Der Knopf am Wächter hängt an den Beeren: Was eben noch zu teuer war,
+     ist nach der nächsten erledigten Welle bezahlbar. updateStats() läuft
+     bei jeder Änderung der Beeren, also genau dann, wenn es nötig ist. */
+  feldKnopf();
 }
 
 let waveTotal = 0;
@@ -7255,7 +7290,86 @@ function megaBlock(t) {
   </div>`;
 }
 
+/* ============================================================
+   Der Knopf am Wächter
+   ============================================================
+
+   Er zeigt genau eine Handlung, und zwar die, die gerade ansteht:
+
+     Entwickeln   solange eine Stufe fehlt
+     Mega         sobald der Wächter sie verdient hat — sie verdrängt
+                  "Entwickeln", weil ein Wächter auf Endstufe keine
+                  gewöhnliche Stufe mehr vor sich hat
+     Trainieren   wenn nichts anderes bleibt
+
+   Bewusst nicht "Entlassen": Ein Knopf, der den Wächter mitten im Gefecht
+   löscht, gehört nicht dorthin, wo man schnell hintippt. Das bleibt in der
+   Auswahltafel, wo man es absichtlich tut.
+
+   Er wird nicht bei jedem Bild neu gebaut, sondern nur, wenn sich sein
+   Inhalt ändert. Sonst wäre er dieselbe Art von Verschwendung, die das
+   Ruckeln erzeugt hat — nur im Dokument statt auf der Zeichenfläche. */
+let feldKnopfStand = "";
+
+function feldKnopf() {
+  const el = $("feldknopf");
+  if (!el) return;
+  const t = G.sel;
+  if (!t || !G.running || G.over) {
+    if (!el.hidden) { el.hidden = true; el.innerHTML = ""; feldKnopfStand = ""; }
+    return;
+  }
+
+  /* Ort: über der Figur, in Bildschirmpixeln. Die Zeichenfläche wird
+     mitskaliert (Breite 100 Prozent), deshalb wird ihre tatsächliche Größe
+     abgefragt statt der 1120×672 gerechnet. */
+  const cv = $("board");
+  const b = cv.getBoundingClientRect();
+  const sx = b.width / W, sy = b.height / H;
+  el.style.left = Math.max(56, Math.min(b.width - 56, t.x * sx)) + "px";
+  /* Über der Figur — außer sie steht so weit oben, dass der Knopf gegen die
+     schwebende Leiste stieße. Dann darunter. Ein Knopf, der auf "Welle
+     starten" liegt, wird irgendwann statt dessen gedrückt. */
+  const obenY = (t.y - 30) * sy;
+  const unten = obenY < 58;
+  el.classList.toggle("unten", unten);
+  el.style.top = (unten ? (t.y + 16) * sy : obenY) + "px";
+
+  let art, text, preis, kann, klasse;
+  if (megaBereit(t)) {
+    art = "mega"; text = "Mega"; preis = MEGA_KOSTEN;
+    kann = G.gold >= preis; klasse = "mega";
+  } else if (t.tier < 2) {
+    const nx = t.def.tiers[t.tier + 1];
+    art = "auf"; text = "Entwickeln"; preis = nx.cost;
+    kann = G.gold >= preis && darfEntwickeln(t);
+    klasse = kann ? "gut" : "";
+  } else {
+    art = "train"; text = "Training"; preis = trainCost(t);
+    kann = G.gold >= preis && (t.train || 0) < trainGrenze();
+    klasse = kann ? "gut" : "";
+  }
+
+  const stand = art + "|" + preis + "|" + (kann ? 1 : 0) + "|" + t.c + "," + t.r;
+  if (stand !== feldKnopfStand) {
+    feldKnopfStand = stand;
+    el.innerHTML = `<button class="fk ${klasse}" ${kann ? "" : "disabled"} data-tun="${art}">`
+      + `${text}<span class="pr">${preis}</span></button>`;
+    el.querySelector(".fk").addEventListener("click", (ev) => {
+      ev.stopPropagation();
+      const ziel = G.sel;
+      if (!ziel) return;
+      if (art === "mega") megaEntwickeln(ziel);
+      else if (art === "auf") upgradeTower(ziel);
+      else trainTower(ziel);
+      feldKnopf();
+    });
+  }
+  el.hidden = false;
+}
+
 function renderSel() {
+  feldKnopf();
   const box = $("selbox");
   const t = G.sel;
   const pan = $("panel-sel");
@@ -8223,6 +8337,9 @@ autoKnopf();
 $("b-sound").textContent = SND.on ? "Ton an" : "Ton aus";
 window.addEventListener("pointerdown", audioInit, { once: true });
 window.addEventListener("keydown", audioInit, { once: true });
+/* Ändert sich die Fenstergröße, ändert sich die Skalierung des Spielfelds —
+   der Knopf säße sonst neben dem Wächter statt über ihm. */
+window.addEventListener("resize", () => feldKnopf());
 fitCanvas();
 /* Nur das Spielfeld herrichten, damit hinter dem Menü etwas steht.
    Ausdrücklich NICHT starteRunde() — das wäre eine Partie, und den Aufruf
