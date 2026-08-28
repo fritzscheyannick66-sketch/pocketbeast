@@ -197,6 +197,10 @@ canvas{display:block;width:100%;height:auto;touch-action:manipulation}
   .stagectl #b-pause{font-size:0;padding:9px 12px}
   .stagectl #b-pause::after{content:"⏸";font-size:15px;line-height:1}
   .stagectl #b-pause[data-zustand="pausiert"]::after{content:"▶"}
+  /* Drei Knöpfe in der rechten Ecke werden auf dem Handy eng. "Auto: aus"
+     schrumpft deshalb auf "A" — der Rahmen sagt ohnehin, ob er an ist. */
+  .stagectl #b-auto{font-size:0;padding:9px 12px}
+  .stagectl #b-auto::after{content:"A";font-size:14px;font-weight:700;line-height:1}
 }
 /* Auf Grünpfad und Glutschlucht führt die Route durch den oberen Bereich; eine
    Ecke, die auf allen drei Karten frei bleibt, gibt es nicht. Die Knöpfe sind
@@ -273,6 +277,8 @@ canvas{display:block;width:100%;height:auto;touch-action:manipulation}
 .card[data-sel="1"]::after{content:"";position:absolute;inset:auto 0 -1px 0;height:2px;background:var(--amber);border-radius:2px}
 /* Ein Umschalter muss man ansehen können, ohne den Text zu lesen. */
 #b-auto[data-an="1"]{border-color:var(--amber);color:var(--amber)}
+.stagectl #b-auto[data-an="1"]{border-color:var(--amber);color:var(--amber);opacity:1}
+.stagectl #b-auto[data-an="1"]::after{color:var(--amber)}
 .card[data-afford="0"]{opacity:.42;filter:saturate(.4)}
 .card[data-afford="0"] .cost{color:var(--bad)}
 .card .row1{display:flex;align-items:center;gap:7px}
@@ -438,9 +444,9 @@ table.eff th{color:var(--muted);font-weight:700;font-size:9.5px;letter-spacing:.
           <button class="btn primary big" id="b-wave">Welle<span class="lang"> starten</span></button>
           <button class="btn" id="b-pause" aria-label="Pause umschalten">Pause</button>
           <button class="btn" id="b-speed" aria-label="Spieltempo umschalten"><span class="spd">1×</span></button>
+          <button class="btn" id="b-auto" aria-label="Nächste Welle automatisch rufen">Auto: aus</button>
         </div>
         <div class="row-sub">
-          <button class="btn ghost sm" id="b-auto" aria-label="Nächste Welle automatisch rufen">Auto: aus</button>
           <button class="btn ghost sm" id="b-target" aria-label="Zielauswahl aller Wächter umschalten">Ziel: Erster</button>
           <button class="btn ghost sm" id="b-codex">Bestiarium</button>
           <button class="btn ghost sm" id="b-uebersicht">Übersicht</button>
@@ -1020,8 +1026,17 @@ const MAPS = [
   {
     /* Ein zusammenhängender See statt vier verstreuter Tümpel. Vier einzelne
        Pfützen mitten auf einer Waldlichtung sahen aus wie vergessene Löcher;
-       ein See ist eine Landschaftsform, um die herum man baut. */
-    sonderfelder: [["wasser", 6, "see"], ["kraft", 3], ["hoehe", 3]],
+       ein See ist eine Landschaftsform, um die herum man baut.
+
+       Er liegt in der Wegschleife: Dort, wo der Weg sich selbst kreuzt
+       (Spalten 5–9, Zeilen 5–9), umschließt er eine Fläche, und darin steht
+       das Wasser. Die Kachel [7,7] ist der Anhaltspunkt, von dem aus er
+       wächst; taugt sie nicht, nimmt er die nächstgelegene.
+
+       Das kostet bewusst den wertvollsten Bauplatz der Karte: Ein Wächter in
+       der Schleife bestreicht zwei Wegabschnitte. Wer ihn haben will, muss
+       jetzt einen Wasser-Wächter dorthin stellen — oder darum herum bauen. */
+    sonderfelder: [["wasser", 7, "see", [7, 7]], ["kraft", 3], ["hoehe", 3]],
     heim: "grass", legendaer: { typ: "grass", gestalt: "hueter",
       namen: ["Hainhüter", "Waldwächter", "Wurzelthron"],
       text: "Der Hüter des Grünpfads — hier gewachsen, hier verwurzelt." },
@@ -1065,6 +1080,12 @@ const MAPS = [
        unten herum und trifft bei (17,4) wieder auf die Hauptroute. Beide
        Listen müssen im gemeinsamen Teil Punkt für Punkt gleich sein, sonst
        driften die Linien nach der Glättung auseinander. */
+    /* Der obere Zweig war kurzzeitig über die Gabelung hinaufgezogen, um
+       Platz für den See zu schaffen. Der See liegt jetzt in der Wegschleife,
+       also ist der Grund entfallen — und die Änderung hatte einen Preis:
+       Der Zweig wurde dadurch kürzer (2156 statt 2390 Pixel), Gegner auf ihm
+       kamen früher an, und gemessen kostete Welle 44 im Schnitt 8,8 Leben
+       statt vorher 1,2 auf Welle 6. Deshalb zurück auf die alte Führung. */
     wpB: [[-1,6],[3,6],[3,3],[9,3],[9,9],[5,9],[5,5],[13,5],[13,8],[16,8],[17,6],[17,4],[20,5]],
   },
   {
@@ -3487,10 +3508,23 @@ function baueFelder() {
      von einem Startfeld aus: immer weiter an einen schon gesetzten Rand,
      solange dort Platz ist. Das ergibt eine unregelmäßige, aber
      zusammenhängende Form. */
-  const setzeSee = (n, art) => {
-    // Startfeld: mittlere Wegnähe — ein See direkt am Weg nähme zu viel Bauland
-    const kandidaten = tauglich.filter(f => f.naechste > 60 && f.naechste < 130
-      && !felder.has(f.c + "," + f.r));
+  const setzeSee = (n, art, wunsch) => {
+    /* Wo der See anfängt.
+
+       Ohne Wunsch: mittlere Wegnähe — ein See direkt am Weg nähme zu viel
+       Bauland. Mit Wunsch: möglichst nah an der genannten Kachel. Der
+       Grünpfad braucht das, weil sein See in die Schleife der Weggabelung
+       gehört und nicht irgendwohin. Ist die Wunschkachel selbst untauglich
+       (Weg, Rand), wird die nächstgelegene taugliche genommen — ein
+       Wunschort ist ein Anhaltspunkt, keine Vorschrift. */
+    let kandidaten = tauglich.filter(f => !felder.has(f.c + "," + f.r));
+    if (wunsch) {
+      kandidaten = kandidaten.slice().sort((a, b) =>
+        ((a.c - wunsch[0]) ** 2 + (a.r - wunsch[1]) ** 2) -
+        ((b.c - wunsch[0]) ** 2 + (b.r - wunsch[1]) ** 2));
+    } else {
+      kandidaten = kandidaten.filter(f => f.naechste > 60 && f.naechste < 130);
+    }
     if (!kandidaten.length) return 0;
     const start = kandidaten[0];
     felder.set(start.c + "," + start.r, art);
@@ -3534,8 +3568,8 @@ function baueFelder() {
   /* Welche Sonderfelder eine Karte trägt, steht bei der Karte selbst. Die
      Glutschlucht ist eine Feuerlandschaft — Tümpel wirkten dort aufgesetzt. */
   for (const eintrag of (G.map.sonderfelder || [["wasser", 4], ["kraft", 3], ["hoehe", 3]])) {
-    const [art, n, form] = eintrag;
-    if (form === "see") setzeSee(n, art);
+    const [art, n, form, wunsch] = eintrag;
+    if (form === "see") setzeSee(n, art, wunsch);
     else setze(n + Math.floor(rnd() * 2), art);
   }
   return felder;
@@ -7589,7 +7623,7 @@ $("b-target").addEventListener("click", () => {
   // Aufgeteilt statt beide links: nebeneinander belegten Wellen- und
   // Pauseknopf 44 % der Feldbreite und deckten auf zwei Karten die Route zu.
   links.append($("b-wave"));
-  rechts.append($("b-pause"), $("b-speed"));
+  rechts.append($("b-auto"), $("b-pause"), $("b-speed"));
 })();
 
 $("b-codex").addEventListener("click", showCodex);
