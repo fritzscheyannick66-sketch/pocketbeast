@@ -2685,6 +2685,41 @@ function isBossWave(w) {
   return w > 0 && (w % 8 === 0 || w === WELLEN_JE_KARTE);
 }
 
+/* Welcher Anführer auf welcher Welle.
+
+   Elf Anführer, aber dreizehn Bosswellen (8 bis 96 im Achtertakt, dazu die
+   Schlusswelle). Die Reihe lief einfach um, und das ergab ein Ende, das
+   niemand so gebaut hätte: Welle 96 und Welle 100 brachten BEIDE Vulkanox —
+   den Anführer von Welle 8. Der Höhepunkt einer Runde über hundert Wellen
+   war zweimal hintereinander der schwächste und vertrauteste Gegner des
+   Spiels, mit 24 Grundleben gegen 33 des stärksten.
+
+   Zwei Regeln beheben das:
+
+   Die Schlusswelle bekommt den Anführer des HEIMATELEMENTS der Karte. Auf
+   dem Firnfeld endet es gegen Glazior, in der Glutschlucht gegen Vulkanox —
+   das Land stellt zuletzt seinen eigenen. Das ist nicht nur stimmig, es
+   macht die Schlusswelle auch je Karte verschieden.
+
+   Und kein Anführer zweimal hintereinander: Fällt die Reihe auf denselben
+   wie in der Vorwelle, rückt sie um einen weiter. */
+function bossFuerWelle(w) {
+  const reihe = (x) => BOSSES[(Math.floor(x / 8) - 1 + BOSSES.length) % BOSSES.length];
+  if (w === WELLEN_JE_KARTE) {
+    const heim = G.map && G.map.heim;
+    const eigen = heim ? BOSSES.find(b => b.type === heim) : null;
+    const vor = reihe(Math.floor((w - 1) / 8) * 8);
+    if (eigen && eigen !== vor) return eigen;
+    // Heimatanführer stand schon in der Vorwelle: den stärksten nehmen,
+    // der nicht derselbe ist. Ein Ende gegen einen Wiederholungstäter wäre
+    // genau der Fehler, den diese Funktion behebt.
+    return BOSSES.filter(b => b !== vor).reduce((a, b) => (b.hp > a.hp ? b : a));
+  }
+  const b = reihe(w);
+  const vor = w > 8 ? reihe(w - 8) : null;
+  return b === vor ? BOSSES[(Math.floor(w / 8)) % BOSSES.length] : b;
+}
+
 /* Wellenstärke. Die Wachstumsrate fällt glatt von WAVE_R0 auf WAVE_R1:
    früh steil, damit der Druck rechtzeitig einsetzt, spät flach, weil die
    Feuerkraft des Spielers gegen Ende sättigt (ausgebaute Wächter lassen sich
@@ -2852,7 +2887,7 @@ function genWave(w, mul) {
     });
   });
   if (bossHere) {
-    const b = BOSSES[(Math.floor(w / 8) - 1) % BOSSES.length];
+    const b = bossFuerWelle(w);
     const bossCount = w >= 40 && w % 40 === 0 ? 2 : 1;
     // Anteil am Wellenbudget, auf die Zahl der Bosse verteilt
     const bossHP = hpBase * refSpecHP(w) * total * surge * BOSS_SHARE / bossCount;
