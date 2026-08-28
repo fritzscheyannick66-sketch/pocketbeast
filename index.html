@@ -3359,6 +3359,21 @@ function istNacht(welle) {
 
 /* 0 = heller Tag, 1 = tiefe Nacht. Läuft über die letzte Welle einer Hälfte
    weich hinüber, damit der Wechsel nicht hart einsetzt. */
+/* Wie tief die Nacht ist.
+
+   Oben heller als unten, weil Licht von oben kommt und der Vordergrund im
+   Schatten liegt — ein gleichmäßiger Schleier sähe aus wie eine getönte
+   Scheibe vor dem Bild.
+
+   Die Werte standen einmal bei 0,72 und 0,80; damals war das Gelände nachts
+   nicht mehr zu lesen, und sie wurden auf 0,46 und 0,54 gesenkt. Das war
+   allerdings, solange sich die Lichtkegel der Wächter noch additiv
+   aufsummierten: Nachts war das halbe Feld weiß überstrahlt, und dagegen
+   musste die Nacht hell bleiben, damit der Rest überhaupt zu sehen war.
+
+   Seit die Kegel gedeckelt sind, trägt die Nacht mehr Dunkelheit. */
+const NACHT_OBEN = 0.60, NACHT_UNTEN = 0.68;
+
 function nachtAnteil() {
   const w = Math.max(1, G.sent);
   const inHaelfte = (w - 1) % ZYKLUS;          // 0 … ZYKLUS-1
@@ -6404,9 +6419,8 @@ function zeichneNacht(g) {
   g.save();
   g.globalCompositeOperation = "multiply";
   const grd = g.createLinearGradient(0, 0, 0, H);
-  // Maßvoll: bei .72/.80 war das Gelände nachts praktisch nicht mehr zu lesen.
-  grd.addColorStop(0, `rgba(74,92,140,${.46 * a})`);
-  grd.addColorStop(1, `rgba(44,56,92,${.54 * a})`);
+  grd.addColorStop(0, `rgba(74,92,140,${NACHT_OBEN * a})`);
+  grd.addColorStop(1, `rgba(44,56,92,${NACHT_UNTEN * a})`);
   g.fillStyle = grd;
   g.fillRect(0, 0, W, H);
   g.restore();
