@@ -221,6 +221,48 @@ canvas{display:block;width:100%;height:auto;touch-action:manipulation}
   transform:translate(-50%,-100%); pointer-events:auto;
 }
 .feldknopf.unten{transform:translate(-50%,0)}
+
+/* Der Laden direkt unter dem Spielfeld.
+
+   Die ausführlichen Karten weiter unten bleiben — dort stehen Beschreibung,
+   Reichweite und ob eine Familie Flieger trifft. Wer das lesen will, liest es
+   dort. Zum SPIELEN braucht man aber nur Bild, Preis und einen Tipp, und der
+   Weg dorthin darf nicht durchs Scrollen führen: Wächter setzt man mitten in
+   der Welle, und dabei den Blick vom Feld zu nehmen kostet Leben.
+
+   Erst lag die Leiste ÜBER dem Feld, am unteren Rand. Gemessen verdeckte sie
+   dort 62 Feldpixel — und ein Wächter der untersten Reihe reicht von y=610
+   bis 650, lag also vollständig dahinter. Zwanzig Bauplätze je Karte wären
+   unsichtbar geworden.
+
+   Jetzt klebt sie direkt unter dem Feld: genauso nah, ohne etwas zu
+   verdecken. */
+.feldshop{
+  display:flex; gap:4px; margin-top:6px; padding:2px 1px 4px;
+  overflow-x:auto; scrollbar-width:none;
+}
+.feldshop::-webkit-scrollbar{display:none}
+/* Bild und Preis NEBENeinander, nicht übereinander.
+
+   Untereinander war die Leiste neunzig Feldpixel hoch — anderthalb Kacheln,
+   und die zwanzig Bauplätze der untersten Reihe verschwanden dahinter.
+   Nebeneinander sind es noch fünfundvierzig: Ein Wächter dort ist dann zu
+   zwei Dritteln zu sehen, weil Figuren nach oben gezeichnet werden. */
+.fs{
+  flex:0 0 auto; display:flex; align-items:center; gap:4px;
+  background:rgba(13,20,26,.82); backdrop-filter:blur(4px);
+  border:1px solid var(--line); border-radius:8px; padding:2px 7px 2px 3px;
+  cursor:pointer; line-height:1;
+}
+.fs canvas{display:block; width:28px; height:28px}
+.fs .p{font-family:var(--f-mono); font-size:11px; font-weight:700; color:var(--amber)}
+.fs[data-afford="0"]{opacity:.42}
+.fs[data-afford="0"] .p{color:var(--muted)}
+.fs[data-sel="1"]{border-color:var(--amber); background:rgba(240,168,60,.16)}
+.fs:hover{border-color:#3D7089}
+/* Nicht setzbar auf dieser Karte — etwa Wasser ohne Wasserstelle. */
+.fs[data-geht="0"]{opacity:.3}
+@media (max-width:560px){ .fs canvas{width:30px;height:30px} .fs .p{font-size:11.5px} }
 .feldknopf .fk{
   background:rgba(13,20,26,.9); backdrop-filter:blur(4px);
   border:1px solid var(--line); border-radius:9px; color:var(--ink);
@@ -464,6 +506,7 @@ table.eff th{color:var(--muted);font-weight:700;font-size:9.5px;letter-spacing:.
           <canvas id="board" width="1120" height="672" aria-label="Spielfeld"></canvas>
           <div class="feldknopf" id="feldknopf" hidden></div>
         </div>
+        <div class="feldshop" id="feldshop"></div>
         <div class="bossbar" id="bossbar" hidden><div class="bn"><span id="boss-name"></span><span id="boss-hp"></span></div><div class="track"><div class="fill" id="boss-fill"></div></div></div>
         <div class="banner" id="banner" role="status" aria-live="polite"></div>
         <div class="stagectl links" id="ctl-links"></div>
@@ -7177,10 +7220,11 @@ function updateStats() {
     const d = TOWER_BY_ID[el.dataset.id];
     el.dataset.afford = G.gold >= d.tiers[0].cost ? "1" : "0";
   });
-  /* Der Knopf am Wächter hängt an den Beeren: Was eben noch zu teuer war,
+  /* Knopf und Feldladen hängen an den Beeren: Was eben noch zu teuer war,
      ist nach der nächsten erledigten Welle bezahlbar. updateStats() läuft
      bei jeder Änderung der Beeren, also genau dann, wenn es nötig ist. */
   feldKnopf();
+  feldShop();
 }
 
 let waveTotal = 0;
@@ -7217,7 +7261,54 @@ function updateWaveLive() {
 }
 let waveLiveZahl = -1, waveLiveLbl = null, waveLiveFill = null;
 
+/* Der Laden auf dem Feld.
+
+   Dieselbe Auswahl wie unten, nur auf das Nötigste eingedampft: Bild, Preis,
+   Tipp. Er wird nur neu aufgebaut, wenn sich die Zusammenstellung ändert —
+   die Bilder werden gezeichnet, und das jedes Bild zu wiederholen wäre teuer.
+   Auswahl und Bezahlbarkeit ändern sich dagegen ständig und werden nur als
+   Merkmale gesetzt, ohne neu zu bauen. */
+let feldShopStand = "";
+
+function feldShop() {
+  const box = $("feldshop");
+  if (!box) return;
+  const liste = TOWERS.filter(d => !d.legendaer || legendaerFrei(G.mapIdx));
+  const stand = G.mapIdx + "|" + liste.map(d => d.id).join(",");
+
+  if (stand !== feldShopStand) {
+    feldShopStand = stand;
+    box.innerHTML = "";
+    for (let d of liste) {
+      if (d.legendaer) d = legendaerDef(G.mapIdx);
+      const t0 = d.tiers[0];
+      const el = document.createElement("button");
+      el.className = "fs";
+      el.dataset.id = d.id;
+      el.title = t0.name + " · " + TYPES[d.type].name + " · " + t0.cost;
+      el.innerHTML = `<canvas></canvas><span class="p">${t0.cost}</span>`;
+      iconInto(el.querySelector("canvas"), d.type, d.shape, 30);
+      el.addEventListener("click", (ev) => {
+        ev.stopPropagation();
+        G.place = G.place === d.id ? null : d.id;
+        G.sel = null; G.ghost = null;
+        sfxUI();
+        renderShop(); renderSel();
+      });
+      box.appendChild(el);
+    }
+  }
+
+  for (const el of box.children) {
+    const d = TOWER_BY_ID[el.dataset.id] || legendaerDef(G.mapIdx);
+    el.dataset.sel = G.place === el.dataset.id ? "1" : "0";
+    el.dataset.afford = G.gold >= d.tiers[0].cost ? "1" : "0";
+    el.dataset.geht = familieSetzbar(el.dataset.id) ? "1" : "0";
+  }
+}
+
 function renderShop() {
+  feldShop();
   const box = $("shop");
   box.innerHTML = "";
   TOWERS.forEach((d, i) => {
