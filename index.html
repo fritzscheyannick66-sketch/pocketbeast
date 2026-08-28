@@ -271,6 +271,8 @@ canvas{display:block;width:100%;height:auto;touch-action:manipulation}
 .card:hover{border-color:#3D7089}
 .card[data-sel="1"]{border-color:var(--amber);background:#25333a;box-shadow:inset 0 0 0 1px var(--amber-dim)}
 .card[data-sel="1"]::after{content:"";position:absolute;inset:auto 0 -1px 0;height:2px;background:var(--amber);border-radius:2px}
+/* Ein Umschalter muss man ansehen können, ohne den Text zu lesen. */
+#b-auto[data-an="1"]{border-color:var(--amber);color:var(--amber)}
 .card[data-afford="0"]{opacity:.42;filter:saturate(.4)}
 .card[data-afford="0"] .cost{color:var(--bad)}
 .card .row1{display:flex;align-items:center;gap:7px}
@@ -438,6 +440,7 @@ table.eff th{color:var(--muted);font-weight:700;font-size:9.5px;letter-spacing:.
           <button class="btn" id="b-speed" aria-label="Spieltempo umschalten"><span class="spd">1×</span></button>
         </div>
         <div class="row-sub">
+          <button class="btn ghost sm" id="b-auto" aria-label="Nächste Welle automatisch rufen">Auto: aus</button>
           <button class="btn ghost sm" id="b-target" aria-label="Zielauswahl aller Wächter umschalten">Ziel: Erster</button>
           <button class="btn ghost sm" id="b-codex">Bestiarium</button>
           <button class="btn ghost sm" id="b-uebersicht">Übersicht</button>
@@ -1334,6 +1337,7 @@ function loadSave() {
     if (!save.bestlauf) save.bestlauf = {};
     if (!save.erfolge) save.erfolge = {};
     if (!save.gesehen) save.gesehen = {};
+    if (!(save.tempo >= 1 && save.tempo <= 3)) save.tempo = 1;
   } catch (e) { /* Speicher nicht verfügbar — Spiel läuft trotzdem */ }
 }
 function writeSave() {
@@ -3181,8 +3185,22 @@ function endWave() {
   banner("Welle gehalten  ·  +" + (clearBonus + interest));
   saveRun();
   if (G.wave % 5 === 0) offerBoon();
+  /* Nächste Welle vormerken, wenn die Automatik läuft.
+
+     Die Pause ist Absicht und nicht knapp: In ihr lässt sich noch bauen,
+     entwickeln und trainieren. Ohne sie wäre die Automatik eine Falle —
+     man drückt sie einmal und verliert die Runde, weil zwischen den Wellen
+     keine Zeit mehr bleibt. Wer schneller will, ruft von Hand und bekommt
+     dafür den Frühstartbonus; die Automatik ist bequem, nicht optimal. */
+  if (save.autoWelle) G.autoT = AUTO_PAUSE;
   renderWaveList(); updateStats();
 }
+
+/* Wie lange die Automatik zwischen zwei Wellen wartet. Sie zählt in echter
+   Zeit herunter, nicht in Spielzeit — sonst schnurrte die Pause bei
+   dreifachem Tempo auf eineinhalb Sekunden zusammen, also genau dann, wenn
+   man am wenigsten Zeit zum Bauen hat. */
+const AUTO_PAUSE = 4.5;
 
 /* ============================================================
    Türme
@@ -7501,6 +7519,9 @@ $("b-pause").addEventListener("click", togglePause);
 $("b-speed").addEventListener("click", () => {
   G.speed = G.speed === 1 ? 2 : G.speed === 2 ? 3 : 1;
   $("b-speed").querySelector(".spd").textContent = G.speed + "×";
+  /* Das Tempo überlebt die Runde. Wer hundert Wellen auf 3× spielt, will
+     nicht bei jeder neuen Runde wieder zweimal klicken. */
+  save.tempo = G.speed; writeSave();
 });
 $("b-target").addEventListener("click", () => {
   const i = TARGET_MODES.findIndex(m => m[0] === G.targetMode);
@@ -7524,6 +7545,22 @@ $("b-target").addEventListener("click", () => {
 $("b-codex").addEventListener("click", showCodex);
 $("b-uebersicht").addEventListener("click", showUebersicht);
 $("b-help").addEventListener("click", showHelp);
+$("b-auto").addEventListener("click", () => {
+  save.autoWelle = !save.autoWelle;
+  writeSave();
+  autoKnopf();
+  /* Beim Einschalten zwischen zwei Wellen sofort vormerken — sonst
+     geschähe nichts, bis man einmal von Hand gerufen hat. */
+  if (save.autoWelle && G.running && !G.waveActive && !G.over) G.autoT = AUTO_PAUSE;
+  else if (!save.autoWelle) G.autoT = 0;
+  sfxUI();
+});
+function autoKnopf() {
+  const b = $("b-auto");
+  if (!b) return;
+  b.textContent = save.autoWelle ? "Auto: an" : "Auto: aus";
+  b.dataset.an = save.autoWelle ? "1" : "0";
+}
 $("b-sound").addEventListener("click", () => {
   SND.on = !SND.on;
   save.sound = SND.on; writeSave();
@@ -7907,6 +7944,9 @@ function showHelp() {
       <div class="kv" style="padding:10px"><div class="k">16 · Hain der Ahnen</div>
         <div style="font-size:13px;margin-top:4px;line-height:1.5">Im Endlosmodus lässt sich mit Beeren dauerhaft aufwerten: <b>Wehr</b>, <b>Schliff</b>, <b>Fernblick</b>, <b>Futter</b>. Anders als Training bleibt der Hain über die Runde hinaus — er ist der Grund, in einer sicheren Lage weiterzuspielen statt aufzuhören.</div></div>
     </section>
+    <p class="empty" style="margin:14px 0"><b style="color:var(--ink)">Auto</b> ruft die nächste Welle von selbst,
+    mit ${AUTO_PAUSE.toFixed(1).replace(".", ",")} Sekunden Pause zum Bauen — bequem, aber ohne Frühstartbonus.
+    <b style="color:var(--ink)">1× / 2× / 3×</b> stellt das Tempo; beides bleibt über die Runde hinaus eingestellt.</p>
     <p class="empty" style="margin:14px 0">Tastatur: <b style="color:var(--ink)">Leertaste</b> Welle · <b style="color:var(--ink)">P</b> Pause · <b style="color:var(--ink)">1–${Math.min(9, TOWERS.length)}</b> Wächter wählen ·
     <b style="color:var(--ink)">U</b> entwickeln · <b style="color:var(--ink)">V</b> entlassen · <b style="color:var(--ink)">Esc</b> abwählen</p>
     <button class="btn primary" id="b-closehelp">Los geht's</button>`);
@@ -8053,7 +8093,9 @@ function newRun(mapIdx, quiet) {
   G.lives = G.map.lives + rank("zaeh") * 2;
   G.wave = 0; G.sent = 0; G.score = 0; G.leaked = 0;
   G.waveActive = false; G.paused = false; G.over = false; G.running = true;
-  G.place = null; G.sel = null; G.ghost = null; G.speed = 1; G.time = 0; G.shake = 0; G.endless = false;
+  G.place = null; G.sel = null; G.ghost = null; G.time = 0; G.shake = 0; G.endless = false;
+  G.speed = save.tempo || 1;
+  G.autoT = 0;
   G.boons = {}; G.hain = {}; G.mod = null;
   decorCache = null; bgCache = null; stoneCache = null;
   logLines.length = 0;
@@ -8075,6 +8117,13 @@ function loop(now) {
   if (G.running && !G.paused && !G.over) {
     const steps = G.speed;
     for (let i = 0; i < steps; i++) update(raw);
+    /* Die Automatik ruht, solange ein Fenster offen ist — sonst startete
+       die nächste Welle, während man noch eine Segnung wählt, und die Wahl
+       fiele in ein bereits laufendes Gefecht. */
+    if (G.autoT > 0 && !veilLocked) {
+      G.autoT -= raw;
+      if (G.autoT <= 0 && !G.waveActive && !G.over) startWave();
+    }
   }
   if (G.map) draw();
   if (G.running && G.waveActive) updateWaveLive();
@@ -8086,6 +8135,7 @@ function loop(now) {
    ============================================================ */
 loadSave();
 SND.on = save.sound !== false;
+autoKnopf();
 $("b-sound").textContent = SND.on ? "Ton an" : "Ton aus";
 window.addEventListener("pointerdown", audioInit, { once: true });
 window.addEventListener("keydown", audioInit, { once: true });
