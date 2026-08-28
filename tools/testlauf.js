@@ -109,6 +109,15 @@ function fuehreAus(laeufeJeKarte, nurKarte) {
 
     bericht.karten.push({
       name: spiel.MAPS[idx].name,
+      /* Welche Typen auf dieser Karte überhaupt stehen dürfen.
+
+         Ohne das meldete der Bericht auf der Glutschlucht dauerhaft
+         "nie gebaut: water — prüfen, ob zu teuer oder zu schwach". Dort
+         gibt es aber keine Wasserstellen, also KANN kein Wasser-Wächter
+         gesetzt werden; das ist Absicht, kein Balanceproblem. Ein Werkzeug,
+         das immer denselben Fehlalarm gibt, bringt einem bei, seine
+         Warnungen zu überlesen. */
+      setzbar: [...setzbareTypen(spiel, idx)],
       idx,
       laeufe: laeufe.length,
       geschafft,
@@ -134,10 +143,28 @@ function fuehreAus(laeufeJeKarte, nurKarte) {
   return bericht;
 }
 
+/* Welche Wächtertypen lassen sich auf dieser Karte irgendwo setzen?
+
+   Gefragt wird das Spiel selbst — für jeden Typ, ob es mindestens ein Feld
+   gibt, das ihn aufnimmt. Eine Liste von Sonderfällen hier wäre dasselbe
+   Problem eine Ebene höher: Sie ginge irgendwann auseinander. */
+function setzbareTypen(spiel, kartenIdx) {
+  spiel.newRun(kartenIdx, true);
+  const frei = new Set();
+  for (const def of spiel.TOWERS) {
+    if (def.legendaer || frei.has(def.type)) continue;
+    aussen:
+    for (let c = 0; c < spiel.COLS; c++)
+      for (let r = 0; r < spiel.ROWS; r++)
+        if (spiel.canPlace(c, r) && spiel.darfHier(def.id, c, r)) { frei.add(def.type); break aussen; }
+  }
+  return frei;
+}
+
 /* ------------------------------------------------------------
    Ausgabe
    ------------------------------------------------------------ */
-function drucke(bericht) {
+function drucke(bericht, alleTypen) {
   for (const k of bericht.karten) {
     console.log("");
     console.log("═".repeat(66));
@@ -182,13 +209,21 @@ function drucke(bericht) {
       for (const [id, a] of typen) {
         console.log("    " + id.padEnd(9) + balken(a, 22) + "  " + (a * 100).toFixed(1) + " %");
       }
-      const ungenutzt = [];
-      for (const t of ["fire","water","grass","electric","rock","psychic","ice","steel","fairy","dark"]) {
-        if (!(t in k.typAnteil)) ungenutzt.push(t);
+      /* Die Typenliste wird abgelesen, nicht aufgeschrieben. Vorher stand
+         sie fest im Code und kannte "wind" nicht — ein nie gebauter
+         Wind-Wächter wäre nie aufgefallen. */
+      const ungenutzt = [], gesperrt = [];
+      for (const t of alleTypen) {
+        if (t in k.typAnteil) continue;
+        ((k.setzbar || []).includes(t) ? ungenutzt : gesperrt).push(t);
       }
       if (ungenutzt.length) {
         console.log("    nie gebaut: " + ungenutzt.join(", ") +
           "   ← prüfen, ob zu teuer oder zu schwach");
+      }
+      if (gesperrt.length) {
+        console.log("    nicht setzbar: " + gesperrt.join(", ") +
+          "   (kein passendes Feld auf dieser Karte)");
       }
     }
   }
@@ -245,7 +280,11 @@ const t0 = Date.now();
 const bericht = fuehreAus(laeufe, nurKarte);
 console.log("Fertig in " + ((Date.now() - t0) / 1000).toFixed(1) + " s");
 
-drucke(bericht);
+/* Die Typen kommen aus dem Spiel. Legend bleibt draußen: Der legendäre
+   Wächter ist eine Belohnung, kein Baustein — dass der Bot ihn nie baut,
+   ist richtig und keine Meldung wert. */
+drucke(bericht, Object.keys(ladeSpiel(path.join(WURZEL, "index.html")).TYPES)
+  .filter((t) => t !== "legend"));
 
 if (arg("vergleich", false)) vergleiche(bericht);
 if (arg("merken", false)) {
