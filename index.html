@@ -1500,6 +1500,23 @@ function shade(hex, amt) {
 function rgba(hex, a) {
   const [r,g,b] = hex2rgb(hex); return `rgba(${r},${g},${b},${a})`;
 }
+/* Farbe wärmer oder kühler stellen, ohne sie heller oder dunkler zu machen.
+
+   shade() kann nur aufhellen und abdunkeln. Für Bewuchs reicht das nicht:
+   Ein Wald, in dem alle Bäume denselben Grünton in verschiedenen
+   Helligkeiten tragen, sieht aus wie eine Farbfläche mit Schattierung. Erst
+   wenn ein Baum ins Gelbliche geht und der daneben ins Bläuliche, liest man
+   zwei Bäume statt eines Musters.
+
+   Positive Werte drehen Richtung Warm (mehr Rot, weniger Blau), negative
+   Richtung Kühl. Lässt sich mit shade() verketten, weil hex2rgb auch
+   rgb()-Zeichenketten liest. */
+function warm(hex, amt) {
+  const [r, g, b] = hex2rgb(hex);
+  const k = (v, d) => Math.max(0, Math.min(255, Math.round(v + d)));
+  const t = amt * 46;
+  return `rgb(${k(r, t)},${k(g, t * .28)},${k(b, -t)})`;
+}
 function rr(g, x, y, w, h, r) {
   if (g.roundRect) { g.beginPath(); g.roundRect(x, y, w, h, r); }
   else { g.beginPath(); g.ellipse(x + w/2, y + h/2, w/2, h/2, 0, 0, 7); }
@@ -4849,42 +4866,97 @@ let stoneCache = null;
 
    Das ist teuer zu zeichnen, kostet im Spiel aber nichts: Der Hintergrund
    wird einmal je Karte gerendert und danach als Bild wiederverwendet. */
+/* ============================================================
+   Das Bodenfeld
+   ============================================================
+
+   Der Boden war überall gleich. Nicht in der Farbe — es lagen elf weiche
+   Flecken darüber — sondern im Bewuchs: siebentausend Halme, gleichmäßig
+   über die Fläche gestreut, die von den Flecken nichts wussten. Die Zonen
+   färbten also den Grund ein, und darüber wuchs überall dasselbe Gras,
+   gleich dicht und gleich lang.
+
+   Genau das liest das Auge als künstlich. Eine echte Wiese hat keine
+   gleichmäßige Statistik: Wo Wasser steht, ist sie satt, dicht und dunkel;
+   auf einer trockenen Kuppe steht das Gras dünn und blass, und dazwischen
+   schaut die Erde durch. Nicht als Fleck, sondern als Übergang.
+
+   Deshalb ein einziges zusammenhängendes Feld, aus dem ALLES liest: die
+   Grundfarbe, die Dichte der Halme, ihre Länge, ihr Ton, wo Erde
+   durchkommt und wo Büschel stehen. Ein Wert zwischen 0 (dürr) und 1
+   (satt).
+
+   Drei Wellen unterschiedlicher Länge übereinander, aus dem Kartenindex
+   gesät. Das ist keine echte Rauschfunktion, aber es hat, worauf es
+   ankommt: Es ist stetig, wiederholt sich nicht sichtbar, und dieselbe
+   Karte sieht immer gleich aus. Und es kostet nichts — die Kulisse wird
+   einmal je Karte gezeichnet. */
+function bodenFeld(x, y, saat) {
+  const v = 0.5
+    + Math.sin(x * 0.0062 + saat) * Math.cos(y * 0.0081 - saat * .7) * 0.30
+    + Math.sin(x * 0.0141 - saat * 1.3) * Math.cos(y * 0.0119 + saat) * 0.14
+    + Math.sin((x + y) * 0.0231 + saat * 2.1) * 0.06;
+  return v < 0 ? 0 : v > 1 ? 1 : v;
+}
+
 function zeichneGrasnarbe(g, m) {
   const rn = mulberry(G.mapIdx * 8171 + 23);
   const gras = m.gras || shade(m.ground[1], .5);
   const gras2 = m.gras2 || shade(m.ground[1], .3);
   const erde = m.erde || m.soil || shade(m.ground[1], .35);
+  const saat = G.mapIdx * 1.7 + 0.4;
+  const feld = (x, y) => bodenFeld(x, y, saat);
 
-  /* Zonen unterschiedlicher Sattheit.
-
-     Eine Wiese ist nirgends gleichmäßig grün: Wo mehr Wasser steht, ist sie
-     satt und dunkel, auf Kuppen ausgetrocknet und blass. Große, sehr weiche
-     Flächen legen das an, bevor Halme und Erde daraufkommen — ohne sie
-     bleibt der Boden eine Farbfläche, egal wie viele Halme darauf stehen. */
+  /* Das Feld als Grundton. Ein Raster weicher Scheiben, deren Farbe der
+     Feldwert bestimmt — satt und dunkel in den Senken, blass und erdig auf
+     den Kuppen. Die Scheiben überlappen weit, dadurch bleibt der Übergang
+     stufenlos. Vorher standen hier elf zufällige Flecken, die miteinander
+     nichts zu tun hatten. */
   const satt = shade(gras2, -.22);
   const trocken = shade(m.erde || gras, .22);
-  for (let i = 0; i < 11; i++) {
-    const x = rn() * W, y = rn() * H;
-    const rx = 130 + rn() * 220, ry = 90 + rn() * 150;
-    const grd = g.createRadialGradient(x, y, 0, x, y, Math.max(rx, ry));
-    const ton = rn() > .5 ? satt : trocken;
-    grd.addColorStop(0, rgba(ton, .20 + rn() * .14));
-    grd.addColorStop(1, rgba(ton, 0));
-    g.save();
-    g.translate(x, y);
-    g.scale(1, ry / rx);
-    g.translate(-x, -y);
-    g.fillStyle = grd;
-    g.beginPath(); g.arc(x, y, rx, 0, 7); g.fill();
-    g.restore();
+  const schritt = 46;
+  for (let y = -schritt; y < H + schritt; y += schritt) {
+    for (let x = -schritt; x < W + schritt; x += schritt) {
+      const f = feld(x, y);
+      // Nur die Ausschläge zeichnen; die Mitte bleibt die Grundfarbe
+      const aus = (f - .5) * 2;                    // -1 … +1
+      if (Math.abs(aus) < .12) continue;
+      const ton = aus > 0 ? satt : trocken;
+      /* Deckkraft je Scheibe muss die Überlappung einrechnen.
+
+         Erster Anlauf: 0,30 je Scheibe. Bei Abstand 46 und Radius 87 liegt
+         jeder Punkt unter rund elf Scheiben; mal dem mittleren Gewicht
+         eines linearen Verlaufs (ein Drittel) ergibt das in Summe volle
+         Deckung. Der Boden wurde also komplett übermalt — alle elf Karten
+         verloren ihre Farbe, der Nachtgrund war grau statt dunkelviolett.
+
+         Aufgefallen erst auf dem Kontaktbogen aller elf Karten. Auf der
+         einzelnen Karte, die ich zum Prüfen offen hatte, sah es nur "etwas
+         heller" aus, und das hätte ich für die neue Zonierung gehalten.
+
+         0,075 ergibt in Summe rund 0,28 an den Extremstellen — sichtbar,
+         aber es lässt die Karte ihre Farbe behalten. */
+      const a = Math.min(.075, Math.abs(aus) * .085);
+      const rr = schritt * 1.9;
+      const grd = g.createRadialGradient(x, y, 0, x, y, rr);
+      grd.addColorStop(0, rgba(ton, a));
+      grd.addColorStop(1, rgba(ton, 0));
+      g.fillStyle = grd;
+      g.beginPath(); g.arc(x, y, rr, 0, 7); g.fill();
+    }
   }
 
-  // Erdstellen: unregelmäßige Lichtungen, an denen der Boden durchkommt
-  for (let i = 0; i < 26; i++) {
+  /* Erdstellen. Sie erscheinen nicht mehr irgendwo, sondern dort, wo das
+     Feld dürr ist — Erde kommt durch, wo das Gras es schwer hat. Vierzig
+     Anläufe statt sechsundzwanzig, weil die meisten verworfen werden. */
+  for (let i = 0; i < 40; i++) {
     const x = rn() * W, y = rn() * H;
+    const f = feld(x, y);
+    if (f > .42) continue;                       // hier wächst es gut
     const rx = 30 + rn() * 90, ry = 20 + rn() * 55;
     g.save();
-    g.globalAlpha = .16 + rn() * .20;
+    // Je dürrer die Stelle, desto deutlicher die Erde
+    g.globalAlpha = (.16 + rn() * .20) * (1 + (.42 - f) * 1.8);
     g.fillStyle = erde;
     g.beginPath();
     // gezackter Rand statt sauberer Ellipse, sonst wirkt es wie ein Aufkleber
@@ -4899,17 +4971,31 @@ function zeichneGrasnarbe(g, m) {
     g.restore();
   }
 
-  // Halme. Kurze Striche, leicht geneigt, in drei Tonlagen.
+  /* Halme. Drei Dinge liest jeder aus dem Feld, statt sie zu würfeln:
+
+       ob er überhaupt steht  — auf dürrem Grund fällt jeder zweite aus
+       wie lang er wird       — satter Boden trägt fast doppelt so hohes Gras
+       welchen Ton er hat     — satt geht ins Dunkle, dürr ins Blasse
+
+     Zehntausend Anläufe statt siebentausend, weil ein Teil verworfen wird;
+     am Ende stehen ähnlich viele, aber nicht mehr überall gleich viele. */
   g.save();
   g.lineCap = "round";
-  const halme = 7000;
-  for (let i = 0; i < halme; i++) {
+  const blass = shade(gras, .34);
+  for (let i = 0; i < 10000; i++) {
     const x = rn() * W, y = rn() * H;
+    const f = feld(x, y);
+    // Dichte: 0,45 auf dürrem Grund, 1,0 auf sattem
+    if (rn() > .45 + f * .55) continue;
     const t = rn();
-    const c = t < .34 ? gras : (t < .72 ? gras2 : shade(gras, .28));
-    const h = 2.2 + rn() * 4.6;
+    /* Der Ton mischt sich aus dem Feld: satter Boden zieht ins Dunkelgrüne,
+       dürrer ins Ausgeblichene. */
+    const c = f > .62 ? (t < .5 ? gras2 : shade(gras2, -.14))
+            : f < .38 ? (t < .5 ? blass : shade(gras, .18))
+            : (t < .34 ? gras : (t < .72 ? gras2 : shade(gras, .28)));
+    const h = (1.8 + rn() * 3.2) * (.7 + f * .9);
     const neig = (rn() - .5) * 1.5;
-    g.strokeStyle = rgba(c, .30 + rn() * .40);
+    g.strokeStyle = rgba(c, .26 + rn() * .38 + f * .10);
     g.lineWidth = .9 + rn() * 1.0;
     g.beginPath();
     g.moveTo(x, y);
@@ -4918,10 +5004,13 @@ function zeichneGrasnarbe(g, m) {
   }
   g.restore();
 
-  // Dichtere Büschel, damit die Narbe nicht gleichmäßig gestreut wirkt
-  for (let i = 0; i < 380; i++) {
+  /* Büschel wachsen, wo es feucht ist. Gleichmäßig gestreut waren sie
+     vorher genau das, was sie verhindern sollten: eine gleichmäßige Streu. */
+  for (let i = 0; i < 620; i++) {
     const bx = rn() * W, by = rn() * H;
-    const dicht = 6 + Math.floor(rn() * 10);
+    const f = feld(bx, by);
+    if (f < .52 || rn() > (f - .52) * 2.4) continue;
+    const dicht = 6 + Math.floor(rn() * 10 * (.6 + f * .8));
     g.save();
     g.lineCap = "round";
     for (let k = 0; k < dicht; k++) {
@@ -5207,21 +5296,41 @@ function zeichneWegStruktur(g, m) {
     // zwei ausgetretene Rinnen links und rechts der Mitte
     for (const seite of [-1, 1]) {
       g.save();
-      g.strokeStyle = rgba(shade(m.path || m.accent, .16), .30);
-      g.lineWidth = TILE * .17;
       g.lineCap = "round"; g.lineJoin = "round";
-      g.beginPath();
-      let erst = true;
-      for (let d = 0; d <= rt.len; d += 10) {
+      /* Die Rinne wandert und ist nicht überall gleich tief.
+
+         Vorher: fester Abstand zur Mitte mit ±1,7 Pixeln Schlängeln — auf
+         dem Bild zwei nahezu parallele Streifen, die wie aufgemalt aussahen.
+         Jetzt schwankt der Abstand um das Vierfache, aus zwei Wellen
+         unterschiedlicher Länge, und die Deckkraft läuft in eigenem Takt an
+         und ab. Dadurch verliert sich die Spur stellenweise ganz und findet
+         sich weiter vorn wieder — so verhält sich ausgetretene Erde.
+
+         Deshalb auch Abschnitt für Abschnitt gezeichnet statt als ein Zug:
+         Ein durchgehender Strich kann seine Deckkraft nicht ändern. */
+      const ph = seite > 0 ? 0 : 2.1;
+      let vor = null;
+      for (let d = 0; d <= rt.len; d += 9) {
         const a = pathAt(rt, d), b = pathAt(rt, Math.min(rt.len, d + 8));
         const dx = b.x - a.x, dy = b.y - a.y;
         const l = Math.hypot(dx, dy) || 1;
         const nx = -dy / l, ny = dx / l;
-        const off = seite * TILE * (.15 + Math.sin(d * .012) * .03);
+        const off = seite * TILE * (.15
+          + Math.sin(d * .0121 + ph) * .075
+          + Math.sin(d * .0043 + ph * 1.7) * .055);
         const px = a.x + nx * off, py = a.y + ny * off;
-        erst ? (g.moveTo(px, py), erst = false) : g.lineTo(px, py);
+        if (vor) {
+          // Tiefe der Spur: läuft in eigenem Takt an und ab
+          const tiefe = .35 + Math.sin(d * .0067 + ph * 2.3) * .34
+                            + Math.sin(d * .0189 + ph) * .12;
+          if (tiefe > .06) {
+            g.strokeStyle = rgba(shade(m.path || m.accent, .20), Math.min(.62, tiefe));
+            g.lineWidth = TILE * (.13 + tiefe * .12);
+            g.beginPath(); g.moveTo(vor[0], vor[1]); g.lineTo(px, py); g.stroke();
+          }
+        }
+        vor = [px, py];
       }
-      g.stroke();
       g.restore();
     }
 
@@ -5231,13 +5340,19 @@ function zeichneWegStruktur(g, m) {
       const dx = b.x - a.x, dy = b.y - a.y;
       const l = Math.hypot(dx, dy) || 1;
       const nx = -dy / l, ny = dx / l;
-      for (let k = 0; k < 2; k++) {
+      /* Korn in zwei Größen: große weiche Erdflecken für die Fläche, kleine
+         harte Krümel darüber. Vorher war beides dieselbe Größe und dieselbe
+         schwache Deckkraft — das ergab ein gleichmäßiges Rauschen, keine
+         getretene Erde. */
+      for (let k = 0; k < 3; k++) {
         const off = (rn() - .5) * TILE * .72;
         const x = a.x + nx * off, y = a.y + ny * off;
+        const gross = k === 0;
         const hell = rn() > .55;
-        g.fillStyle = hell ? rgba(boden, .07 + rn() * .10) : rgba(dunkel, .07 + rn() * .11);
-        const rr2 = .8 + rn() * 2.6;
-        g.beginPath(); g.ellipse(x, y, rr2, rr2 * (.5 + rn() * .5), rn() * 3, 0, 7); g.fill();
+        const alpha = gross ? .06 + rn() * .09 : .12 + rn() * .16;
+        g.fillStyle = hell ? rgba(boden, alpha) : rgba(dunkel, alpha);
+        const rr2 = gross ? 3.4 + rn() * 6.5 : .6 + rn() * 1.7;
+        g.beginPath(); g.ellipse(x, y, rr2, rr2 * (.4 + rn() * .5), rn() * 3, 0, 7); g.fill();
       }
     }
   }
@@ -5635,9 +5750,15 @@ function getBackdrop() {
   g.fillStyle = grd; g.fillRect(0, 0, W, H);
   drawGroundTexture(g);
 
-  g.strokeStyle = "rgba(255,255,255,.028)"; g.lineWidth = 1;
-  for (let cc = 1; cc < COLS; cc++) { g.beginPath(); g.moveTo(cc*TILE + .5, 0); g.lineTo(cc*TILE + .5, H); g.stroke(); }
-  for (let r = 1; r < ROWS; r++) { g.beginPath(); g.moveTo(0, r*TILE + .5); g.lineTo(W, r*TILE + .5); g.stroke(); }
+  /* Kein eingebackenes Raster mehr.
+
+     Über der ganzen Wiese lagen feine helle Linien im Kachelabstand — als
+     Setzhilfe gedacht, aber genau dann sichtbar, wenn niemand sie braucht:
+     Wer einen Wächter wählt, bekommt ohnehin alle freien Felder grün
+     markiert. Beim Zuschauen blieb nur ein geometrisches Gitter über einer
+     Naturszene stehen, und nichts liest sich so künstlich wie eine gerade
+     Linie im Gras.
+*/
 
   /* Alle Routen in vier Lagen, aber lagenweise über alle Routen hinweg:
      erst sämtliche Schatten, dann sämtliche Ränder, dann die Wegflächen.
@@ -5864,6 +5985,19 @@ function tiefenGroesse(y) {
 function drawFlora(g, it, m, fol, forceSway) {
   const x = it.x, y = it.y, s = it.s * tiefenGroesse(it.y);
   const sway = forceSway !== undefined ? forceSway : Math.sin(G.time * 1.2 + it.seed) * 1.4 * s;
+  /* Eigener Ton je Pflanze.
+
+     Vorher bekamen alle Gewächse einer Karte denselben Wert übergeben — auf
+     einer Nahaufnahme standen dreißig exakt gleich grüne Kronen
+     nebeneinander. Das ist der stärkste künstliche Zug an einem Wald: nicht
+     die Form der Bäume, sondern dass keiner sich vom anderen unterscheidet.
+
+     Zwei Verschiebungen aus dem festen Kern der Pflanze: Helligkeit um
+     ±13 Prozent, Wärme um ±0,5. Ein Baum steht damit im gelblichen Licht,
+     der nächste im bläulichen Schatten. Größer darf die Spanne nicht sein,
+     sonst zerfällt der Wald in bunte Einzelbäume. */
+  const k1 = (it.seed * 9973) % 1, k2 = (it.seed * 7919) % 1;
+  fol = warm(shade(fol, (k1 - .5) * .26), (k2 - .5));
   const dark = shade(fol, -.45), lite = shade(fol, .22);
   const stone = shade(m.soil || m.accent, -.28);
   g.save();
