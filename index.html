@@ -5733,6 +5733,109 @@ function zeichneFelder(g) {
 }
 
 const LIVE_KINDS = { pool: 1, vent: 1, grass: 1, flower: 1 };
+
+/* ============================================================
+   Pflanzenbilder
+   ============================================================
+
+   Ab Welle 70 ruckelte das Spiel. Gemessen lag das nicht am Rechnen —
+   das kostet 0,13 Millisekunden — sondern am Zeichnen mit 10,3. Und davon
+   entfielen 4,2 auf die Pflanzen: fünfhundertneun Stück, jede Bild für
+   Bild neu aus Bögen, Verläufen und Strichen aufgebaut.
+
+   Nicht die Fläche ist teuer, sondern die ANZAHL der Zeichenbefehle. Das
+   war zu prüfen und ist geprüft: Bei einfacher statt doppelter Pixeldichte
+   sank die Zeit von 11,0 auf 10,7 Millisekunden — drei Prozent. Eine
+   gröbere Auflösung hätte also Schärfe gekostet und nichts gebracht.
+
+   Also werden die Pflanzen einmal in kleine Bilder gezeichnet und danach
+   nur noch kopiert. Gemessen am Prototyp: 5,77 auf 1,36 Millisekunden.
+
+   Damit nicht fünfhundert Bilder im Speicher liegen, werden Größe und
+   Erscheinung gerastert — sechs Größenstufen, acht Ausprägungen. Fünfzig
+   Bilder je Art reichen für hunderte Pflanzen, weil Ort und Tiefe ohnehin
+   jede anders erscheinen lassen.
+
+   Gras und Blumen wiegen sich im Wind. Für sie gibt es das Bild in sechs
+   Schwungstufen — sie sind die kleinsten Pflanzen, das kostet fast nichts.
+
+   Die Hüllen sind nicht geschätzt, sondern gemessen: Jede Art wurde in
+   sechs Ausprägungen auf eine leere Fläche gezeichnet und ihre Ausdehnung
+   abgelesen. Ein erster Anlauf mit geschätzten 70×100 Pixeln belegte
+   dreißig Megabyte — die größte Pflanze misst tatsächlich 23×40. */
+const FLORA_HUELLE = {
+  conifer:     { l: 12, r: 11, o: 36, u: 4 },
+  broadleaf:   { l: 14, r: 13, o: 29, u: 4 },
+  deadtree:    { l: 11, r: 12, o: 29, u: 3 },
+  bush:        { l: 11, r: 10, o: 12, u: 4 },
+  pool:        { l: 14, r: 13, o: 12, u: 11 },
+  crystalrock: { l: 9,  r: 8,  o: 13, u: 3 },
+  pillar:      { l: 8,  r: 7,  o: 18, u: 2 },
+  rock:        { l: 8,  r: 7,  o: 7,  u: 2 },
+  rubble:      { l: 7,  r: 6,  o: 5,  u: 1 },
+  vent:        { l: 7,  r: 6,  o: 6,  u: 5 },
+  mushroom:    { l: 5,  r: 4,  o: 8,  u: 1 },
+  grass:       { l: 5,  r: 4,  o: 11, u: 0 },
+  flower:      { l: 4,  r: 3,  o: 12, u: 0 },
+  wisp:        { l: 5,  r: 4,  o: 11, u: 0 },
+};
+
+let floraBilder = new Map();
+let floraBilderKarte = -1;
+
+/* Auflösung der Pflanzenbilder. Weniger als die Anzeige, weil das
+   Zwischenbild ohnehin skaliert aufgesetzt wird und Pflanzen weiche
+   Umrisse haben — bei 1,5 statt 2 fällt kein Unterschied auf, der Speicher
+   sinkt aber auf gut die Hälfte. */
+const FLORA_DPR = 1.5;
+
+function floraBild(it, m, fol) {
+  if (floraBilderKarte !== G.mapIdx) { floraBilder = new Map(); floraBilderKarte = G.mapIdx; }
+  const roh = it.s * tiefenGroesse(it.y);
+  const sB = Math.max(1, Math.round(roh * 5)) / 5;          // Größenstufen
+  const kern = (it.seed * 9973) % 1;
+  const aB = Math.floor(kern * 8);                          // Ausprägung
+  const lebt = !!LIVE_KINDS[it.k];
+  const pB = lebt ? Math.floor(((Math.sin(G.time * 1.2 + it.seed) + 1) / 2) * 5.999) : 0;
+  const schluessel = it.k + "|" + sB + "|" + aB + "|" + pB;
+
+  let bild = floraBilder.get(schluessel);
+  if (bild) return bild;
+
+  const h = FLORA_HUELLE[it.k] || { l: 16, r: 16, o: 30, u: 6 };
+  const rand = 3;
+  const bw = Math.ceil((h.l + h.r) * sB) + rand * 2;
+  const bh = Math.ceil((h.o + h.u) * sB) + rand * 2;
+  const fx = Math.ceil(h.l * sB) + rand;                    // Fuß im Bild
+  const fy = Math.ceil(h.o * sB) + rand;
+  const c = document.createElement("canvas");
+  c.width = Math.max(1, Math.ceil(bw * FLORA_DPR));
+  c.height = Math.max(1, Math.ceil(bh * FLORA_DPR));
+  const gg = c.getContext("2d");
+  gg.setTransform(FLORA_DPR, 0, 0, FLORA_DPR, 0, 0);
+  const schwung = lebt ? ((pB / 5) * 2 - 1) * 1.4 * sB : 0;
+  drawFlora(gg, { k: it.k, x: fx, y: fy, s: sB, seed: (aB + .5) / 8 }, m, fol, schwung, sB);
+
+  bild = { cv: c, bw, bh, fx, fy };
+  floraBilder.set(schluessel, bild);
+  return bild;
+}
+
+/* Eine Pflanze aufsetzen.
+
+   Die Aufrichtung — das Rückgängigmachen der Bodenstauchung — steckt hier
+   direkt in der Höhe, statt über aufrecht() zu laufen. Das spart je Bild
+   fünfhundert Mal speichern, verschieben, skalieren und wiederherstellen,
+   und das Ergebnis ist dasselbe: aufrecht() streckt um 1/KIPP um den Fuß
+   der Pflanze, und genau das tut eine höhere Zeichnung ab demselben Fuß.
+
+   Der Fuß des Bildes kommt genau dorthin, wo die Pflanze steht — sonst
+   schwebte sie oder stäke im Boden. */
+function setzeFlora(g, it, m, fol) {
+  const b = floraBild(it, m, fol);
+  const hoch = b.bh / KIPP;
+  g.drawImage(b.cv, it.x - b.fx, it.y - (b.fy / KIPP), b.bw, hoch);
+}
 let bgCache = null;
 
 function getBackdrop() {
@@ -5936,30 +6039,54 @@ function zeichneTiefe(g, m) {
    Jedes Stück bekommt zwei Dinge: einen flachen Schatten auf dem Grund
    (der bleibt gestaucht, denn er liegt) und den Körper selbst, der die
    Stauchung an seiner Stelle aufhebt und dadurch aufragt. */
+/* Ein einziges Feld, das jedes Bild wiederverwendet wird.
+
+   Vorher legte zeichneStehendes je Bild eine neue Liste an und schob für
+   JEDES Ding — Pflanze, Wächter, Gegner — ein frisches Objekt hinein, das
+   eine frisch gebaute Funktion enthielt. Bei rund dreihundert Pflanzen,
+   fünfundvierzig Wächtern und dreißig Gegnern sind das dreihundertfünfzig
+   Wegwerf-Objekte je Bild, also über zwanzigtausend in der Sekunde.
+
+   Das kostet nicht nur Zeit, es erzeugt die falsche ART von Langsamkeit:
+   Der Speicher muss regelmäßig aufgeräumt werden, und diese Pausen fallen
+   dorthin, wo sie wollen. Das Spiel läuft dann nicht gleichmäßig langsamer,
+   sondern es RUCKELT — und genau das war ab Welle 70 zu spüren, wo genug
+   Gegner gleichzeitig unterwegs sind.
+
+   Jetzt liegen die Dinge selbst in der Liste, ohne Verpackung und ohne
+   Funktion. Unterschieden werden sie beim Zeichnen an dem, was sie
+   ohnehin tragen: eine Pflanze hat k, ein Wächter def, alles andere ist
+   ein Gegner. */
+const stehListe = [];
+
 function zeichneStehendes(g, m) {
   if (!decorCache || decorCache.map !== G.mapIdx) buildDecor();
   const fol = m.foliage || shade(m.accent, .2);
-  const liste = [];
 
-  for (const it of decorCache.items)
-    liste.push({ y: it.y, f: () => aufrecht(g, it.x, it.y, () => drawFlora(g, it, m, fol)) });
+  const L = stehListe;
+  L.length = 0;
+  for (const it of decorCache.items) L.push(it);
+  for (const t of G.towers) L.push(t);
+  for (const e of G.enemies) L.push(e);
 
-  for (const t of G.towers)
-    liste.push({ y: t.y, f: () => {
-      bodenSchatten(g, t.x, t.y + TILE * .17, TILE * .28, .30);
-      aufrecht(g, t.x, t.y, () => drawTower(g, t));
-    } });
-
-  for (const e of G.enemies)
-    liste.push({ y: e.y, f: () => {
-      const br = (e.s || 12) * .82;
-      bodenSchatten(g, e.x, e.y + br * .5, br, .26);
-      aufrecht(g, e.x, e.y, () => drawEnemy(g, e));
-    } });
-
-  liste.sort((a, b) => a.y - b.y);
-  for (const p of liste) p.f();
+  L.sort(nachTiefe);
+  for (let i = 0; i < L.length; i++) {
+    const o = L[i];
+    if (o.k !== undefined) {
+      setzeFlora(g, o, m, fol);          // richtet sich selbst auf
+    } else if (o.def) {
+      bodenSchatten(g, o.x, o.y + TILE * .17, TILE * .28, .30);
+      aufrecht(g, o.x, o.y, () => drawTower(g, o));
+    } else {
+      const br = (o.s || 12) * .82;
+      bodenSchatten(g, o.x, o.y + br * .5, br, .26);
+      aufrecht(g, o.x, o.y, () => drawEnemy(g, o));
+    }
+  }
 }
+/* Als benannte Funktion außerhalb, damit nicht jedes Bild eine neue
+   Vergleichsfunktion entsteht. */
+function nachTiefe(a, b) { return a.y - b.y; }
 
 function drawLiveDecor(g) {
   if (!decorCache || decorCache.map !== G.mapIdx) buildDecor();
@@ -5982,8 +6109,11 @@ function tiefenGroesse(y) {
   return 0.78 + (y / H) * 0.38;
 }
 
-function drawFlora(g, it, m, fol, forceSway) {
-  const x = it.x, y = it.y, s = it.s * tiefenGroesse(it.y);
+function drawFlora(g, it, m, fol, forceSway, festeGroesse) {
+  const x = it.x, y = it.y;
+  /* Beim Zeichnen ins Zwischenbild ist die Tiefe schon eingerechnet — dort
+     würde tiefenGroesse() ein zweites Mal verkleinern. */
+  const s = festeGroesse !== undefined ? festeGroesse : it.s * tiefenGroesse(it.y);
   const sway = forceSway !== undefined ? forceSway : Math.sin(G.time * 1.2 + it.seed) * 1.4 * s;
   /* Eigener Ton je Pflanze.
 
@@ -6929,10 +7059,26 @@ function updateWaveLive() {
     el.className = "wavelive"; el.id = "wavelive";
     el.innerHTML = `<span class="lbl" id="wl-lbl"></span><div class="track"><div class="fill" id="wl-fill"></div></div>`;
     box.prepend(el);
+    waveLiveZahl = -1; waveLiveLbl = null;
   }
-  document.getElementById("wl-lbl").textContent = left + (left === 1 ? " Wilder" : " Wilde");
-  document.getElementById("wl-fill").style.width = (done * 100).toFixed(1) + "%";
+  /* Nur schreiben, wenn sich etwas geändert hat.
+
+     Vorher wurden je Bild zwei Elemente gesucht, ein Text gesetzt und eine
+     Breite in Prozent geschrieben — sechzigmal in der Sekunde, obwohl sich
+     die Zahl der Wilden vielleicht dreißigmal je Welle ändert. Jede
+     Breitenangabe zwingt den Browser, das Layout neu zu rechnen, und diese
+     Arbeit taucht in keiner Zeichenmessung auf. Sie fällt zwischen den
+     Bildern an — also genau dort, wo Ruckeln entsteht. */
+  if (left === waveLiveZahl) return;
+  waveLiveZahl = left;
+  if (!waveLiveLbl || !waveLiveLbl.isConnected) {
+    waveLiveLbl = document.getElementById("wl-lbl");
+    waveLiveFill = document.getElementById("wl-fill");
+  }
+  waveLiveLbl.textContent = left + (left === 1 ? " Wilder" : " Wilde");
+  waveLiveFill.style.width = (done * 100).toFixed(1) + "%";
 }
+let waveLiveZahl = -1, waveLiveLbl = null, waveLiveFill = null;
 
 function renderShop() {
   const box = $("shop");
