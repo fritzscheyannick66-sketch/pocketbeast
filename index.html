@@ -7356,10 +7356,10 @@ function wireMenu() {
   });
   if ($("b-resume-run")) $("b-resume-run").addEventListener("click", () => {
     audioInit(); closeVeil();
-    if (!resumeRun()) newRun(menuMap);
+    if (!resumeRun()) starteRunde(menuMap);
   });
   $("b-start").addEventListener("click", () => {
-    audioInit(); closeVeil(); newRun(menuMap);
+    audioInit(); closeVeil(); starteRunde(menuMap);
     if (!save.tut) { save.tut = true; writeSave(); showHelp(); }
   });
   if ($("b-resume")) $("b-resume").addEventListener("click", () => { closeVeil(); G.paused = false; $("b-pause").textContent = "Pause"; });
@@ -7648,7 +7648,7 @@ function gameOver() {
       <button class="btn primary" id="b-again">Nochmal</button>
       <button class="btn" id="b-tomenu">Menü &amp; Talente</button>
     </div>`);
-  $("b-again").addEventListener("click", () => { closeVeil(); newRun(G.mapIdx); });
+  $("b-again").addEventListener("click", () => { closeVeil(); starteRunde(G.mapIdx); });
   $("b-tomenu").addEventListener("click", () => { showMenu(); });
 }
 function victory() {
@@ -7694,6 +7694,29 @@ function victory() {
 /* ============================================================
    Runde / Schleife
    ============================================================ */
+/* Eine Partie beginnen — im Unterschied zu newRun(), das nur das Spielfeld
+   herrichtet.
+
+   Die Trennung hat einen handfesten Grund. newRun() lief auch beim Aufbau
+   der Seite, damit hinter dem Menü etwas zu sehen ist. Solange es dabei
+   clearRun() und statPlus("runden") mit ausführte, hatte das zwei Folgen,
+   die niemand beabsichtigt hatte:
+
+     Die gespeicherte Runde wurde bei JEDEM Seitenaufbau gelöscht. Der Knopf
+     "Fortsetzen" konnte deshalb nie erscheinen — die Runde war schon weg,
+     bevor das Menü gezeichnet wurde. Die ganze Wiederaufnahme lag brach.
+
+     Der Rundenzähler zählte Seitenaufrufe statt Partien. Wer die Seite
+     zehnmal öffnete, hatte laut Statistik zehn Runden gespielt.
+
+   Beides gehört an die Stellen, an denen ein Mensch eine Runde startet —
+   also hierher, und nicht in die Einrichtung des Spielfelds. */
+function starteRunde(mapIdx) {
+  clearRun();
+  statPlus("runden");
+  newRun(mapIdx);
+}
+
 function newRun(mapIdx, quiet) {
   G.mapIdx = mapIdx;
   G.map = MAPS[mapIdx];
@@ -7715,10 +7738,8 @@ function newRun(mapIdx, quiet) {
   G.lives = G.map.lives + rank("zaeh") * 2;
   G.wave = 0; G.sent = 0; G.score = 0; G.leaked = 0;
   G.waveActive = false; G.paused = false; G.over = false; G.running = true;
-  statPlus("runden");
   G.place = null; G.sel = null; G.ghost = null; G.speed = 1; G.time = 0; G.shake = 0; G.endless = false;
   G.boons = {}; G.hain = {}; G.mod = null;
-  clearRun();
   decorCache = null; bgCache = null; stoneCache = null;
   logLines.length = 0;
   $("mapname").textContent = G.map.name;
@@ -7754,6 +7775,9 @@ $("b-sound").textContent = SND.on ? "Ton an" : "Ton aus";
 window.addEventListener("pointerdown", audioInit, { once: true });
 window.addEventListener("keydown", audioInit, { once: true });
 fitCanvas();
+/* Nur das Spielfeld herrichten, damit hinter dem Menü etwas steht.
+   Ausdrücklich NICHT starteRunde() — das wäre eine Partie, und den Aufruf
+   der Seite hat niemand gespielt. */
 newRun(0);
 G.running = false;
 showMenu();
