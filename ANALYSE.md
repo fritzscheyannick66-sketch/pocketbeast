@@ -770,3 +770,62 @@ Das ist das dritte Mal, dass dieses Messinstrument einen Befund liefert, der
 sich beim Nachsehen auflöst. Solange der Bot Megaentwicklung, Sonderfelder
 und Tageszeit nicht kennt, taugt er nur noch als grober Rauchtest, nicht zur
 Kalibrierung.
+
+---
+
+## Zwei verdächtige Karten, die keine sind (28.08.2026)
+
+Ein Testlauf über fünf Läufe je Karte zeigte alle elf Karten mit Median
+Welle 100 — aber zwei mit auffälliger Streuung:
+
+- **Nachtgrund** 100/100/100, dazu zweimal Welle 34
+- **Böenkuppe** viermal 100, einmal 39; Welle 37 kostete im Schnitt 6,8 Leben,
+  der höchste Einzelwert im ganzen Bericht
+
+Welle 37 ist keine Bosswelle (die liegen auf jeder achten). Das sah nach
+einem echten Problem aus.
+
+### Was die Nachmessung ergab
+
+Acht weitere Läufe je Karte, mit dem Zustand bei Welle 30 im Vergleich:
+
+| | Nachtgrund | Böenkuppe |
+|---|---|---|
+| Läufe auf Welle 90+ | 7 von 8 | **8 von 8** |
+| Wächter bei Welle 30 | 45 in *jedem* Lauf | 45 in jedem Lauf |
+| Leben bei Welle 30 | 16 in *jedem* Lauf | 18 in jedem Lauf |
+| Beeren bei Welle 30 | 0 in jedem Lauf | 0 in jedem Lauf |
+
+Bei Welle 30 sind gelungene und misslungene Läufe **nicht unterscheidbar**.
+Kein Anlaufproblem also — anders als auf der Flutruine, wo unter 480
+Startbeeren die Runde nie in Gang kam.
+
+Der einzige Unterschied liegt am Ende: Der misslungene Nachtgrund-Lauf kam
+auf **6 Megaentwicklungen**, die gelungenen auf 16 bis 25. Megaentwicklung
+verlangt 40 erledigte Gegner *und* Training 6 je Wächter. Verteilt der Bot
+seine Abschüsse breit statt zu bündeln, erreicht kaum ein Wächter beide
+Schwellen — und ohne Megaentwicklungen bricht die Kurve ab Welle 60.
+
+### Bewertung
+
+**Keine Kartenänderung.** Über je dreizehn Läufe stehen beide Karten bei
+zehn beziehungsweise dreizehn Läufen auf Welle 90+. Die Streuung kommt aus
+der Strategie des Bots, nicht aus der Karte. Ein Mensch bündelt Abschüsse
+auf wenige Wächter, weil er das Ziel vor Augen hat; der Bot baut breit.
+
+Das ist der dritte Fall, in dem ein auffälliger Wert sich beim Nachmessen
+auflöst — und der zweite, bei dem zu wenige Läufe der Grund waren. Fünf
+Läufe reichen für den Median, aber nicht für die Ränder.
+
+### Was aus dem Werkzeug wurde
+
+Der Bericht meldete auf der Glutschlucht dauerhaft „nie gebaut: water —
+prüfen, ob zu teuer oder zu schwach". Dort gibt es keine Wasserstellen; ein
+Wasser-Wächter *kann* dort nicht stehen. Ein Werkzeug, das immer denselben
+Fehlalarm gibt, bringt einem bei, seine Warnungen zu überlesen — deshalb
+unterscheidet es jetzt „nie gebaut" von „nicht setzbar" und fragt dafür das
+Spiel, statt eine Liste von Sonderfällen zu führen.
+
+An derselben Stelle stand die Typenliste fest im Code und kannte `wind`
+nicht, weil die Familie später dazukam. Ein nie gebauter Wind-Wächter wäre
+also nie aufgefallen: Die Warnung hätte ihn gar nicht gesucht.
