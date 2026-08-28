@@ -5752,6 +5752,11 @@ function zeichneFelder(g) {
 
 const LIVE_KINDS = { pool: 1, vent: 1, grass: 1, flower: 1 };
 
+/* Sammelfläche für die nächtlichen Lichtkegel. Einmal angelegt und
+   wiederverwendet — je Bild eine neue anzulegen wäre genau die Art von
+   Verschwendung, die das Ruckeln erzeugt hat. */
+let lichtLage = null;
+
 /* ============================================================
    Pflanzenbilder
    ============================================================
@@ -6406,19 +6411,47 @@ function zeichneNacht(g) {
   g.fillRect(0, 0, W, H);
   g.restore();
 
-  // Lichtkegel der Wächter
-  g.save();
-  g.globalCompositeOperation = "lighter";
+  /* Lichtkegel der Wächter — erst sammeln, dann einmal auflegen.
+
+     Vorher wurde jeder Kegel einzeln additiv aufs Feld gelegt. Bei wenigen
+     Wächtern sieht das richtig aus; ab Welle 90 stehen fünfundvierzig da,
+     megaentwickelt und mit großer Reichweite, und wo sie dicht beieinander
+     stehen, überlagern sich zehn und mehr Kegel. Additiv heißt: die Werte
+     addieren sich, bis nichts mehr geht. Das Feld wurde weiß, und man sah
+     weder Gegner noch Boden.
+
+     Jetzt kommen alle Kegel zuerst auf eine eigene Fläche, und zwar mit
+     "lighten": Dort gewinnt an jedem Punkt der HELLSTE Kegel, statt dass
+     alle sich aufsummieren. Zehn übereinander sind damit so hell wie einer.
+     Diese Fläche wird dann ein einziges Mal additiv aufs Feld gelegt — das
+     Ergebnis ist nach oben begrenzt, egal wie viele Wächter stehen.
+
+     Der Nebeneffekt ist erwünscht: Wo Wächter dicht stehen, wird es nicht
+     heller, sondern nur großflächiger hell. Genau so verhält sich Licht
+     auch nicht — aber es bleibt lesbar, und darum geht es. */
+  const dpr = dprJetzt();
+  if (!lichtLage || lichtLage.width !== Math.round(W * dpr) || lichtLage.height !== Math.round(H * dpr)) {
+    lichtLage = document.createElement("canvas");
+    lichtLage.width = Math.round(W * dpr);
+    lichtLage.height = Math.round(H * dpr);
+  }
+  const lg2 = lichtLage.getContext("2d");
+  lg2.setTransform(dpr, 0, 0, dpr, 0, 0);
+  lg2.clearRect(0, 0, W, H);
+  lg2.globalCompositeOperation = "lighten";
   for (const t of G.towers) {
     const rr = statRange(t) * .55;
-    const lg = g.createRadialGradient(t.x, t.y - 6, 4, t.x, t.y - 6, rr);
+    const lg = lg2.createRadialGradient(t.x, t.y - 6, 4, t.x, t.y - 6, rr);
     const c = TYPES[t.def.type].col;
     lg.addColorStop(0, rgba(c, .26 * a));
     lg.addColorStop(.5, rgba(c, .10 * a));
     lg.addColorStop(1, rgba(c, 0));
-    g.fillStyle = lg;
-    g.beginPath(); g.arc(t.x, t.y - 6, rr, 0, 7); g.fill();
+    lg2.fillStyle = lg;
+    lg2.beginPath(); lg2.arc(t.x, t.y - 6, rr, 0, 7); lg2.fill();
   }
+  g.save();
+  g.globalCompositeOperation = "lighter";
+  g.drawImage(lichtLage, 0, 0, W, H);
   g.restore();
 
   // Sterne am oberen Rand, nur in tiefer Nacht
@@ -6966,8 +6999,11 @@ function drawEnemy(g, e) {
     brems: e.rootT > 0 ? 1 : (e.slowT > 0 ? (e.slow || 0) : 0),
   });
   if (e.flash > 0) {
+    /* Begrenzt. e.flash * 2,4 konnte über eins hinauslaufen, und additiv
+       gezeichnet addierte sich das bei dicht stehenden Gegnern weiter auf.
+       In späten Wellen werden dreißig gleichzeitig getroffen. */
     g.globalCompositeOperation = "lighter";
-    g.fillStyle = rgba("#ffffff", e.flash * 2.4);
+    g.fillStyle = rgba("#ffffff", Math.min(.55, e.flash * 2.4));
     g.beginPath(); g.arc(e.x, e.y, e.rad, 0, 7); g.fill();
     g.globalCompositeOperation = "source-over";
   }
