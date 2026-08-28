@@ -3364,8 +3364,13 @@ const AUTO_PAUSE = 4.5;
    Feuerrate, Splash, Ketten —, wirkt die Megastufe damit überall auf einmal. */
 function tierOf(t) { return (t.mega && t.megaWerte) ? t.megaWerte : t.def.tiers[t.tier]; }
 
+/* Messbetrieb. Nur das Werkzeug setzt das; im Spiel bleibt es falsch, und
+   dann kosten die Zählungen keine einzige Rechenoperation. */
+G.messen = false;
+G.gegnerSekunden = 0;
+
 function recalcAuras() {
-  for (const t of G.towers) { t.aDmg = 0; t.aRng = 0; }
+  for (const t of G.towers) { t.aDmg = 0; t.aRng = 0; t.aVon = null; }
   for (const s of G.towers) {
     const st = tierOf(s);
     if (!st.aura) continue;
@@ -3374,7 +3379,11 @@ function recalcAuras() {
       if (t === s) continue;
       if (Math.hypot(t.x - s.x, t.y - s.y) <= r) {
         const ab = 1 + boon("aura") * .45;
-        t.aDmg = Math.max(t.aDmg, st.aura.dmg * ab);
+        /* Wer die Verstärkung liefert, wird mitnotiert. Ohne das lässt sich
+           der Schaden, den ein Nachbar NUR DANK dieses Feldes anrichtet,
+           niemandem zuschreiben — und genau daran ist meine
+           Schadensstatistik bisher blind vorbeigelaufen. */
+        if (st.aura.dmg * ab > t.aDmg) { t.aDmg = st.aura.dmg * ab; t.aVon = s; }
         t.aRng = Math.max(t.aRng, st.aura.rng * ab);
       }
     }
@@ -3904,7 +3913,26 @@ function damage(en, amount, type, src) {
   }
   en.hp -= d;
   en.dmgAcc = (en.dmgAcc || 0) + d;
-  if (src) { src.dealt += d; sfxHit(); }
+  if (src) {
+    src.dealt += d;
+    /* Der Anteil, den das Psycho-Feld beigesteuert hat: Ohne Feld wäre der
+       Schaden um den Faktor (1 + aDmg) kleiner gewesen. Dieser Anteil geht
+       auf das Konto des Feldes, nicht des Schützen — er wird beim Schützen
+       NICHT abgezogen, sondern beim Verstärker zusätzlich gutgeschrieben.
+       Beides zu summieren wäre doppelt gezählt; deshalb sind es getrennte
+       Konten, die das Werkzeug getrennt ausweist. */
+    if (G.messen && src.aVon && src.aDmg) {
+      const anteil = src.aDmg / (1 + src.aDmg);
+      src.aVon.feldWirkung = (src.aVon.feldWirkung || 0) + d * anteil;
+    }
+    /* Markierung: Der Mehrschaden gegenüber einem unmarkierten Ziel geht auf
+       das Konto dessen, der markiert hat. */
+    if (G.messen && en.markVon && en.mark && en.markT > 0) {
+      en.markVon.markWirkung = (en.markVon.markWirkung || 0)
+        + d * (en.mark / (1 + en.mark));
+    }
+    sfxHit();
+  }
   G.score += Math.round(d * .12);
   if (m >= 2) en.flashEff = .35;
   else if (m <= .5) en.flashRes = .35;
@@ -4046,7 +4074,7 @@ function fireTower(t, dt) {
          aus wie ein Laser; Strom sucht sich einen krummen Weg. */
       zacken(prev.x, prev.y, e.x, e.y, TYPES[t.def.type].col, .2);
       damage(e, dmg * Math.pow(.78, i), t.def.type, t);
-      applyStatus(e, st);
+      applyStatus(e, st, t);
       einschlag(e.x, e.y, t.def.type);
       prev = e;
     });
@@ -4452,7 +4480,19 @@ function zeichneGeschoss(g, s, zeit) {
   g.restore();
 }
 
-function applyStatus(e, st) {
+/* Was eine Nebenwirkung wert ist, lässt sich nicht in Schaden ablesen —
+   deshalb werden die Wirkungen selbst gezählt und erst im Werkzeug
+   umgerechnet:
+
+     Bremszeit   Anteil mal Dauer. Ein Gegner, der zwei Sekunden lang halb
+                 so schnell läuft, steht eine Sekunde länger im Feuer.
+     Fesselzeit  volle Dauer, denn ein festgehaltener Gegner bewegt sich gar
+                 nicht.
+     Markierung  wie viel Schaden durch die Markierung zusätzlich anfiel.
+
+   Gezählt wird nur bei laufender Messung. Im Spiel kosten diese Zeilen
+   nichts, weil G.messen dort falsch ist. */
+function applyStatus(e, st, quelle) {
   if (st.burn) {
     e.burn = Math.max(e.burn || 0, st.burn.dps * (1 + boon("burn") * .6));
     e.burnT = Math.max(e.burnT || 0, st.burn.dur);
@@ -4460,12 +4500,39 @@ function applyStatus(e, st) {
   if (st.slow) {
     e.wetT = Math.max(e.wetT || 0, st.slow.dur * 1.6);
     if (!e.spec.tough) {
+      const vorher = e.slowT || 0;
       e.slow = Math.max(e.slow || 0, Math.min(.8, st.slow.amt * (1 + boon("slow") * .25)));
-      e.slowT = Math.max(e.slowT || 0, st.slow.dur);
+      e.slowT = Math.max(vorher, st.slow.dur);
+      /* NUR die neu hinzugewonnene Zeit gutschreiben.
+
+         Der erste Anlauf zählte bei jedem Treffer die volle Dauer — und ein
+         Wächter mit sechs Schuss je Sekunde trifft denselben Gegner sechsmal,
+         ohne dass sich dessen Bremszeit verlängert (es ist ein Maximum, keine
+         Summe). Gemessen kam Eis dadurch auf das Siebenundvierzigfache seines
+         Schadens, was offensichtlich Unsinn war.
+
+         Dieselbe Falle wie beim Bot: Ein Messgerät, das jede Gelegenheit
+         zählt statt jede Wirkung. */
+      if (G.messen && quelle) {
+        const dazu = e.slowT - vorher;
+        if (dazu > 0) quelle.bremsWirkung = (quelle.bremsWirkung || 0) + e.slow * dazu;
+      }
     }
   }
-  if (st.root && !e.spec.tough && Math.random() < st.root.p) { e.rootT = Math.max(e.rootT || 0, st.root.dur); }
-  if (st.mark) { e.mark = Math.max(e.mark || 0, st.mark); e.markT = 2.5; }
+  if (st.root && !e.spec.tough && Math.random() < st.root.p) {
+    const vorher = e.rootT || 0;
+    e.rootT = Math.max(vorher, st.root.dur);
+    if (G.messen && quelle && e.rootT > vorher)
+      quelle.fesselWirkung = (quelle.fesselWirkung || 0) + (e.rootT - vorher);
+  }
+  if (st.mark) {
+    e.mark = Math.max(e.mark || 0, st.mark);
+    e.markT = 2.5;
+    /* Wer markiert hat, wird gemerkt — der Wert der Markierung ist der
+       Mehrschaden, den ANDERE dadurch anrichten, und der fällt erst beim
+       Treffer an. */
+    if (G.messen && quelle) e.markVon = quelle;
+  }
 }
 function splashHit(s) {
   einschlag(s.x, s.y, s.type);
@@ -4474,7 +4541,7 @@ function splashHit(s) {
   for (const e of list) {
     const f = e === s.tgt ? 1 : .62;
     damage(e, s.dmg * f, s.type, s.src);
-    applyStatus(e, s.st);
+    applyStatus(e, s.st, s.src);
   }
   fx({ kind: "ring", x: s.x, y: s.y, r0: 4, r1: s.splash, life: .32, col: TYPES[s.type].col });
 }
@@ -4604,6 +4671,14 @@ function update(dt) {
       if (G.lives <= 0) return gameOver();
     }
   }
+  /* Wie lange Gegner insgesamt am Leben waren.
+
+     Daraus ergibt sich der einzige ehrliche Umrechnungskurs von gewonnener
+     Standzeit in Schaden: Gesamtschaden geteilt durch Gegner-Sekunden sagt,
+     wie viel ein Gegner je Sekunde einsteckt. Eine Sekunde länger im Feuer
+     ist genau so viel wert — gemessen statt geschätzt. */
+  if (G.messen) G.gegnerSekunden += G.enemies.length * dt;
+
   /* Gesammelte Heilung anwenden, gedeckelt.
      Der Deckel liegt bei 4,5 Prozent je Sekunde — knapp das Vierfache eines
      einzelnen Heilers. Darüber hinaus bringt jeder weitere nichts mehr. */
@@ -4635,7 +4710,7 @@ function update(dt) {
     if (d <= step + s.tgt.rad * .6) {
       s.x = s.tgt.x; s.y = s.tgt.y;
       if (s.splash) splashHit(s);
-      else { damage(s.tgt, s.dmg, s.type, s.src); applyStatus(s.tgt, s.st);
+      else { damage(s.tgt, s.dmg, s.type, s.src); applyStatus(s.tgt, s.st, s.src);
              einschlag(s.x, s.y, s.type); }
       s.gone = true;
     } else {

@@ -1,6 +1,6 @@
 # Werkzeuge
 
-Fünf Dateien, die zusammen das Spiel messbar machen.
+Sechs Dateien, die zusammen das Spiel messbar machen.
 
 ## Schnellstart
 
@@ -35,7 +35,7 @@ node tools/testlauf.js --merken
 
 Weitere Schalter: `--laeufe 5` für mehr Läufe, `--karte 0` für eine einzelne.
 
-## Die fünf Teile
+## Die sechs Teile
 
 **`pruefstand.js`** lädt das Spiel aus `index.html` in Node und macht es
 taktbar. Das Spiel braucht vom Browser wenig — 19 Zugriffe auf `document`,
@@ -64,6 +64,14 @@ nicht — 700 statt 470 Beeren ergaben unverändert Welle 34.
 `index.html`. Eine von Hand gepflegte zweite Fassung wäre binnen Tagen
 falsch, ohne dass es jemandem auffiele.
 
+**`beitrag.js`** misst, was ein Wächter beiträgt — nicht nur, was er
+austeilt. Die Schadensstatistik des Testlaufs sieht einen Wächter nicht,
+der Gegner festhält, verlangsamt, markiert oder Nachbarn stärkt. Sie hat
+mich deshalb zu dem Schluss verleitet, acht der elf Familien seien spät
+wertlos. Gemessen mit Nebenwirkungen steht Eis ganz oben und Psycho auf
+Platz fünf — beide hatten in der reinen Schadensstatistik unter sechs
+Prozent.
+
 ## Was der Bot nicht kann
 
 Wichtig zu kennen, bevor man seinen Zahlen glaubt:
@@ -89,7 +97,7 @@ Typen, keinen einzigen Wasser-Wächter bei vier Wasserfeldern, und neun seiner
 zwanzig Wächter waren derselbe billige Typ. Was er maß, war seine eigene
 veraltete Strategie.
 
-## Vier Lehren aus dem Bau dieses Bots
+## Fünf Lehren aus dem Messen
 
 Alle zeigen, wie leicht ein Messinstrument in die Irre führt — und jede
 einzelne verschob die Ergebnisse um mehr als vierzig Wellen, ohne dass sich
@@ -122,6 +130,18 @@ von Welle 38 auf 100.
 bei Welle 40 ein" und „Flutruine nur bis 27" — mit fünf Läufen statt vier
 lagen beide Mediane bei 97 und 100. Bei dieser Streuung trägt ein Median aus
 vier Läufen keine Aussage.
+
+**Und einmal beim Bau des Beitragsmessers, direkt danach.** Er zählte bei
+jedem Treffer die volle Bremsdauer — aber Bremsen stapeln sich nicht, sie
+setzen ein Maximum. Ein Wächter mit sechs Schuss je Sekunde trifft
+denselben Gegner sechsmal, ohne dass sich dessen Bremszeit verlängert.
+Eis kam dadurch auf das Siebenundvierzigfache seines Schadens. Dazu ein
+geschätzter Umrechnungskurs, der um den Faktor zwei zu hoch lag.
+
+Beides fiel nur auf, weil das Ergebnis offensichtlich absurd war. Ein
+Messfehler, der ein *plausibles* Ergebnis liefert, bleibt liegen — das
+ist der eigentliche Grund, Zahlen zu misstrauen, die man selbst erzeugt
+hat.
 
 Wer hier weiterbaut, sollte bei jedem überraschenden Ergebnis zuerst fragen,
 ob der Bot etwas nicht kennt, und erst danach, ob das Spiel unausgewogen ist.
