@@ -1,14 +1,82 @@
 # PocketBeast 3D
 
-Der Anfang der Umstellung auf echte dreidimensionale Darstellung. Ein
-Grundgerüst, kein Spiel.
+Die dreidimensionale Fassung. **Spielbar** — eine Runde läuft von Anfang bis
+Ende: Wellen kommen, Wächter schießen, Gegner brechen durch, man gewinnt oder
+verliert.
 
-Das Browserspiel im übergeordneten Ordner bleibt davon unberührt und ist
-weiterhin die spielbare Fassung.
+Das Browserspiel im übergeordneten Ordner ist weiterhin die vollständigere
+Fassung. Was hier fehlt, steht unten.
 
 ## Spielen
 
 Godot 4.7 öffnen → *Import* → diesen Ordner wählen → *Run* (F5).
+
+### Steuerung
+
+| | |
+|---|---|
+| `1`–`9` | Wächter wählen, dann auf eine freie Fläche klicken |
+| Klick auf einen Wächter | anwählen, dann Entwickeln / Training / Mega / Entlassen |
+| `Leertaste` | nächste Welle rufen |
+| `M` | nächste Karte (lädt neu) |
+| `E` | Endlosmodus, sobald eine Route gehalten ist |
+| `Esc` | Auswahl aufheben |
+
+## Was funktioniert
+
+- **Elf Karten** mit eigener Wegführung, eigenen Boden-, Weg-, Laub- und
+  Himmelsfarben. Sie kommen aus dem Browserspiel über
+  `node tools/daten-nach-godot.js`.
+- **Kreaturen** statt Kugeln: Rumpf, Hals, Kopf, Augen und je Gestalt eigene
+  Teile — Ohren, Hörner, Schwingen, Flossen, Blätter, Zacken, Visierschlitz.
+- **Zwölf Wächterfamilien** mit drei Stufen, Training und Megaentwicklung.
+- **44 Gegnerarten** mit Typenvorteil, Panzerung und Flugfähigkeit.
+- **Hundert Wellen**, danach Sieg und Endlosmodus.
+- Gelände mit Höhen, eingesenktem Weg, Bewuchs, Licht und Schatten.
+
+Gemessen mit dem Selbstlauf (siehe unten): 16 Wellen mit neun Wächtern auf
+Stufe 1, 241 erledigte Gegner, 20 Durchbrüche, dann verloren. Der Ablauf trägt.
+
+## Was noch fehlt
+
+Gegenüber dem Browserspiel: Wetter, Tag und Nacht, Sonderfelder (Wasser,
+Vulkan, Erhöhung), Segnungen, Anführerfähigkeiten, Sterne, Hain der Ahnen,
+Statistik, Bestiarium, Speicherstand, Klang, Nebenwirkungen der Wächter
+(Bremse, Fessel, Brand, Kette, Marke, Fläche).
+
+## Prüfen ohne hinzusehen
+
+Godot kopflos zu starten zeichnet gar nichts — und vier der Fehler in dieser
+Fassung zeigten sich ausschließlich beim Hinsehen, ohne je eine Fehlermeldung
+zu werfen: Scheitelfarben, die linear statt sRGB gelesen werden, Nebel, der
+nach unten wirkt, Moiré aus zu feinen Mustern, ein milchiger Schleier über
+allem.
+
+Deshalb vier Umgebungsschalter:
+
+```bash
+G=/Users/yannick/Desktop/Godot.app/Contents/MacOS/Godot
+
+# Bild der Karte ablegen
+POCKETBEAST_SCHAU=/tmp/bild.png $G --path . --resolution 1280x720
+
+# vorher Wächter aufstellen und eine Welle rufen
+POCKETBEAST_SCHAU=/tmp/bild.png POCKETBEAST_AUTO=300 $G --path .
+
+# Kamera dicht an die Figuren
+POCKETBEAST_SCHAU=/tmp/bild.png POCKETBEAST_AUTO=120 POCKETBEAST_NAH=1 $G --path .
+
+# eine bestimmte Karte
+POCKETBEAST_KARTE=6 POCKETBEAST_SCHAU=/tmp/bild.png $G --path .
+
+# Wellen selbsttätig spielen, Bericht nach user://bericht.txt
+POCKETBEAST_AUTO=1 POCKETBEAST_SPIEL=25 $G --path .
+```
+
+Der Bericht liegt unter
+`~/Library/Application Support/Godot/app_userdata/PocketBeast 3D/bericht.txt`
+— Godots Ausgabe wird beim Umleiten gepuffert und kam auf der Kommandozeile
+nicht an.
 
 **Bedienung**
 

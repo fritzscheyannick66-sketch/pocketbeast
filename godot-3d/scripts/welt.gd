@@ -850,9 +850,17 @@ var _schau_zaehler := 0
 
 func _schaubild_pruefen() -> void:
 	var ziel := OS.get_environment("POCKETBEAST_SCHAU")
-	if ziel.is_empty():
+	var auto0 := OS.get_environment("POCKETBEAST_AUTO")
+	# Der Aufbau hing anfangs an der Schaubildprüfung — ohne POCKETBEAST_SCHAU
+	# lief sie sofort ins Leere, und der Selbstlauf startete nie eine Welle.
+	# Beide Schalter sind jetzt unabhängig.
+	if ziel.is_empty() and auto0.is_empty():
 		return
 	_schau_zaehler += 1
+	if ziel.is_empty():
+		if _schau_zaehler == 40:
+			_auto_aufbau()
+		return
 	# Genug Bilder, dass Kamera, Licht und Bewuchs stehen
 	if _schau_zaehler < 40:
 		return
@@ -904,13 +912,65 @@ func _auto_aufbau() -> void:
 			_setze_waechter(id, 0, pos, k)
 			gesetzt += 1
 	spiel.rufe_welle()
-	print("Schaubild-Aufbau: ", gesetzt, " Wächter, Welle ", spiel.welle)
+	var mf := FileAccess.open("user://aufbau.txt", FileAccess.WRITE)
+	if mf:
+		mf.store_string("Aufbau lief: %d Waechter, Welle %d" % [gesetzt, spiel.welle])
+		mf.close()
+	# POCKETBEAST_SPIEL: mehrere Wellen selbsttätig durchspielen, um zu prüfen,
+	# ob die Runde überhaupt trägt. Ohne das weiß ich nur, dass Welle 1 startet.
+	var lauf := OS.get_environment("POCKETBEAST_SPIEL")
+	if not lauf.is_empty():
+		_auto_wellen = int(lauf)
+		# Der Selbstlauf lief in Echtzeit — vierzig Wellen hätten eine halbe
+		# Stunde gedauert. Zum Prüfen wird gerafft.
+		tempo = 25
+
+
+var _auto_wellen := 0
+var _auto_bericht := 0
+var _auto_bilder := 0
+var _lauf_zeilen: Array[String] = []
+
+## Godots Ausgabe wird beim Umleiten gepuffert — auf der Kommandozeile kam
+## nichts an, solange das Spiel lief. Der Bericht geht deshalb in eine Datei,
+## genau wie das Schaubild.
+func _schreibe_bericht() -> void:
+	_lauf_zeilen.append("")
+	_lauf_zeilen.append("Ergebnis: Welle %d, %d Leben, %d Beeren" % [spiel.welle, spiel.leben, spiel.beeren])
+	_lauf_zeilen.append("  erledigt: %d   durchgebrochen: %d" % [erledigt, durchgebrochen])
+	_lauf_zeilen.append("  Wächter: %d   verloren: %s   gewonnen: %s"
+		% [tuerme.size(), str(spiel.verloren), str(spiel.gewonnen)])
+	# user:// statt eines Pfads aus der Umgebung: Godot beschreibt den
+	# Nutzerordner verlässlich, absolute Pfade nicht überall.
+	var f := FileAccess.open("user://bericht.txt", FileAccess.WRITE)
+	if f:
+		f.store_string("\n".join(_lauf_zeilen))
+		f.close()
+	print("Bericht: ", ProjectSettings.globalize_path("user://bericht.txt"))
 
 
 func _process(delta: float) -> void:
 	zeit += delta
 	_schaubild_pruefen()
 	_pflege_vorschau()
+
+	# Notbremse für den Selbstlauf. Sie muss VOR der Niederlagenprüfung stehen:
+	# Dort kehrt _process zurück, und ein verlorenes Spiel saß dann für immer
+	# auf "Das Dorf ist gefallen", ohne je zu berichten. Genau daran habe ich
+	# zwanzig Minuten verloren.
+	if _auto_wellen > 0:
+		_auto_bilder += 1
+		if _auto_bilder > 3000 or spiel.verloren:
+			_lauf_zeilen.append("Abbruch nach %d Bildern" % _auto_bilder)
+			_lauf_zeilen.append("  Welle laeuft: %s   Warteschlange: %d   Gegner: %d"
+				% [str(spiel.welle_laeuft), spiel.warteschlange.size(), gegner.size()])
+			if gegner.size() > 0:
+				var g0: Dictionary = gegner[0]
+				_lauf_zeilen.append("  erster Gegner: Strecke %.1f von %.1f, Leben %.1f von %.1f"
+					% [g0["strecke"], weg_laenge, g0["leben"], g0.get("max_leben", 0.0)])
+			_schreibe_bericht()
+			get_tree().quit()
+			return
 
 	if spiel.verloren:
 		bedienung.setze_hinweis("Das Dorf ist gefallen — %d Wellen gehalten" % (spiel.welle - 1))
@@ -924,6 +984,17 @@ func _process(delta: float) -> void:
 	# damit schnelle Gegner keine Treffer überspringen.
 	for _i in range(tempo):
 		_takt(delta)
+
+	if _auto_wellen > 0 and not spiel.welle_laeuft and not spiel.verloren:
+		if spiel.welle >= _auto_wellen or spiel.gewonnen:
+			_schreibe_bericht()
+			get_tree().quit()
+		spiel.beeren += 400
+		spiel.rufe_welle()
+		_auto_bericht += 1
+		if _auto_bericht % 5 == 0:
+			_lauf_zeilen.append("  Welle %d: %d Leben, %d unterwegs, %d Wächter"
+				% [spiel.welle, spiel.leben, gegner.size(), tuerme.size()])
 
 	bedienung.zeige(spiel)
 	if not angewaehlt.is_empty():
