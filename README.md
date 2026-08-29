@@ -27,7 +27,7 @@ geöffnete Datei führen getrennte Fortschritte.
 | **11 Routen** | Je eine für jedes baubare Element, mit eigener Wegführung, eigenem Bewuchs und eigenem Wetter |
 | **100 Wellen je Route** | Dreistufige Kurve: erst steil, dann zweimal abgeflacht — sonst wären die letzten dreißig Wellen unerreichbar |
 | **11 Wächterfamilien** | Je drei Stufen, dazu eine vierte, die sich nicht kaufen lässt |
-| **11 legendäre Wächter** | Einer je Route, verdient durch alle 100 Wellen |
+| **11 legendäre Wächter** | Einer je Route, verdient durch alle 100 Wellen — jeder mit eigener Gestalt und der Gabe seines Landes |
 | **12 Elementtypen** | Mit voller Wirksamkeitstabelle |
 | **44 Gegnerarten, 11 Anführer** | Flieger, Gepanzerte, Heiler, Schilde, Beschwörer |
 | **8 Wetter, 11 Fassungen** | Regen, Sturm, Böen, Schnee, Nebel, Staub, Ruß, Pollen, Glut, Sonne, Traum |
@@ -57,6 +57,13 @@ Unlicht nur bei Nacht.
 erweckt den legendären Wächter der Route — und erst mit ihm lässt sich ihr
 **Endlosmodus** bestreiten. Dort werden übrige Beeren zu Trainerpunkten, und im
 **Hain der Ahnen** lassen sich dauerhafte Aufwertungen kaufen.
+
+Die elf Legendären sehen anders aus als alles andere im Spiel: Sie schweben
+statt zu stehen, tragen statt eines Gesichts einen Visierschlitz und über dem
+Haupt eine Krone aus Splittern in der Form ihres Elements, die frei um sie
+kreist. Und jeder bringt die Gabe seines Landes mit — der Ewigthron des
+Firnfelds friert am tiefsten ein, der Wirbelthron der Böenkuppe sieht am
+weitesten, der Gedankenthron des Traumhains stärkt alle Nachbarn.
 
 ## Steuerung
 
