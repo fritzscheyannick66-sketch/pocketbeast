@@ -98,10 +98,15 @@ static func _quad(st: SurfaceTool, a: Vector3, b: Vector3, c: Vector3, d: Vector
 ##
 ## Ein einfarbiges Band liest sich als aufgeklebter Streifen. Ein getretener
 ## Pfad ist stellenweise staubig ausgeblichen, in Senken feucht und dunkel.
+## Palette des Weges, von welt.gd je Karte gesetzt.
+static var P_ERDE := Color(0.46, 0.36, 0.25)
+static var P_STAUB := Color(0.72, 0.62, 0.46)
+static var P_FEUCHT := Color(0.36, 0.29, 0.22)
+
 static func farbe_bei(p: Vector3) -> Color:
-	var erde := Color(0.46, 0.36, 0.25)
-	var staub := Color(0.72, 0.62, 0.46)
-	var feucht := Color(0.36, 0.29, 0.22)
+	var erde := P_ERDE
+	var staub := P_STAUB
+	var feucht := P_FEUCHT
 
 	# Wechsel über die Länge: mal staubig, mal festgetreten
 	var laengs := sin(p.x * 0.29 + p.z * 0.37) * 0.5 + 0.5

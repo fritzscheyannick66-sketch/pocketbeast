@@ -181,7 +181,25 @@ z("");
 z("## Karten mit ihrem Schwierigkeitsfaktor.");
 z("const KARTEN := [");
 for (const m of spiel.MAPS) {
-  z(`\t{ "name": ${JSON.stringify(m.name)}, "grad": ${JSON.stringify(m.diff)}, "faktor": ${wert(m.mul)}, "beeren": ${m.gold}, "leben": ${m.lives} },`);
+  /* Wegpunkte und Farben gehören dazu, sonst sehen alle elf Karten gleich
+     aus: Die 3D-Fassung hatte eine fest verdrahtete Route und hätte auf
+     jeder Karte dieselbe Landschaft gezeigt. */
+  const wp = (m.wp || []).map((k) => `Vector2i(${k[0]}, ${k[1]})`).join(", ");
+  const wpB = (m.wpB || []).map((k) => `Vector2i(${k[0]}, ${k[1]})`).join(", ");
+  z(`\t{`);
+  z(`\t\t"name": ${JSON.stringify(m.name)}, "grad": ${JSON.stringify(m.diff)},`);
+  z(`\t\t"faktor": ${wert(m.mul)}, "beeren": ${m.gold}, "leben": ${m.lives},`);
+  z(`\t\t"heim": ${JSON.stringify(m.heim)}, "wetter": ${JSON.stringify(m.weather)},`);
+  z(`\t\t"boden": [Color("${m.ground[0]}"), Color("${m.ground[1]}")],`);
+  z(`\t\t"weg": Color("${m.path}"), "wegkante": Color("${m.pathEdge}"),`);
+  z(`\t\t"laub": Color("${m.foliage}"), "himmel": [Color("${(m.himmel||["#7FA8C4"])[0]}"), Color("${(m.himmel||["#BFD4D0"])[1]}")],`);
+  z(`\t\t"gras": Color("${m.gras || m.ground[1]}"), "erde": Color("${m.erde || m.soil}"),`);
+  z(`\t\t"bewuchs": ${JSON.stringify([...new Set(m.flora || [])])},`);
+  z(`\t\t"route": [${wp}],`);
+  if (wpB) z(`\t\t"route_b": [${wpB}],`);
+  const L = m.legendaer;
+  if (L) z(`\t\t"legendaer": { "typ": ${JSON.stringify(L.typ)}, "gestalt": ${JSON.stringify(L.gestalt)}, "namen": ${JSON.stringify(L.namen)} },`);
+  z(`\t},`);
 }
 z("]");
 z("");

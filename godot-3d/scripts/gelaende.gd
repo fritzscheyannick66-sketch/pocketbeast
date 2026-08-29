@@ -87,11 +87,20 @@ static func _dreieck(st: SurfaceTool, a: Vector3, b: Vector3, c: Vector3) -> voi
 ## überall fast derselbe Ton heraus: eine einheitlich blassgrüne Fläche, die
 ## wie Plastikfolie aussah. Jetzt überlagern sich drei Dinge:
 ## Wiesenton, trockene Stellen und nackte Erde, jedes mit eigener Wellenlänge.
+## Die Palette der Karte. welt.gd setzt sie, bevor das Gelände gebaut wird —
+## vorher standen die Werte fest, und damit sah die Glutschlucht aus wie eine
+## Wiese. Die Vorgabe ist der Grünpfad, damit das Gelände auch ohne gesetzte
+## Palette etwas Sinnvolles zeigt.
+static var P_WIESE := Color(0.22, 0.36, 0.19)
+static var P_SATT := Color(0.15, 0.30, 0.14)
+static var P_TROCKEN := Color(0.42, 0.44, 0.24)
+static var P_ERDE := Color(0.29, 0.25, 0.19)
+
 static func farbe_bei(p: Vector3) -> Color:
-	var wiese := Color(0.22, 0.36, 0.19)
-	var satt := Color(0.15, 0.30, 0.14)
-	var trocken := Color(0.42, 0.44, 0.24)
-	var erde := Color(0.29, 0.25, 0.19)
+	var wiese := P_WIESE
+	var satt := P_SATT
+	var trocken := P_TROCKEN
+	var erde := P_ERDE
 
 	# grobe Flecken: wo die Wiese satt steht und wo sie ausdünnt.
 	# Drei Frequenzen ohne einfaches Verhältnis — eine einzelne Welle malte

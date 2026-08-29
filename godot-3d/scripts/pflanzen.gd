@@ -20,6 +20,12 @@ const Gelaende = preload("res://scripts/gelaende.gd")
 
 ## Erzeugt ein Material mit leicht verschobenem Farbton.
 ## Selbst geringe Streuung nimmt einer Fläche das Fabrikmäßige.
+## Blattfarben der Karte. welt.gd setzt sie vor dem Bewuchs.
+static var P_NADEL := Color(0.19, 0.40, 0.24)
+static var P_LAUB := Color(0.24, 0.46, 0.22)
+static var P_BUSCH := Color(0.26, 0.42, 0.20)
+static var P_GRAS := Color.from_hsv(0.27, 0.43, 0.32)
+
 static func _blatt_material(grund: Color, rnd: RandomNumberGenerator) -> StandardMaterial3D:
 	var m := StandardMaterial3D.new()
 	var h := grund.h + rnd.randf_range(-0.035, 0.035)
@@ -50,7 +56,7 @@ static func _holz_material(rnd: RandomNumberGenerator) -> StandardMaterial3D:
 static func nadelbaum(rnd: RandomNumberGenerator, hoehe: float) -> Node3D:
 	var baum := Node3D.new()
 	var holz := _holz_material(rnd)
-	var laub := _blatt_material(Color(0.19, 0.40, 0.24), rnd)
+	var laub := _blatt_material(P_NADEL, rnd)
 
 	var stamm := MeshInstance3D.new()
 	var zyl := CylinderMesh.new()
@@ -88,7 +94,7 @@ static func nadelbaum(rnd: RandomNumberGenerator, hoehe: float) -> Node3D:
 static func laubbaum(rnd: RandomNumberGenerator, hoehe: float) -> Node3D:
 	var baum := Node3D.new()
 	var holz := _holz_material(rnd)
-	var grund := Color(0.24, 0.46, 0.22)
+	var grund := P_LAUB
 
 	var stamm := MeshInstance3D.new()
 	var zyl := CylinderMesh.new()
@@ -140,7 +146,7 @@ static func busch(rnd: RandomNumberGenerator, hoehe: float) -> Node3D:
 		sm.radial_segments = 8
 		sm.rings = 5
 		kugel.mesh = sm
-		kugel.material_override = _blatt_material(Color(0.26, 0.42, 0.20), rnd)
+		kugel.material_override = _blatt_material(P_BUSCH, rnd)
 		var winkel := rnd.randf() * TAU
 		kugel.position = Vector3(
 			cos(winkel) * hoehe * 0.28,
@@ -206,12 +212,17 @@ static func grasfeld(rnd: RandomNumberGenerator, plaetze: Array) -> MultiMeshIns
 		t = t.rotated(Vector3.UP, rnd.randf() * TAU)
 		t.origin = p
 		mm.set_instance_transform(i, t)
-		# Farbstreuung: gleichmäßig grüner Teppich wirkt gemalt
-		# eng um den Ton des Bodens; große Streuung ließ das Feld gesprenkelt wirken
+		# Farbstreuung um den Ton der Karte. Der erste Anlauf hatte den
+		# Grünbereich fest eingetragen — in der Glutschlucht wuchs dadurch
+		# grünes Gras auf verbranntem Boden. Die Streuung bleibt eng: Sie soll
+		# den Teppich brechen, nicht ihn sprenkeln.
+		var h := P_GRAS.h
+		var sa := P_GRAS.s
+		var v := P_GRAS.v
 		mm.set_instance_color(i, Color.from_hsv(
-			rnd.randf_range(0.25, 0.29),
-			rnd.randf_range(0.34, 0.52),
-			rnd.randf_range(0.24, 0.40)).srgb_to_linear())
+			h + rnd.randf_range(-0.02, 0.02),
+			clampf(sa + rnd.randf_range(-0.09, 0.09), 0.0, 1.0),
+			clampf(v + rnd.randf_range(-0.08, 0.08), 0.05, 1.0)).srgb_to_linear())
 
 	var mmi := MultiMeshInstance3D.new()
 	mmi.multimesh = mm

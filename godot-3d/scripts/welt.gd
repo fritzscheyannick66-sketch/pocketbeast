@@ -19,6 +19,7 @@ const Gelaende = preload("res://scripts/gelaende.gd")
 const Weg = preload("res://scripts/weg.gd")
 const Pflanzen = preload("res://scripts/pflanzen.gd")
 const Daten = preload("res://scripts/daten.gd")
+const Kreatur = preload("res://scripts/kreatur.gd")
 const Spiel = preload("res://scripts/spiel.gd")
 const Bedienung = preload("res://scripts/bedienung.gd")
 
@@ -65,7 +66,77 @@ var auswahlring: Node3D
 @onready var _wurzel_schuesse := Node3D.new()
 
 
+## Welche Karte gespielt wird.
+##
+## Die Route stand bis eben als Konstante im Skript — damit sahen alle elf
+## Karten gleich aus, nur die Zahlen unterschieden sich. Jetzt kommt sie aus
+## daten.gd, also aus dem Browserspiel.
+##
+## Der Index überlebt einen Szenenwechsel im Baum-Metadatum; anders ließe sich
+## die Karte nicht wechseln, ohne Gelände, Weg und Bewuchs neu aufzubauen —
+## und das geht am einfachsten, indem die Szene neu geladen wird.
+var karte_index := 0
+
+func _lies_kartenindex() -> void:
+	var baum := get_tree()
+	if baum.has_meta("pocketbeast_karte"):
+		karte_index = int(baum.get_meta("pocketbeast_karte"))
+	# Für das Schaubild: POCKETBEAST_KARTE=<n> wählt beim Start eine Karte
+	var umg := OS.get_environment("POCKETBEAST_KARTE")
+	if not umg.is_empty():
+		karte_index = int(umg)
+	karte_index = clampi(karte_index, 0, Daten.KARTEN.size() - 1)
+
+func _route_der_karte() -> Array:
+	var k: Dictionary = Daten.KARTEN[karte_index]
+	var r: Array = k.get("route", [])
+	if r.is_empty():
+		return ROUTE
+	var aus: Array = []
+	for p in r:
+		aus.append(Vector2(float(p.x), float(p.y)))
+	return aus
+
+## Nächste Karte, Szene neu laden.
+func _naechste_karte() -> void:
+	var baum := get_tree()
+	baum.set_meta("pocketbeast_karte", (karte_index + 1) % Daten.KARTEN.size())
+	baum.reload_current_scene()
+
+
+## Setzt die Farben der Karte in Gelände, Weg und Bewuchs.
+##
+## Muss VOR _baue_welt() und _baue_bewuchs() laufen: Beide backen die Farben
+## in Netze und Materialien ein, spätere Änderungen kämen nicht mehr an.
+func _setze_palette() -> void:
+	var k: Dictionary = Daten.KARTEN[karte_index]
+	var boden: Array = k.get("boden", [Color(0.12, 0.20, 0.14), Color(0.15, 0.26, 0.17)])
+	var gras: Color = k.get("gras", boden[1])
+	var erde: Color = k.get("erde", Color(0.42, 0.34, 0.21))
+	var laub: Color = k.get("laub", Color(0.31, 0.57, 0.34))
+
+	Gelaende.P_WIESE = gras
+	Gelaende.P_SATT = boden[0]
+	Gelaende.P_TROCKEN = erde.lightened(0.18)
+	Gelaende.P_ERDE = erde
+
+	Weg.P_ERDE = k.get("wegkante", Color(0.26, 0.19, 0.12))
+	# Aufgehellt, weil der Weg sonst im Boden verschwindet: Auf der
+	# Glutschlucht liegen Wegfarbe und Bodenfarbe dicht beieinander, und ein
+	# Weg, den man nicht sieht, macht die Karte unspielbar.
+	Weg.P_STAUB = k.get("weg", Color(0.61, 0.48, 0.33)).lightened(0.16)
+	Weg.P_FEUCHT = k.get("wegkante", Color(0.26, 0.19, 0.12)).darkened(0.18)
+
+	# Gras etwas dunkler und satter als der Wiesenton, sonst verschwindet es
+	Pflanzen.P_GRAS = gras.darkened(0.12)
+	Pflanzen.P_NADEL = laub.darkened(0.24)
+	Pflanzen.P_LAUB = laub
+	Pflanzen.P_BUSCH = laub.lightened(0.10)
+
+
 func _ready() -> void:
+	_lies_kartenindex()
+	_setze_palette()
 	add_child(_wurzel_gegner)
 	add_child(_wurzel_schuesse)
 	_baue_umgebung()
@@ -75,7 +146,7 @@ func _ready() -> void:
 	_baue_bewuchs()
 	_sperre_wegkacheln()
 
-	spiel.starte(0)
+	spiel.starte(karte_index)
 	bedienung = Bedienung.new()
 	add_child(bedienung)
 	bedienung.waechter_gewaehlt.connect(_auf_auswahl)
@@ -87,7 +158,7 @@ func _ready() -> void:
 	bedienung.entlassen.connect(_auf_entlassen)
 	bedienung.zeige(spiel)
 
-	print("PocketBeast 3D — ", Daten.KARTEN[0]["name"],
+	print("PocketBeast 3D — ", Daten.KARTEN[karte_index]["name"],
 		"   ", Daten.WAECHTER.size(), " Wächterfamilien, ",
 		Daten.ARTEN.size(), " Gegnerarten")
 
@@ -139,8 +210,9 @@ func _kachel_frei(k: Vector2i) -> bool:
 ## Flächen, die von der Sonne abgewandt sind, wären sonst schlicht schwarz.
 func _baue_umgebung() -> void:
 	var himmel := ProceduralSkyMaterial.new()
-	himmel.sky_top_color = Color(0.28, 0.45, 0.70)
-	himmel.sky_horizon_color = Color(0.65, 0.74, 0.80)
+	var hp: Array = Daten.KARTEN[karte_index].get("himmel", [Color(0.28, 0.45, 0.70), Color(0.65, 0.74, 0.80)])
+	himmel.sky_top_color = hp[0]
+	himmel.sky_horizon_color = hp[1]
 	himmel.ground_bottom_color = Color(0.52, 0.60, 0.55)
 	himmel.ground_horizon_color = Color(0.68, 0.75, 0.72)
 	himmel.sun_angle_max = 12.0
@@ -214,7 +286,7 @@ func _baue_kamera() -> void:
 
 
 func _baue_welt() -> void:
-	weg_punkte = Weg.glaetten(Weg.punkte_aus_kacheln(ROUTE), 3)
+	weg_punkte = Weg.glaetten(Weg.punkte_aus_kacheln(_route_der_karte()), 3)
 	weg_laenge = Weg.laenge_von(weg_punkte)
 
 	# Gelände
@@ -394,6 +466,14 @@ func _unhandled_input(ereignis: InputEvent) -> void:
 		if taste == KEY_SPACE:
 			_auf_wellenruf()
 			return
+		if taste == KEY_M:
+			_naechste_karte()
+			return
+		if taste == KEY_E and spiel.gewonnen:
+			spiel.endlos = true
+			spiel.gewonnen = false
+			bedienung.setze_hinweis("Endlosmodus — die Wellen hören nicht mehr auf")
+			return
 		if taste == KEY_ESCAPE:
 			gewaehlt = ""
 			bedienung.auswahl_loeschen()
@@ -514,7 +594,7 @@ func _werte_neu(t: Dictionary) -> void:
 	t["reichweite"] = float(st["reichweite"]) / Spiel.PIXEL_JE_METER
 	t["durchschlag"] = float(st.get("durchschlag", 0))
 	# Größer werden lassen, damit man den Rang sieht
-	var koerper: MeshInstance3D = t["koerper"]
+	var koerper: Node3D = t["koerper"]
 	var wuchs: float = 1.0 + float(t["stufe"]) * 0.14 + (0.18 if t.get("mega", false) else 0.0)
 	koerper.scale = Vector3.ONE * wuchs
 
@@ -667,7 +747,8 @@ func _setze_waechter(id: String, stufe: int, pos: Vector3, kachel: Vector2i = Ve
 		float(st["reichweite"]) / Spiel.PIXEL_JE_METER,
 		float(st["rate"]),
 		float(st["schaden"]),
-		typ, def["luft"], float(st.get("durchschlag", 0)))
+		typ, def["luft"], float(st.get("durchschlag", 0)),
+		String(def.get("gestalt", "blob")), stufe)
 	t["id"] = id
 	t["stufe"] = stufe
 	t["kachel"] = kachel
@@ -678,7 +759,8 @@ func _setze_waechter(id: String, stufe: int, pos: Vector3, kachel: Vector2i = Ve
 
 
 func _setze_turm(pos: Vector3, farbe: Color, reichweite: float, takt: float, schaden: float,
-		typ: String = "", luft: bool = true, durchschlag: float = 0.0) -> Dictionary:
+		typ: String = "", luft: bool = true, durchschlag: float = 0.0,
+		gestalt: String = "blob", stufe: int = 0) -> Dictionary:
 	var y := Gelaende.hoehe_bei(pos.x, pos.z, 99.0)
 	var wurzel := Node3D.new()
 	wurzel.position = Vector3(pos.x, y, pos.z)
@@ -698,20 +780,13 @@ func _setze_turm(pos: Vector3, farbe: Color, reichweite: float, takt: float, sch
 	sockel.position.y = 0.175
 	wurzel.add_child(sockel)
 
-	# Körper als Kugel — steht stellvertretend für die Kreatur
-	var koerper := MeshInstance3D.new()
-	var kugel := SphereMesh.new()
-	kugel.radius = 0.62
-	kugel.height = 1.24
-	koerper.mesh = kugel
-	var mat := StandardMaterial3D.new()
-	mat.albedo_color = farbe
-	mat.roughness = 0.55
-	mat.rim_enabled = true
-	mat.rim = 0.5
-	koerper.material_override = mat
-	koerper.position.y = 0.95
-	wurzel.add_child(koerper)
+	# Die Figur. Bis eben stand hier eine farbige Kugel — damit sah die
+	# 3D-Fassung aus wie ein Machbarkeitsnachweis. Jetzt baut kreatur.gd die
+	# Gestalt aus der Wächterfamilie auf.
+	var traeger := Node3D.new()
+	traeger.position.y = 0.35
+	wurzel.add_child(traeger)
+	var koerper := Kreatur.baue(traeger, gestalt, farbe, 1.25, stufe)
 
 	tuerme.append({
 		"knoten": wurzel, "koerper": koerper, "pos": wurzel.position,
@@ -732,22 +807,20 @@ func _spawne_gegner() -> void:
 	var farbe: Color = Daten.TYPEN[typ]["farbe"]
 	var fliegt: bool = art.get("fliegt", false)
 
-	var knoten := MeshInstance3D.new()
-	var kapsel := SphereMesh.new()
 	var groesse := float(art["groesse"]) / 34.0        # 34 px entsprechen etwa 1 m
-	kapsel.radius = 0.32 * groesse + 0.16
-	kapsel.height = kapsel.radius * 2.0
-	knoten.mesh = kapsel
-	var mat := StandardMaterial3D.new()
-	mat.albedo_color = farbe
-	mat.roughness = 0.6
-	# Flieger leuchten schwach, damit man sie von Läufern unterscheidet
-	if fliegt:
-		mat.emission_enabled = true
-		mat.emission = farbe
-		mat.emission_energy_multiplier = 0.35
-	knoten.material_override = mat
+	var knoten := Node3D.new()
 	_wurzel_gegner.add_child(knoten)
+	var figur := Kreatur.baue(knoten, String(art.get("gestalt", "blob")), farbe,
+		0.72 * groesse + 0.34, int(art.get("rang", 0)), false)
+	# Flieger tragen einen schwachen Schein, damit man sie von Läufern
+	# unterscheidet, ohne auf die Flughöhe achten zu müssen.
+	if fliegt:
+		var schein := OmniLight3D.new()
+		schein.light_color = farbe
+		schein.light_energy = 0.5
+		schein.omni_range = 2.2
+		schein.position.y = 0.6
+		figur.add_child(schein)
 
 	gegner.append({
 		"knoten": knoten, "strecke": 0.0,
@@ -762,13 +835,90 @@ func _spawne_gegner() -> void:
 	})
 
 
+## Schaubild für die Entwicklung.
+##
+## Godot kopflos zu starten zeichnet gar nichts — ohne Bild schreibe ich
+## blind. Vier der Fehler in dieser Fassung zeigten sich ausschließlich beim
+## Hinsehen: Scheitelfarben, die linear statt sRGB gelesen werden, Nebel, der
+## nach unten wirkt, Moiré aus zu feinen Mustern, ein milchiger Schleier über
+## allem. Keiner davon warf eine Fehlermeldung.
+##
+## Ist POCKETBEAST_SCHAU gesetzt, legt das Spiel nach ein paar Bildern den
+## Bildschirminhalt dort ab und beendet sich. Im normalen Betrieb ist die
+## Variable leer und diese Zeilen kosten einen Zeichenkettenvergleich.
+var _schau_zaehler := 0
+
+func _schaubild_pruefen() -> void:
+	var ziel := OS.get_environment("POCKETBEAST_SCHAU")
+	if ziel.is_empty():
+		return
+	_schau_zaehler += 1
+	# Genug Bilder, dass Kamera, Licht und Bewuchs stehen
+	if _schau_zaehler < 40:
+		return
+
+	# POCKETBEAST_AUTO=<n>: erst spielen, dann abbilden. Ohne das sieht man
+	# nur die leere Karte, und gerade die Figuren will ich prüfen.
+	var auto := OS.get_environment("POCKETBEAST_AUTO")
+	if not auto.is_empty() and _schau_zaehler == 40:
+		_auto_aufbau()
+		return
+	if not auto.is_empty() and _schau_zaehler < 40 + int(auto):
+		return
+	# POCKETBEAST_NAH: Kamera dicht an den ersten Wächter, damit sich die
+	# Figuren prüfen lassen. Aus Spielhöhe sind sie zu klein, um einen Fehler
+	# in der Gestalt zu erkennen.
+	if not OS.get_environment("POCKETBEAST_NAH").is_empty() and not tuerme.is_empty():
+		var k := get_viewport().get_camera_3d()
+		if k:
+			var zielpos: Vector3 = tuerme[0]["pos"]
+			k.position = zielpos + Vector3(0, 3.2, 7.0)
+			k.look_at(zielpos + Vector3(0, 1.0, 0), Vector3.UP)
+			await get_tree().process_frame
+			await get_tree().process_frame
+	var bild := get_viewport().get_texture().get_image()
+	if bild.save_png(ziel) == OK:
+		print("Schaubild: ", ziel, "  ", bild.get_width(), "x", bild.get_height())
+	else:
+		push_error("Schaubild fehlgeschlagen")
+	get_tree().quit()
+
+
+## Stellt für das Schaubild eine Handvoll Wächter auf und ruft eine Welle.
+func _auto_aufbau() -> void:
+	spiel.beeren = 99999
+	var gesetzt := 0
+	# Nah am Weg bauen, sonst stehen die Wächter dekorativ in der Landschaft
+	for r in range(Gelaende.ZEILEN):
+		for c in range(Gelaende.SPALTEN):
+			if gesetzt >= 9:
+				break
+			var k := Vector2i(c, r)
+			if not _kachel_frei(k):
+				continue
+			var pos := _kachel_zu_welt(k)
+			if _abstand_zum_weg(pos) > 4.5:
+				continue
+			var id: String = Daten.WAECHTER[gesetzt % 11]["id"]
+			belegt[k] = "turm"
+			_setze_waechter(id, 0, pos, k)
+			gesetzt += 1
+	spiel.rufe_welle()
+	print("Schaubild-Aufbau: ", gesetzt, " Wächter, Welle ", spiel.welle)
+
+
 func _process(delta: float) -> void:
 	zeit += delta
+	_schaubild_pruefen()
 	_pflege_vorschau()
 
 	if spiel.verloren:
 		bedienung.setze_hinweis("Das Dorf ist gefallen — %d Wellen gehalten" % (spiel.welle - 1))
 		return
+	if spiel.gewonnen:
+		bedienung.setze_hinweis(
+			"Route gehalten! Alle %d Wellen abgewehrt, %d Leben übrig.  [E] Endlosmodus  ·  [M] Karte wechseln"
+			% [Daten.WELLEN_JE_KARTE, spiel.leben])
 
 	# Spieltempo: mehrere Rechenschritte je Bild statt größerer Schritte,
 	# damit schnelle Gegner keine Treffer überspringen.
@@ -800,7 +950,7 @@ func _takt(delta: float) -> void:
 			p.y += 0.42 + hoehe + sin(zeit * 2.1 + wackel) * 0.28
 		else:
 			p.y += 0.42 + sin(zeit * 7.0 + wackel) * 0.08
-		var knoten: MeshInstance3D = g["knoten"]
+		var knoten: Node3D = g["knoten"]
 		knoten.position = p
 
 	# Wächter feuern auf den weitesten Gegner in Reichweite
@@ -809,7 +959,7 @@ func _takt(delta: float) -> void:
 		var ziel: Dictionary = {}
 		var beste := -1.0
 		for g in gegner:
-			var kn: MeshInstance3D = g["knoten"]
+			var kn: Node3D = g["knoten"]
 			# Wer nicht in die Luft trifft, sieht Flieger nicht als Ziel
 			if g.get("fliegt", false) and not t.get("luft", true):
 				continue
@@ -819,8 +969,8 @@ func _takt(delta: float) -> void:
 		if ziel.is_empty():
 			continue
 		# Körper dreht sich zum Ziel
-		var koerper: MeshInstance3D = t["koerper"]
-		var zk: MeshInstance3D = ziel["knoten"]
+		var koerper: Node3D = t["koerper"]
+		var zk: Node3D = ziel["knoten"]
 		var tpos: Vector3 = t["pos"]
 		var richtung := zk.position - tpos
 		koerper.rotation.y = atan2(richtung.x, richtung.z)
@@ -837,7 +987,7 @@ func _takt(delta: float) -> void:
 	# Aufräumen
 	var uebrig: Array[Dictionary] = []
 	for g in gegner:
-		var kn: MeshInstance3D = g["knoten"]
+		var kn: Node3D = g["knoten"]
 		if g["leben"] <= 0.0:
 			erledigt += 1
 			spiel.erledigt(g["art"])

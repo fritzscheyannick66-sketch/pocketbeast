@@ -27,6 +27,10 @@ var durchgelassen := 0
 ## Läuft gerade eine Welle, oder wartet das Spiel auf den nächsten Ruf?
 var welle_laeuft := false
 var verloren := false
+## Alle Wellen der Karte gehalten. Ohne das lief die Runde ins Leere: Bei
+## Welle 100 kam einfach Welle 101, und die Kampagne hatte kein Ende.
+var gewonnen := false
+var endlos := false
 
 ## Was in dieser Welle noch zu schicken ist.
 var warteschlange: Array[Dictionary] = []
@@ -43,6 +47,7 @@ func starte(idx: int) -> void:
 	durchgelassen = 0
 	welle_laeuft = false
 	verloren = false
+	gewonnen = false
 	warteschlange.clear()
 
 
@@ -158,6 +163,8 @@ func entlassungswert(turm: Dictionary) -> int:
 func rufe_welle() -> void:
 	if welle_laeuft or verloren:
 		return
+	if gewonnen and not endlos:
+		return
 	welle += 1
 	welle_laeuft = true
 	warteschlange.clear()
@@ -221,6 +228,8 @@ func erledigt(art: Dictionary) -> void:
 ## Welle vorbei — Belohnung.
 func welle_geschafft() -> void:
 	welle_laeuft = false
+	if welle >= Daten.WELLEN_JE_KARTE and not endlos:
+		gewonnen = true
 	var bonus := 22 + welle * 5
 	beeren += bonus
 	punkte += 120 + welle * 20
