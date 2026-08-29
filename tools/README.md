@@ -97,7 +97,7 @@ Typen, keinen einzigen Wasser-Wächter bei vier Wasserfeldern, und neun seiner
 zwanzig Wächter waren derselbe billige Typ. Was er maß, war seine eigene
 veraltete Strategie.
 
-## Fünf Lehren aus dem Messen
+## Sechs Lehren aus dem Messen
 
 Alle zeigen, wie leicht ein Messinstrument in die Irre führt — und jede
 einzelne verschob die Ergebnisse um mehr als vierzig Wellen, ohne dass sich
@@ -142,6 +142,29 @@ Beides fiel nur auf, weil das Ergebnis offensichtlich absurd war. Ein
 Messfehler, der ein *plausibles* Ergebnis liefert, bleibt liegen — das
 ist der eigentliche Grund, Zahlen zu misstrauen, die man selbst erzeugt
 hat.
+
+**Und einmal ein Befund ohne Erklärung.** Die Flutruine scheiterte mit
+sieben Kraftfeldern in fünf von acht Läufen, mit vier in null von acht. Der
+Unterschied hielt über drei verschiedene Bewertungsfassungen des Bots — er
+ist also echt.
+
+Nur ergibt er keinen Sinn: Ein Kraftfeld gibt dreißig Prozent mehr
+Reichweite und schränkt nichts ein. Mehr davon sollte eine Karte nicht
+schwerer machen.
+
+Meine Erklärung lag nahe: Der Bot bewertet Kraftfelder mit dem 1,9-fachen
+der Wegabdeckung, obwohl sie nur dreißig Prozent Reichweite geben — er
+stellt Wächter also auf Bonusfelder mit schlechter Lage. Ich habe die
+Bewertung berichtigt, sodass der Suchradius um denselben Faktor wächst wie
+die Reichweite, und nachgemessen: **sechs von acht statt fünf von acht.**
+Schlechter. Die Berichtigung ist zurückgenommen.
+
+Zwei Dinge daran sind wichtig. Erstens: Eine Änderung am Messgerät, deren
+Begründung gut klingt, muss trotzdem gemessen werden — sonst tauscht man
+einen unverstandenen Zustand gegen einen anderen. Zweitens: Ein
+reproduzierbarer Befund ohne Erklärung ist ein unangenehmes, aber gültiges
+Ergebnis. Er wurde umgesetzt (die Flutruine bekam vier Felder) und als
+ungeklärt vermerkt, statt eine hübsche Geschichte darüberzulegen.
 
 Wer hier weiterbaut, sollte bei jedem überraschenden Ergebnis zuerst fragen,
 ob der Bot etwas nicht kennt, und erst danach, ob das Spiel unausgewogen ist.
