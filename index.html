@@ -3166,6 +3166,25 @@ function pickMod(w) {
   return WAVE_MODS[Math.floor(rng() * WAVE_MODS.length)];
 }
 
+/* Wie viel Beute ein Gegner abwirft.
+
+   Gerechnet ergaben hundert Wellen auf dem Grünpfad 560.852 Beeren
+   Einnahmen. Alle fünfundvierzig Wächter voll auszubauen, zu trainieren und
+   megazuentwickeln kostet 418.570. Das Spiel schenkte also ein Drittel mehr,
+   als sich überhaupt ausgeben ließ — und damit fiel die Frage weg, welchen
+   Wächter man entwickelt. Man entwickelte alle.
+
+   Gemessen über drei Karten und vier Läufe je Fassung:
+
+     wie vorher   217.089 Beeren übrig,  3 von 12 Läufen unter Welle 100
+     mal 0,85     230.300 übrig,         2 von 12   — kein Unterschied
+     mal 0,70      88.781 übrig,         5 von 12   ← gewählt
+     mal 0,58      10.651 übrig,         6 von 12   — zu hart
+
+   0,85 ändert nichts, 0,58 kippt die Karten. 0,70 senkt den Überschuss um
+   neunundfünfzig Prozent und macht aus dem Ausbau wieder eine Wahl. */
+const BEUTE_FAKTOR = 0.70;
+
 function genWave(w, mul) {
   const groups = [];
   const mod = pickMod(w);
@@ -3227,7 +3246,7 @@ function genWave(w, mul) {
     groups.push({
       spec: s, count, mod,
       hp: hpBase * s.hp * norm * surge * troopShare, spd: 44 * s.spd * (mod && mod.spd ? mod.spd : 1),
-      bounty: Math.round((5 + w * 1.05) * s.bounty * (mod && mod.bounty ? mod.bounty : 1)),
+      bounty: Math.round(BEUTE_FAKTOR * (5 + w * 1.05) * s.bounty * (mod && mod.bounty ? mod.bounty : 1)),
       gap: Math.max(.2, (.95 / s.spd - w * 0.005) * (mod && mod.gap ? mod.gap : 1)),
       delay: i * 1.6,
     });
@@ -3240,7 +3259,7 @@ function genWave(w, mul) {
     groups.push({
       spec: b, count: bossCount, boss: true, mod,
       hp: bossHP * (b.hp / BOSS_REF), spd: 44 * b.spd * (mod && mod.spd ? mod.spd : 1),
-      bounty: Math.round((5 + w * 1.05) * b.bounty * (mod && mod.bounty ? mod.bounty : 1)),
+      bounty: Math.round(BEUTE_FAKTOR * (5 + w * 1.05) * b.bounty * (mod && mod.bounty ? mod.bounty : 1)),
       gap: 3.5, delay: 2.5,
     });
   }
@@ -3256,8 +3275,29 @@ function mulberry(a) {
   };
 }
 
+/* Wie viele Wellen gleichzeitig unterwegs sein dürfen.
+
+   Der Frühstart soll belohnen, wer Druck aushält — nicht, wer zwanzigmal
+   hintereinander auf den Knopf haut. Ohne Grenze ließen sich beliebig viele
+   Wellen übereinanderlegen: Das brachte den Bonus vielfach, überfüllte das
+   Feld und machte aus einer Entscheidung eine Fingerübung.
+
+   Fünf ist genug, dass sich gestaffelter Druck lohnt, und wenig genug, dass
+   man noch sieht, was passiert. Der Zähler wird verglichen mit der Welle,
+   die zuletzt VOLLSTÄNDIG erledigt wurde. */
+const WELLEN_GLEICHZEITIG = 5;
+
+function wellenOffen() {
+  return G.sent - (G.wellenFertig || 0);
+}
+
 function startWave() {
   if (G.over || (!G.endless && G.sent >= G.maxWave)) return;
+  if (G.waveActive && wellenOffen() >= WELLEN_GLEICHZEITIG) {
+    banner("Höchstens " + WELLEN_GLEICHZEITIG + " Wellen gleichzeitig");
+    sfxUI();
+    return;
+  }
   audioInit();
   if (G.waveActive) {
     const bonus = Math.round((18 + G.sent * 3) * (1 + rank("erst") * .5));
@@ -3528,6 +3568,9 @@ function legendaerDef(mapIdx) {
 
 function endWave() {
   G.waveActive = false;
+  /* endWave() läuft erst, wenn das Feld leer ist — damit sind alle bis dahin
+     gerufenen Wellen erledigt, auch die vorgezogenen. */
+  G.wellenFertig = G.sent;
   G.mod = null;
   const interest = Math.round(G.gold * rank("zins") * 0.02);
   const clearBonus = 22 + G.wave * 5;
@@ -9023,7 +9066,7 @@ function newRun(mapIdx, quiet) {
   G.gold = G.map.gold + rank("vorrat") * 40;
   G.lives = G.map.lives + rank("zaeh") * 2;
   G.wave = 0; G.sent = 0; G.score = 0; G.leaked = 0;
-  G.waveActive = false; G.paused = false; G.over = false; G.running = true;
+  G.waveActive = false; G.wellenFertig = 0; G.paused = false; G.over = false; G.running = true;
   G.place = null; G.sel = null; G.ghost = null; G.time = 0; G.shake = 0; G.endless = false;
   G.speed = save.tempo || 1;
   G.autoT = 0;

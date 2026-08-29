@@ -403,6 +403,18 @@ function spieleRunde(spiel, mapIdx, opt) {
   }
 
   spiel.newRun(mapIdx, true);
+  /* Endlosmodus. Im Spiel öffnet er sich, wenn alle hundert Wellen einer
+     Karte gehalten sind und ihr legendärer Wächter erwacht ist — hier wird
+     beides gesetzt, damit sich messen lässt, wie weit es überhaupt trägt.
+
+     Ohne Obergrenze liefe der Lauf, bis der Schrittzähler greift; deshalb
+     eine ausdrückliche Grenze, die auch im Ergebnis auftaucht. */
+  if (opt.endlos) {
+    spiel.save.sterne = spiel.save.sterne || {};
+    spiel.save.sterne[mapIdx] = spiel.WELLEN_JE_KARTE;
+    G.endless = true;
+    G.maxWave = opt.maxWelle || 400;
+  }
   G.running = true;
   G.paused = false;
   G.over = false;
