@@ -436,7 +436,8 @@ canvas{display:block;width:100%;height:auto;touch-action:manipulation}
 
 .helpgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 @media (max-width:640px){.helpgrid{grid-template-columns:1fr}}
-.talents{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:8px}
+.talents{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:8px}
+.tal .naechst{opacity:.62;font-size:11px;margin-top:2px}
 .tal{background:var(--panel-2);border:1px solid var(--line);border-radius:10px;padding:9px;text-align:left;cursor:pointer;transition:border-color .15s}
 .tal:hover{border-color:#3D7089}
 .tal[data-max="1"]{border-color:var(--amber-dim)}
@@ -1131,7 +1132,7 @@ const MAPS = [
     heim: "grass", legendaer: { typ: "grass", gestalt: "thron",
       namen: ["Hainhüter", "Waldwächter", "Wurzelthron"],
       text: "Der Hüter des Grünpfads — hier gewachsen, hier verwurzelt." },
-    name: "Grünpfad", diff: "Ruhig", mul: 1.25, gold: 280, lives: 20,
+    name: "Grünpfad", diff: "Sanft", mul: 1.0, gold: 320, lives: 24,
     himmel: ["#3E5C6B", "#7C9689"],
     ground: ["#1E3324", "#27422C"], accent: "#4A7350", foliage: "#4E9257",
     path: "#9C7B54", pathEdge: "#41301F", soil: "#BFA173",
@@ -1202,7 +1203,7 @@ const MAPS = [
     heim: "fire", legendaer: { typ: "fire", gestalt: "thron",
       namen: ["Aschehüter", "Glutwächter", "Schlundthron"],
       text: "Aus der Asche der Schlucht erwacht — er kennt kein Verlöschen." },
-    name: "Glutschlucht", diff: "Fordernd", mul: 1.44, gold: 300, lives: 18,
+    name: "Glutschlucht", diff: "Ruhig", mul: 1.35, gold: 300, lives: 20,
     himmel: ["#3B1F1E", "#8F5238"],
     ground: ["#241310", "#331914"], accent: "#7A452E", foliage: "#8E5730",
     path: "#9E7359", pathEdge: "#241509", soil: "#C49170",
@@ -1260,7 +1261,7 @@ const MAPS = [
     heim: "water", legendaer: { typ: "water", gestalt: "thron",
       namen: ["Tiefenhüter", "Flutwächter", "Strömungsthron"],
       text: "Was in der Ruine versank, wacht wieder — und hält die Flut." },
-    name: "Flutruine", diff: "Brutal", mul: 1.95, gold: 500, lives: 15,
+    name: "Flutruine", diff: "Ruhig", mul: 1.65, gold: 340, lives: 19,
     himmel: ["#33505F", "#7690A0"],
     ground: ["#1B2B3A", "#223447"], accent: "#3A5C78", foliage: "#4E8878",
     path: "#6D7E8E", pathEdge: "#28323F", soil: "#93A5B6",
@@ -1280,7 +1281,7 @@ const MAPS = [
       namen: ["Blitzhüter", "Sturmwächter", "Wetterthron"],
       text: "Über dem Kamm gebar ihn ein Schlag, der nie verhallte." },
     sonderfelder: [["hoehe", 7], ["kraft", 6], ["wasser", 4]],
-    name: "Gewitterkamm", diff: "Fordernd", mul: 1.38, gold: 320, lives: 18,
+    name: "Gewitterkamm", diff: "Fordernd", mul: 2.05, gold: 360, lives: 19,
     himmel: ["#2F3A52", "#6E7B96"],
     ground: ["#2A2E3C", "#353B4C"], accent: "#5A6480", foliage: "#6B7A96",
     path: "#8C8474", pathEdge: "#3A362C", soil: "#B6AE96",
@@ -1298,7 +1299,7 @@ const MAPS = [
       namen: ["Steinhüter", "Felswächter", "Grundthron"],
       text: "Er stand schon, als der Kessel noch Meer war." },
     sonderfelder: [["hoehe", 6], ["kraft", 6], ["wasser", 4]],
-    name: "Steinkessel", diff: "Fordernd", mul: 1.42, gold: 310, lives: 18,
+    name: "Steinkessel", diff: "Fordernd", mul: 2.55, gold: 390, lives: 18,
     himmel: ["#4A4038", "#8C7E6C"],
     ground: ["#3A342C", "#463E34"], accent: "#6E6252", foliage: "#7A6E5A",
     path: "#A89478", pathEdge: "#4A4034", soil: "#C6B294",
@@ -1316,7 +1317,7 @@ const MAPS = [
       namen: ["Traumhüter", "Seherwächter", "Gedankenthron"],
       text: "Er träumt den Hain, und der Hain träumt ihn." },
     sonderfelder: [["kraft", 7], ["wasser", 5], ["hoehe", 3]],
-    name: "Traumhain", diff: "Ruhig", mul: 1.30, gold: 300, lives: 20,
+    name: "Traumhain", diff: "Fordernd", mul: 3.2, gold: 420, lives: 18,
     himmel: ["#4A3A62", "#9A86B4"],
     ground: ["#2E2440", "#3A2E50"], accent: "#6A5490", foliage: "#8A6EB4",
     path: "#9C8AB4", pathEdge: "#40325A", soil: "#C4B2DC",
@@ -1334,7 +1335,7 @@ const MAPS = [
       namen: ["Firnhüter", "Frostwächter", "Ewigthron"],
       text: "Unter dem Firn schlief er, bis die Wildnis ihn weckte." },
     sonderfelder: [["wasser", 7], ["kraft", 6], ["hoehe", 4]],
-    name: "Firnfeld", diff: "Fordernd", mul: 1.48, gold: 330, lives: 17,
+    name: "Firnfeld", diff: "Hart", mul: 4.05, gold: 450, lives: 17,
     himmel: ["#54687E", "#AEC2D4"],
     ground: ["#3E4C5A", "#4E5E6E"], accent: "#7A8EA2", foliage: "#96AABE",
     path: "#B4BEC8", pathEdge: "#4E5866", soil: "#D6DEE6",
@@ -1352,7 +1353,7 @@ const MAPS = [
       namen: ["Erzhüter", "Schmiedwächter", "Ambossthron"],
       text: "Im Erz geschmiedet, vom Erz getragen." },
     sonderfelder: [["hoehe", 5], ["kraft", 6], ["wasser", 4]],
-    name: "Erzwerk", diff: "Brutal", mul: 1.72, gold: 460, lives: 16,
+    name: "Erzwerk", diff: "Hart", mul: 5.2, gold: 490, lives: 17,
     himmel: ["#3A4048", "#7E868E"],
     ground: ["#32363C", "#3E434A"], accent: "#666E78", foliage: "#78828E",
     path: "#8E8E92", pathEdge: "#3A3C40", soil: "#B2B2B6",
@@ -1370,7 +1371,7 @@ const MAPS = [
       namen: ["Glanzhüter", "Lichtwächter", "Morgenthron"],
       text: "Wo er steht, wird es einen Atemzug lang heller." },
     sonderfelder: [["kraft", 6], ["wasser", 5], ["hoehe", 3]],
-    name: "Glanzwiese", diff: "Ruhig", mul: 1.28, gold: 300, lives: 20,
+    name: "Glanzwiese", diff: "Hart", mul: 6.9, gold: 530, lives: 16,
     himmel: ["#6E5A72", "#C4A8BE"],
     ground: ["#3E3448", "#4C4058", "#4C4058"], accent: "#8A6E92", foliage: "#B48ABE",
     path: "#C4A8B4", pathEdge: "#584A5E", soil: "#E2CCD6",
@@ -1399,7 +1400,7 @@ const MAPS = [
        Die Karte wurde härter, als sie gedacht war, weil ihre eigenen
        Unlicht-Gegner den Heimvorteil bekamen — dieselbe Änderung, die sie
        thematisch stimmig macht. */
-    name: "Nachtgrund", diff: "Brutal", mul: 1.55, gold: 520, lives: 16,
+    name: "Nachtgrund", diff: "Brutal", mul: 9.4, gold: 580, lives: 16,
     himmel: ["#1E1A2A", "#453C58"],
     ground: ["#1A1622", "#221E2E"], accent: "#463C58", foliage: "#5A4C72",
     path: "#6E6478", pathEdge: "#2A2434", soil: "#8E82A0",
@@ -1417,7 +1418,7 @@ const MAPS = [
       namen: ["Böenhüter", "Windwächter", "Wirbelthron"],
       text: "Man hört ihn kommen, lange bevor man ihn sieht." },
     sonderfelder: [["hoehe", 8], ["kraft", 6], ["wasser", 4]],
-    name: "Böenkuppe", diff: "Fordernd", mul: 1.40, gold: 320, lives: 18,
+    name: "Böenkuppe", diff: "Erbarmungslos", mul: 13.0, gold: 640, lives: 15,
     himmel: ["#5A7280", "#A6C0C6"],
     ground: ["#3A4A44", "#485A52"], accent: "#6E8A7E", foliage: "#8AA69A",
     path: "#AEA890", pathEdge: "#4A4A3C", soil: "#D2CCB2",
@@ -1429,18 +1430,101 @@ const MAPS = [
   },
 ];
 
-/* ---------------- Talente (dauerhaft) ---------------- */
+/* ---------------- Talente (dauerhaft) ----------------
+
+   Der Pfad hat kein Ende mehr.
+
+   Vorher hatte er eines, und es kam zu früh: achtzig Punkte im Ganzen, und
+   eine durchgespielte Runde brachte hundertzweiundneunzig. Wer einmal
+   gewonnen hatte, konnte ihn zweieinhalbmal kaufen — jede weitere gehaltene
+   Welle warf Punkte ab, für die es nichts zu kaufen gab.
+
+   Jetzt lässt sich jeder Zweig beliebig weit hochziehen. Der Preis wächst
+   mit jedem Rang um eins, die Summe also quadratisch: Rang 20 kostet 210
+   Punkte, Rang 50 schon 1.275, Rang 100 volle 5.050. Tausende Punkte finden
+   damit ein Ziel, ohne dass es je erschöpft wäre.
+
+   ZWEI KURVEN, UND WARUM ES ZWEI SEIN MÜSSEN
+
+   Ein Zweig, der unbegrenzt wachsen darf, darf nicht unbegrenzt wirken —
+   jedenfalls nicht überall. Der Unterschied liegt darin, was der Zweig
+   anfasst:
+
+     GERADE       Schaden und Durchschlag. Nur diese beiden wachsen ohne
+                  Ende — und beide sind harmlos: Schaden ist die Achse,
+                  gegen die die Kartenrampe ausgelegt ist, und Durchschlag
+                  begrenzt sich von selbst, weil mehr als die Panzerung des
+                  Gegners verpufft.
+
+                  Reichweite, Leben und Startbeeren standen hier auch einmal.
+                  Gemessen bei Rang 94: +282 % Reichweite, +188 Startleben,
+                  +3.760 Startbeeren. Das ist keine Balancefrage mehr — bei
+                  dreifacher Reichweite deckt jeder Wächter die ganze Karte,
+                  und wo man ihn hinstellt, ist gleichgültig. Mit 3.760
+                  Startbeeren steht die volle Armee vor der ersten Welle.
+                  Zweige, die eine Spielregel abschaffen statt sie zu
+                  verstärken, gehören auf die andere Kurve.
+
+     SÄTTIGEND    Zinsen, Kopfgeld, Rückgabe, Trainingsrabatt. Das sind
+                  Anteile, und Anteile ohne Grenze zerlegen das Spiel: Ein
+                  Zinssatz, der über hundert Prozent steigt, verdoppelt den
+                  Vorrat mit jeder Welle — dann ist die Drosselung des
+                  Beerenzuflusses ein Scherz. Ein Rabatt über hundert Prozent
+                  bezahlte das Training. Diese Zweige nähern sich einer Decke
+                  und erreichen sie nie: wirkung = grenze × r / (r + halb).
+                  Bei r = halb steht die Hälfte der Decke.
+
+   Beide bleiben unendlich kaufbar. Der Unterschied ist nur, dass der zweite
+   ab einem Punkt kaum noch etwas bringt — was sichtbar ist, weil im Menü der
+   nächste Wert steht. Wer trotzdem weiterkauft, weiß was er tut. */
+
+/* Gerade Kurve: jeder Rang bringt dasselbe. */
+function talGerade(schritt) { return (r) => r * schritt; }
+/* Sättigende Kurve: nähert sich `grenze`, erreicht sie nie. Bei r = halb
+   steht genau die Hälfte. */
+function talSatt(grenze, halb) { return (r) => grenze * r / (r + halb); }
+
+/* Bis Rang hundert, und keinen weiter. Das ist die Decke, gegen die die
+   letzte Karte ausgelegt ist: Wer die Böenkuppe halten will, braucht sie
+   ganz. Zehn Zweige mal 5.050 Punkte sind 50.500 — ungefähr das, was ein
+   Durchgang durch alle elf Karten einbringt. */
+const TALENT_RANG_MAX = 100;
+
 const TALENTS = [
-  { id: "vorrat",   name: "Proviantbeutel", max: 5, desc: r => `+${r*40} Startbeeren` },
-  { id: "kraft",    name: "Schlagkraft",    max: 5, desc: r => `+${r*4}% Schaden aller Wächter` },
-  { id: "weit",     name: "Weitblick",      max: 4, desc: r => `+${r*3}% Reichweite` },
-  { id: "zaeh",     name: "Zähigkeit",      max: 5, desc: r => `+${r*2} Startleben` },
-  { id: "handel",   name: "Handelsgeschick",max: 3, desc: r => `Entlassung bringt ${60+r*8}% zurück` },
-  { id: "zins",     name: "Zinseszins",     max: 3, desc: r => `+${r*2}% Beeren nach jeder Welle` },
-  { id: "kopfgeld", name: "Kopfgeld",       max: 4, desc: r => `+${r*6}% Beeren pro Besiegtem` },
-  { id: "erst",     name: "Erstschlag",     max: 2, desc: r => `Frühstart-Bonus +${r*50}%` },
+  { id: "vorrat",   name: "Proviantbeutel", max: TALENT_RANG_MAX, wirkung: talSatt(900, 20),
+    desc: r => `+${Math.round(tal2("vorrat", r))} Startbeeren` },
+  { id: "kraft",    name: "Schlagkraft",    max: TALENT_RANG_MAX, wirkung: talGerade(.04),
+    desc: r => `+${(tal2("kraft", r) * 100).toFixed(0)} % Schaden aller Wächter` },
+  { id: "weit",     name: "Weitblick",      max: TALENT_RANG_MAX, wirkung: talSatt(.60, 25),
+    desc: r => `+${(tal2("weit", r) * 100).toFixed(0)} % Reichweite` },
+  { id: "zaeh",     name: "Zähigkeit",      max: TALENT_RANG_MAX, wirkung: talSatt(40, 25),
+    desc: r => `+${Math.round(tal2("zaeh", r))} Startleben` },
+  { id: "durch",    name: "Panzerbrecher",  max: TALENT_RANG_MAX, wirkung: talGerade(3),
+    desc: r => `+${Math.round(tal2("durch", r))} Durchschlag für alle Wächter` },
+  { id: "erst",     name: "Erstschlag",     max: TALENT_RANG_MAX, wirkung: talSatt(4.0, 12),
+    desc: r => `Frühstart-Bonus +${(tal2("erst", r) * 100).toFixed(0)} %` },
+  { id: "lehre",    name: "Lehrmeister",    max: TALENT_RANG_MAX, wirkung: talSatt(.35, 8),
+    desc: r => `Training kostet ${(tal2("lehre", r) * 100).toFixed(0)} % weniger` },
+  { id: "handel",   name: "Handelsgeschick",max: TALENT_RANG_MAX, wirkung: talSatt(.35, 4),
+    desc: r => `Entlassung bringt ${((0.6 + tal2("handel", r)) * 100).toFixed(0)} % zurück` },
+  { id: "zins",     name: "Zinseszins",     max: TALENT_RANG_MAX, wirkung: talSatt(.25, 10),
+    desc: r => `+${(tal2("zins", r) * 100).toFixed(1)} % Beeren nach jeder Welle` },
+  { id: "kopfgeld", name: "Kopfgeld",       max: TALENT_RANG_MAX, wirkung: talSatt(1.20, 14),
+    desc: r => `+${(tal2("kopfgeld", r) * 100).toFixed(0)} % Beeren pro Besiegtem` },
 ];
 const TAL_BY_ID = Object.fromEntries(TALENTS.map(t => [t.id, t]));
+
+/* Die Wirkung eines Zweigs beim aktuellen Rang. Überall im Spiel steht
+   tal("kraft") statt rank("kraft") * .04 — die Kurve gehört zum Talent und
+   nicht an jede Stelle, die sie liest.
+
+   tal2() nimmt den Rang ausdrücklich; das Menü braucht das, um zu zeigen,
+   was der NÄCHSTE Rang bringen würde. */
+function tal2(id, r) {
+  const t = TAL_BY_ID[id];
+  return t ? t.wirkung(Math.max(0, r)) : 0;
+}
+function tal(id) { return tal2(id, rank(id)); }
 
 /* ---------------- Speicher ---------------- */
 /* Der Schlüssel bleibt bewusst auf dem alten Namen: der Browser legt den
@@ -3030,6 +3114,36 @@ function isBossWave(w) {
   return w > 0 && (w % 8 === 0 || w === WELLEN_JE_KARTE);
 }
 
+/* ---------------- Trainerpunkte ----------------
+
+   Was eine gehaltene Welle einbringt. Früher war das eine flache Eins, und
+   sechs auf Bosswellen: rund 192 Punkte für einen ganzen Durchgang.
+
+   Das passte, solange der Pfad achtzig Punkte kostete. Seit er bis Rang
+   hundert reicht — 50.500 Punkte für alle zehn Zweige — wären es 263
+   gewonnene Runden gewesen. Niemand spielt eine Karte 263-mal.
+
+   Zwei Dinge lassen den Ertrag jetzt wachsen:
+
+     DIE WELLE   ceil(Welle/4). Welle 1 gibt einen Punkt, Welle 100 gibt
+                 fünfundzwanzig. Das belohnt das Durchhalten und nicht das
+                 Neustarten — vorher war es gleichgültig, ob man hundert
+                 Wellen am Stück hielt oder viermal fünfundzwanzig.
+
+     DIE KARTE   Faktor 1,0 auf dem Grünpfad bis 3,0 auf der Böenkuppe.
+                 Die schweren Routen zahlen mehr, weil sie mehr kosten.
+
+   Gerechnet trägt ein Durchgang durch alle elf Karten 48.510 Punkte ein —
+   fast genau die 50.500 des vollen Pfads. Der Rest kommt aus Wiederholungen
+   und aus übrigen Beeren. */
+function kartePunktFaktor(idx) {
+  return 1 + (idx === undefined ? G.mapIdx : idx) * 0.2;
+}
+function wellenPunkte(w) {
+  const grund = Math.ceil(w / 4);
+  return Math.round((isBossWave(w) ? grund * 6 : grund) * kartePunktFaktor());
+}
+
 /* Welcher Anführer auf welcher Welle.
 
    Elf Anführer, aber dreizehn Bosswellen (8 bis 96 im Achtertakt, dazu die
@@ -3182,8 +3296,31 @@ function pickMod(w) {
      mal 0,58      10.651 übrig,         6 von 12   — zu hart
 
    0,85 ändert nichts, 0,58 kippt die Karten. 0,70 senkt den Überschuss um
-   neunundfünfzig Prozent und macht aus dem Ausbau wieder eine Wahl. */
-const BEUTE_FAKTOR = 0.70;
+   neunundfünfzig Prozent und macht aus dem Ausbau wieder eine Wahl.
+
+   NACHTRAG — warum daraus ein Multiplikator für ALLE Beeren wurde
+
+   Der Faktor griff nur am Kopfgeld. Der Wellenbonus (22 + Welle × 5) und
+   der Frühstartbonus liefen daran vorbei, und über hundert Wellen sind das
+   allein aus dem Wellenbonus 27.450 Beeren, die kein Herunterdrehen je
+   erreichte. Eine Messung mit dem Trainerpfad zeigte, wohin das führt: Ohne
+   einen einzigen Talentpunkt blieben am Ende einer gehaltenen Runde noch
+   96.983 Beeren übrig. Der Pfad war nicht zu schwach — es gab schlicht
+   nichts, wofür man ihn gebraucht hätte.
+
+   Deshalb hängt jetzt jede Einnahme an derselben Zahl. Nicht die Startbeeren:
+   die sind kein Zufluss, sondern die Aussaat, und für sie gibt es mit dem
+   Proviantbeutel bereits ein eigenes Talent. Wer den Pfad braucht, soll ihn
+   im Verlauf brauchen und nicht schon beim ersten Setzen. */
+const BEEREN_MULT = 0.55;
+
+/* Jede Einnahme geht hier durch. Eine einzige Stelle, an der sich der
+   Zufluss drehen lässt — und eine, an der man beim Lesen sieht, dass es
+   diesen Hebel überhaupt gibt.
+
+   Die Zinsen laufen bewusst nicht durch: sie sind ein Anteil des Vorrats,
+   und der ist bereits gedrosselt. Zweimal drosseln hieße quadrieren. */
+function beeren(betrag) { return Math.round(betrag * BEEREN_MULT); }
 
 function genWave(w, mul) {
   const groups = [];
@@ -3246,7 +3383,7 @@ function genWave(w, mul) {
     groups.push({
       spec: s, count, mod,
       hp: hpBase * s.hp * norm * surge * troopShare, spd: 44 * s.spd * (mod && mod.spd ? mod.spd : 1),
-      bounty: Math.round(BEUTE_FAKTOR * (5 + w * 1.05) * s.bounty * (mod && mod.bounty ? mod.bounty : 1)),
+      bounty: beeren((5 + w * 1.05) * s.bounty * (mod && mod.bounty ? mod.bounty : 1)),
       gap: Math.max(.2, (.95 / s.spd - w * 0.005) * (mod && mod.gap ? mod.gap : 1)),
       delay: i * 1.6,
     });
@@ -3259,7 +3396,7 @@ function genWave(w, mul) {
     groups.push({
       spec: b, count: bossCount, boss: true, mod,
       hp: bossHP * (b.hp / BOSS_REF), spd: 44 * b.spd * (mod && mod.spd ? mod.spd : 1),
-      bounty: Math.round(BEUTE_FAKTOR * (5 + w * 1.05) * b.bounty * (mod && mod.bounty ? mod.bounty : 1)),
+      bounty: beeren((5 + w * 1.05) * b.bounty * (mod && mod.bounty ? mod.bounty : 1)),
       gap: 3.5, delay: 2.5,
     });
   }
@@ -3300,7 +3437,7 @@ function startWave() {
   }
   audioInit();
   if (G.waveActive) {
-    const bonus = Math.round((18 + G.sent * 3) * (1 + rank("erst") * .5));
+    const bonus = beeren((18 + G.sent * 3) * (1 + tal("erst")));
     G.gold += bonus;
     addLog(`Frühstart — <b>+${bonus}</b> Beeren`);
     float(W / 2, 40, "+" + bonus + " Frühstart", "#F0A83C");
@@ -3572,11 +3709,25 @@ function endWave() {
      gerufenen Wellen erledigt, auch die vorgezogenen. */
   G.wellenFertig = G.sent;
   G.mod = null;
-  const interest = Math.round(G.gold * rank("zins") * 0.02);
-  const clearBonus = 22 + G.wave * 5;
+  const clearBonus = beeren(22 + G.wave * 5);
+  /* Zinsen, gedeckelt.
+
+     Ein Prozentsatz auf den ganzen Vorrat ist Zinseszins im Wortsinn, und
+     über hundert Wellen ist das keine Belohnung mehr, sondern eine
+     Explosion: Sechs Prozent je Welle lassen einen liegengelassenen Vorrat
+     auf das 339-fache wachsen, dreizehn Prozent auf das Zweihunderttausend-
+     fache. Seit der Trainerpfad kein Ende mehr hat, ist jeder Satz
+     erreichbar — gemessen blieben bei 220 Punkten 683.526 Beeren übrig, mehr
+     als die Karte überhaupt aufnehmen kann.
+
+     Der Deckel bindet die Zinsen an den Wellenbonus, also an etwas, das
+     linear mit der Welle wächst statt mit dem Vorrat. Damit lohnt sich
+     Zurückhalten weiterhin — aber Liegenlassen wird nie zur besseren
+     Strategie als Ausgeben. */
+  const interest = Math.round(Math.min(G.gold * tal("zins"), clearBonus * 2.5));
   G.gold += clearBonus + interest;
   G.score += 120 + G.wave * 20;
-  save.points += isBossWave(G.wave) ? 6 : 1;
+  save.points += wellenPunkte(G.wave);
   statPlus("wellen");
   statPlus("beeren", clearBonus + interest);
   const neueSterne = G.endless ? 0 : sternVergeben(G.mapIdx, G.wave);
@@ -3637,7 +3788,7 @@ function recalcAuras() {
   for (const s of G.towers) {
     const st = tierOf(s);
     if (!st.aura) continue;
-    const r = st.range * (1 + rank("weit") * .03) * 1.15;
+    const r = st.range * (1 + tal("weit")) * 1.15;
     for (const t of G.towers) {
       if (t === s) continue;
       if (Math.hypot(t.x - s.x, t.y - s.y) <= r) {
@@ -3658,7 +3809,7 @@ function statDmg(t) {
   // Vulkanschlot: nur Feuer-Wächter stehen darauf, also braucht es keine Typprüfung
   const schlot = feldArt(t.c, t.r) === "vulkan" ? (1 + FELD_VULKAN_BONUS) : 1;
   const heim = istHeimWaechter(t) ? (1 + HEIM_WAECHTER_SCHADEN) : 1;
-  return tierOf(t).dmg * (1 + rank("kraft") * .04) * (1 + (t.aDmg || 0)) * trainMul(t)
+  return tierOf(t).dmg * (1 + tal("kraft")) * (1 + (t.aDmg || 0)) * trainMul(t)
        * (1 + boon("dmg") * .12) * (1 + hainStufe("schliff") * .03) * schlot * heim;
 }
 /* Ein Zähler, der hochgeht, wenn sich irgendetwas an den Werten ändert:
@@ -3685,7 +3836,7 @@ function statRange(t) {
     const voll = FELD_HOEHE_TYPEN.includes(t.def.type);
     feld = 1 + FELD_HOEHE_BONUS * (voll ? 1 : 0.33);
   }
-  const wert = tierOf(t).range * (1 + rank("weit") * .03) * (1 + (t.aRng || 0))
+  const wert = tierOf(t).range * (1 + tal("weit")) * (1 + (t.aRng || 0))
        * (1 + (t.train || 0) * .02) * (1 + boon("rng") * .08) * modR * feld
        * (1 + hainStufe("fern") * .02)
        * (istHeimWaechter(t) ? (1 + HEIM_WAECHTER_REICHWEITE) : 1);
@@ -3751,7 +3902,9 @@ function hainKaufen(id) {
   sfxUpgrade();
   return true;
 }
-function trainCost(t) { return Math.round(80 * Math.pow(1.24, t.train || 0)); }
+function trainCost(t) {
+  return Math.round(80 * Math.pow(1.24, t.train || 0) * (1 - tal("lehre")));
+}
 /* Im Endlosmodus fällt die Trainingsgrenze.
 
    Sie hat ihren Sinn in der Runde über hundert Wellen: Ohne sie ließe sich
@@ -3779,7 +3932,7 @@ function towerValue(t) {
   return v;
 }
 function sellValue(t) {
-  const f = boon("sell") ? 1 : Math.min(1, 0.6 + rank("handel") * .08);
+  const f = boon("sell") ? 1 : Math.min(1, 0.6 + tal("handel"));
   return Math.round(towerValue(t) * f);
 }
 
@@ -4189,7 +4342,7 @@ function damage(en, amount, type, src) {
   }
   /* Panzerung: erst zieht der Durchschlag des Wächters ab (Stahl-Wächter
      tragen ihn als feste Stufeneigenschaft), dann die Segnung Steinbrecher. */
-  const durchschlag = (src && src.def && tierOf(src).pierce) || 0;
+  const durchschlag = ((src && src.def && tierOf(src).pierce) || 0) + tal("durch");
   const arm = Math.max(0, (en.armor || 0) - durchschlag) * (1 - boon("pierce") * .30);
   d = Math.max(d * .18, d - arm);
   // Schild fängt zuerst ab, Strom bricht ihn doppelt schnell
@@ -4235,7 +4388,7 @@ function kill(en, src) {
   en.dead = true;
   statPlus("erledigt");
   statPlus("beeren", 0);   // Beeren zählen unten mit dem echten Betrag
-  const g = Math.round(en.bounty * (1 + rank("kopfgeld") * .06) * (1 + boon("gold") * .18)
+  const g = Math.round(en.bounty * (1 + tal("kopfgeld")) * (1 + boon("gold") * .18)
     * (1 + hainStufe("futter") * .04));
   G.gold += g;
   G.score += en.boss ? 900 : 40;
@@ -5172,7 +5325,7 @@ function draw() {
     g.fillRect(c * TILE + 2, r * TILE + 2, TILE - 4, TILE - 4);
     g.strokeStyle = ok ? "rgba(87,206,124,.75)" : "rgba(255,110,69,.8)";
     g.lineWidth = 2; g.strokeRect(c * TILE + 2, r * TILE + 2, TILE - 4, TILE - 4);
-    const rad = def.tiers[0].range * (1 + rank("weit") * .03);
+    const rad = def.tiers[0].range * (1 + tal("weit"));
     g.fillStyle = rgba(TYPES[def.type].col, .07);
     g.beginPath(); g.arc(x, y, rad, 0, 7); g.fill();
     g.strokeStyle = rgba(TYPES[def.type].col, .5); g.lineWidth = 1.5;
@@ -8019,7 +8172,7 @@ let lastSelKey = null;
 function vorschauReichweite(t, nx) {
   const modR = G.mod && G.mod.range ? G.mod.range : 1;
   const feld = feldArt(t.c, t.r) === "kraft" ? (1 + FELD_KRAFT_BONUS) : 1;
-  return nx.range * (1 + rank("weit") * .03) * (1 + (t.aRng || 0))
+  return nx.range * (1 + tal("weit")) * (1 + (t.aRng || 0))
        * (1 + (t.train || 0) * .02) * (1 + boon("rng") * .08) * modR * feld;
 }
 
@@ -8146,7 +8299,7 @@ function renderSel() {
   const st = tierOf(t), nx = t.def.tiers[t.tier + 1];
   const col = TYPES[t.def.type].col;
   const dps = (statDmg(t) * st.rate).toFixed(0);
-  const nxDps = nx ? (nx.dmg * (1 + rank("kraft") * .04) * (1 + (t.aDmg || 0)) * nx.rate).toFixed(0) : null;
+  const nxDps = nx ? (nx.dmg * (1 + tal("kraft")) * (1 + (t.aDmg || 0)) * nx.rate).toFixed(0) : null;
   box.innerHTML = `
     <div class="sel">
       <div class="head"><canvas></canvas>
@@ -8154,7 +8307,7 @@ function renderSel() {
         <div class="meta" style="color:${col}">${TYPES[t.def.type].name} · Stufe ${t.tier + 1}/3</div></div>
       </div>
       <div class="grid2">
-        <div class="kv"><div class="k">Schaden</div><div class="v">${statDmg(t).toFixed(0)}${nx ? ` <span class="up">→${(nx.dmg * (1 + rank("kraft") * .04) * (1 + (t.aDmg || 0))).toFixed(0)}</span>` : ""}</div></div>
+        <div class="kv"><div class="k">Schaden</div><div class="v">${statDmg(t).toFixed(0)}${nx ? ` <span class="up">→${(nx.dmg * (1 + tal("kraft")) * (1 + (t.aDmg || 0))).toFixed(0)}</span>` : ""}</div></div>
         <div class="kv"><div class="k">Tempo</div><div class="v">${st.rate.toFixed(2)}/s${nx ? ` <span class="up">→${nx.rate.toFixed(2)}</span>` : ""}</div></div>
         <div class="kv"><div class="k">Reichweite</div><div class="v">${statRange(t).toFixed(0)}${nx ? ` <span class="up">→${vorschauReichweite(t, nx).toFixed(0)}</span>` : ""}</div></div>
         <div class="kv"><div class="k">Schaden/s</div><div class="v">${dps}${nxDps ? ` <span class="up">→${nxDps}</span>` : ""}</div></div>
@@ -8236,8 +8389,17 @@ function estimateDefense(groups) {
   const out = [];
   for (const g of groups) {
     const spd = g.spd || 44;
-    const armor = Math.round((g.spec.armor || 0) * waveArmorScale(G.sent + 1) * kartenPanzerFaktor()
-      * (g.mod && g.mod.armor ? g.mod.armor : 1)) * (1 - boon("pierce") * .30);
+    /* Panzerung, bevor ein Wächter dagegenhält. Der Durchschlag kommt weiter
+       unten dazu, je Wächter — er gehört nicht hierher, weil er sich von
+       Familie zu Familie unterscheidet.
+
+       Vorher stand hier die fertige Panzerung, und der Durchschlag fehlte
+       ganz. Die Vorschau rechnete damit für einen Sturmfalken (Durchschlag 8)
+       dasselbe wie für eine Glutkatze (keiner) — und für den Panzerbrecher
+       des Trainerpfads gar nichts. Sie sagte also eine Welle als knapp
+       voraus, die in Wirklichkeit locker hielt. */
+    const rohPanzer = Math.round((g.spec.armor || 0) * waveArmorScale(G.sent + 1) * kartenPanzerFaktor()
+      * (g.mod && g.mod.armor ? g.mod.armor : 1));
     /* Räumliche Länge der Gruppe: so weit ist der letzte Gegner hinter dem
        ersten. Ein Wächter feuert, solange diese Kolonne seinen Bereich
        durchquert — nicht nur, solange ein einzelner Gegner drin steht. */
@@ -8251,8 +8413,12 @@ function estimateDefense(groups) {
       const st = tierOf(t);
       let m = eff(t.def.type, g.spec.type);
       if (t.def.type === "electric" && g.spec.flying) m *= 1.5;
+      /* Dieselbe Reihenfolge wie beim echten Treffer: erst zieht der
+         Durchschlag ab, dann greift die Segnung Steinbrecher. */
+      const durchschlag = (st.pierce || 0) + tal("durch");
+      const armor = Math.max(0, rohPanzer - durchschlag) * (1 - boon("pierce") * .30);
       let proSchuss = Math.max(statDmg(t) * m * .18,
-                               statDmg(t) * m - Math.max(0, armor));
+                               statDmg(t) * m - armor);
       /* Flächen- und Kettenwirkung: in einer dichten Kolonne trifft ein Schuss
          mehrere Gegner. Der Abstand zwischen zwei Wilden ist gap × Tempo, im
          Wirkungsradius stehen also rund 2r/Abstand Stück. */
@@ -8622,13 +8788,25 @@ function menuHTML() {
   <section>
     <h2 style="margin-bottom:8px">Trainerpfad — ${left} Punkt${left === 1 ? "" : "e"} frei</h2>
     <div class="talents" id="talents">${TALENTS.map(t => {
-      const r = rank(t.id), maxed = r >= t.max, cost = talCost(r);
-      return `<button class="tal" data-id="${t.id}" data-max="${maxed ? 1 : 0}" ${maxed || left < cost ? "disabled" : ""}>
-        <div class="tn"><span>${t.name}</span><span class="pips">${"●".repeat(r)}${"○".repeat(t.max - r)}</span></div>
-        <div class="td">${t.desc(Math.max(1, r))}${maxed ? "" : ` · Kosten ${cost}`}</div>
+      const r = rank(t.id), cost = talCost(r);
+      /* Was der nächste Rang bringt, steht daneben. Ohne das kauft man in
+         die Sättigung hinein, ohne es zu merken: Beim Kopfgeld bringt der
+         erste Rang acht Prozent, der dreißigste noch ein halbes. Sichtbar
+         ist das nur, wenn beide Werte nebeneinander stehen. */
+      const voll = r >= TALENT_RANG_MAX;
+      const jetzt = t.desc(r), gleich = t.desc(r + 1);
+      return `<button class="tal" data-id="${t.id}" data-max="${voll ? 1 : 0}" ${voll || left < cost ? "disabled" : ""}>
+        <div class="tn"><span>${t.name}</span><span class="pips">Rang ${r} / ${TALENT_RANG_MAX}</span></div>
+        <div class="td">${jetzt}</div>
+        <div class="td naechst">${voll ? "ausgebaut"
+          : (gleich === jetzt ? "kein weiterer Zuwachs" : "→ " + gleich) + " · Kosten " + cost}</div>
       </button>`; }).join("")}</div>
-    <p class="empty" style="margin-top:8px">Punkte gibt es für jede gehaltene Welle (Bosswellen: 6).
-    ${save.points ? `Insgesamt verdient: ${save.points}.` : ""}
+    <p class="empty" style="margin-top:8px">Punkte gibt es für jede gehaltene Welle — je später die Welle, desto mehr
+    (Welle 100 gibt 25, Bosswellen das Sechsfache), und je schwerer die Route, desto mehr.
+    Jeder Rang kostet einen Punkt mehr als der vorige: Rang 20 zusammen 210,
+    Rang 50 schon 1.275, Rang 100 volle 5.050. Alle zehn Zweige ganz
+    auszubauen kostet 50.500 — und genau darauf ist die letzte Route ausgelegt.
+    ${save.points ? `Insgesamt verdient: ${save.points}, davon ${save.spent} ausgegeben.` : ""}
     <button class="btn ghost sm" id="b-reset" style="margin-left:6px">Fortschritt zurücksetzen</button></p>
   </section>
 
@@ -8652,7 +8830,7 @@ function wireMenu() {
     el.addEventListener("click", () => {
       const id = el.dataset.id, r = rank(id);
       const t = TAL_BY_ID[id];
-      if (r >= t.max || talentPointsLeft() < talCost(r)) return;
+      if (r >= TALENT_RANG_MAX || talentPointsLeft() < talCost(r)) return;
       save.spent += talCost(r);
       save.ranks[id] = r + 1;
       writeSave();
@@ -8943,6 +9121,11 @@ function gameOver() {
   bestlaufMerken();
   const beerenPunkte = beerenAbrechnen();
   erfolgePruefen();
+  /* Wer offene Trainerpunkte hat, soll nicht blind noch einmal anfangen.
+     Seit der Beerenzufluss gedrosselt ist, trägt eine Runde ohne Talente
+     nicht mehr bis ans Ende — der Weg nach vorn führt über den Pfad, also
+     zeigt der Verlustbildschirm dorthin und nicht auf "Nochmal". */
+  const offen = talentPointsLeft();
   clearRun(); sfxLose();
   const bb = $("bossbar"); if (bb) bb.hidden = true;
   if (G.score > (save.best || 0)) { save.best = G.score; }
@@ -8950,7 +9133,9 @@ function gameOver() {
   openVeil(`<h2 class="big">Das Dorf ist gefallen</h2>
     <p class="lead">${G.sent - 1} Wellen gehalten auf ${G.map.name}.${beerenPunkte
       ? ` Deine ${G.gold} übrigen Beeren wurden zu <b>${beerenPunkte} Trainerpunkten</b>.` : ""}
-    Beim nächsten Anlauf helfen sie — du hast ${talentPointsLeft()} übrig.</p>
+    ${offen
+      ? `Im Trainerpfad warten <b>${offen} Punkte</b> darauf, ausgegeben zu werden — ohne sie kommt kein Anlauf bis ans Ende.`
+      : "Der Trainerpfad ist ausgegeben. Der nächste Anlauf muss die Wahl der Wächter tragen."}</p>
     <div class="grid2" style="max-width:420px;margin-bottom:16px">
       <div class="kv"><div class="k">Wellen</div><div class="v">${Math.max(0, G.sent - 1)}</div></div>
       <div class="kv"><div class="k">Punkte</div><div class="v">${G.score}</div></div>
@@ -8958,8 +9143,8 @@ function gameOver() {
       <div class="kv"><div class="k">Durchbrüche</div><div class="v">${G.leaked}</div></div>
     </div>
     <div style="display:flex;gap:8px;flex-wrap:wrap">
-      <button class="btn primary" id="b-again">Nochmal</button>
-      <button class="btn" id="b-tomenu">Menü &amp; Talente</button>
+      <button class="btn${offen ? "" : " primary"}" id="b-again">Nochmal</button>
+      <button class="btn${offen ? " primary" : ""}" id="b-tomenu">Menü &amp; Talente${offen ? ` &middot; ${offen} frei` : ""}</button>
     </div>`);
   $("b-again").addEventListener("click", () => { closeVeil(); starteRunde(G.mapIdx); });
   $("b-tomenu").addEventListener("click", () => { showMenu(); });
@@ -8969,7 +9154,10 @@ function victory() {
   clearRun(); sfxWin();
   const bb = $("bossbar"); if (bb) bb.hidden = true;
   save.cleared[G.mapIdx] = true;
-  save.points += 15;
+  /* Der Siegbonus wächst mit der Route mit — sonst wäre die Böenkuppe für
+     denselben Schlussbonus zu haben wie der Grünpfad. */
+  const siegBonus = Math.round(150 * kartePunktFaktor());
+  save.points += siegBonus;
   statPlus("spielzeit", G.time);
   bestlaufMerken();
   const beerenPunkte = beerenAbrechnen();
@@ -8978,7 +9166,7 @@ function victory() {
   writeSave();
   openVeil(`<h2 class="big">Route gehalten</h2>
     <p class="lead">Alle ${WELLEN_JE_KARTE} Wellen auf ${G.map.name} abgewehrt, mit ${G.lives} Leben übrig.
-    +15 Trainerpunkte${beerenPunkte ? `, dazu ${beerenPunkte} aus ${G.gold} übrigen Beeren` : ""}. ${MAPS.filter((_, i) => !save.cleared[i]).length ? "Die härteren Routen warten." : `Alle ${zahlwort(MAPS.length)} Routen gemeistert.`}</p>
+    +${siegBonus} Trainerpunkte${beerenPunkte ? `, dazu ${beerenPunkte} aus ${G.gold} übrigen Beeren` : ""}. ${MAPS.filter((_, i) => !save.cleared[i]).length ? "Die härteren Routen warten." : `Alle ${zahlwort(MAPS.length)} Routen gemeistert.`}</p>
     <div class="grid2" style="max-width:420px;margin-bottom:16px">
       <div class="kv"><div class="k">Punkte</div><div class="v">${G.score}</div></div>
       <div class="kv"><div class="k">Leben übrig</div><div class="v">${G.lives}</div></div>
@@ -9063,8 +9251,12 @@ function newRun(mapIdx, quiet) {
   if (G.map.wpB) for (const k of blockedTiles(G.map.wpB, G.map.smooth)) G.blocked.add(k);
   G.felder = baueFelder();
   G.towers = []; G.enemies = []; G.shots = []; G.fx = []; G.floats = []; G.queue = [];
-  G.gold = G.map.gold + rank("vorrat") * 40;
-  G.lives = G.map.lives + rank("zaeh") * 2;
+  /* Gerundet, weil die sättigenden Kurven Bruchzahlen liefern: Zähigkeit
+     bei Rang 39 gibt 24,375 Leben. Ein Vorrat von 664.450,3 Beeren und
+     29,615 Leben stand so in der Messung — Werte, die es im Spiel nicht
+     geben darf. */
+  G.gold = Math.round(G.map.gold + tal("vorrat"));
+  G.lives = Math.round(G.map.lives + tal("zaeh"));
   G.wave = 0; G.sent = 0; G.score = 0; G.leaked = 0;
   G.waveActive = false; G.wellenFertig = 0; G.paused = false; G.over = false; G.running = true;
   G.place = null; G.sel = null; G.ghost = null; G.time = 0; G.shake = 0; G.endless = false;

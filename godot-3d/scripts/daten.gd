@@ -249,8 +249,8 @@ const WELLE_LEBEN := [30, 36, 44, 53, 64, 78, 94, 113, 137, 165, 199, 240, 289, 
 ## Karten mit ihrem Schwierigkeitsfaktor.
 const KARTEN := [
 	{
-		"name": "Grünpfad", "grad": "Ruhig",
-		"faktor": 1.25, "beeren": 280, "leben": 20,
+		"name": "Grünpfad", "grad": "Sanft",
+		"faktor": 1, "beeren": 320, "leben": 24,
 		"heim": "grass", "wetter": "pollen",
 		"boden": [Color("#1E3324"), Color("#27422C")],
 		"weg": Color("#9C7B54"), "wegkante": Color("#41301F"),
@@ -262,8 +262,8 @@ const KARTEN := [
 		"legendaer": { "typ": "grass", "gestalt": "thron", "namen": ["Hainhüter","Waldwächter","Wurzelthron"] },
 	},
 	{
-		"name": "Glutschlucht", "grad": "Fordernd",
-		"faktor": 1.44, "beeren": 300, "leben": 18,
+		"name": "Glutschlucht", "grad": "Ruhig",
+		"faktor": 1.35, "beeren": 300, "leben": 20,
 		"heim": "fire", "wetter": "embers",
 		"boden": [Color("#241310"), Color("#331914")],
 		"weg": Color("#9E7359"), "wegkante": Color("#241509"),
@@ -274,8 +274,8 @@ const KARTEN := [
 		"legendaer": { "typ": "fire", "gestalt": "thron", "namen": ["Aschehüter","Glutwächter","Schlundthron"] },
 	},
 	{
-		"name": "Flutruine", "grad": "Brutal",
-		"faktor": 1.95, "beeren": 500, "leben": 15,
+		"name": "Flutruine", "grad": "Ruhig",
+		"faktor": 1.65, "beeren": 340, "leben": 19,
 		"heim": "water", "wetter": "rain",
 		"boden": [Color("#1B2B3A"), Color("#223447")],
 		"weg": Color("#6D7E8E"), "wegkante": Color("#28323F"),
@@ -287,7 +287,7 @@ const KARTEN := [
 	},
 	{
 		"name": "Gewitterkamm", "grad": "Fordernd",
-		"faktor": 1.38, "beeren": 320, "leben": 18,
+		"faktor": 2.05, "beeren": 360, "leben": 19,
 		"heim": "electric", "wetter": "storm",
 		"boden": [Color("#2A2E3C"), Color("#353B4C")],
 		"weg": Color("#8C8474"), "wegkante": Color("#3A362C"),
@@ -299,7 +299,7 @@ const KARTEN := [
 	},
 	{
 		"name": "Steinkessel", "grad": "Fordernd",
-		"faktor": 1.42, "beeren": 310, "leben": 18,
+		"faktor": 2.55, "beeren": 390, "leben": 18,
 		"heim": "rock", "wetter": "dust",
 		"boden": [Color("#3A342C"), Color("#463E34")],
 		"weg": Color("#A89478"), "wegkante": Color("#4A4034"),
@@ -310,8 +310,8 @@ const KARTEN := [
 		"legendaer": { "typ": "rock", "gestalt": "thron", "namen": ["Steinhüter","Felswächter","Grundthron"] },
 	},
 	{
-		"name": "Traumhain", "grad": "Ruhig",
-		"faktor": 1.3, "beeren": 300, "leben": 20,
+		"name": "Traumhain", "grad": "Fordernd",
+		"faktor": 3.2, "beeren": 420, "leben": 18,
 		"heim": "psychic", "wetter": "traum",
 		"boden": [Color("#2E2440"), Color("#3A2E50")],
 		"weg": Color("#9C8AB4"), "wegkante": Color("#40325A"),
@@ -322,8 +322,8 @@ const KARTEN := [
 		"legendaer": { "typ": "psychic", "gestalt": "thron", "namen": ["Traumhüter","Seherwächter","Gedankenthron"] },
 	},
 	{
-		"name": "Firnfeld", "grad": "Fordernd",
-		"faktor": 1.48, "beeren": 330, "leben": 17,
+		"name": "Firnfeld", "grad": "Hart",
+		"faktor": 4.05, "beeren": 450, "leben": 17,
 		"heim": "ice", "wetter": "snow",
 		"boden": [Color("#3E4C5A"), Color("#4E5E6E")],
 		"weg": Color("#B4BEC8"), "wegkante": Color("#4E5866"),
@@ -334,8 +334,8 @@ const KARTEN := [
 		"legendaer": { "typ": "ice", "gestalt": "thron", "namen": ["Firnhüter","Frostwächter","Ewigthron"] },
 	},
 	{
-		"name": "Erzwerk", "grad": "Brutal",
-		"faktor": 1.72, "beeren": 460, "leben": 16,
+		"name": "Erzwerk", "grad": "Hart",
+		"faktor": 5.2, "beeren": 490, "leben": 17,
 		"heim": "steel", "wetter": "russ",
 		"boden": [Color("#32363C"), Color("#3E434A")],
 		"weg": Color("#8E8E92"), "wegkante": Color("#3A3C40"),
@@ -346,8 +346,8 @@ const KARTEN := [
 		"legendaer": { "typ": "steel", "gestalt": "thron", "namen": ["Erzhüter","Schmiedwächter","Ambossthron"] },
 	},
 	{
-		"name": "Glanzwiese", "grad": "Ruhig",
-		"faktor": 1.28, "beeren": 300, "leben": 20,
+		"name": "Glanzwiese", "grad": "Hart",
+		"faktor": 6.9, "beeren": 530, "leben": 16,
 		"heim": "fairy", "wetter": "sun",
 		"boden": [Color("#3E3448"), Color("#4C4058")],
 		"weg": Color("#C4A8B4"), "wegkante": Color("#584A5E"),
@@ -359,7 +359,7 @@ const KARTEN := [
 	},
 	{
 		"name": "Nachtgrund", "grad": "Brutal",
-		"faktor": 1.55, "beeren": 520, "leben": 16,
+		"faktor": 9.4, "beeren": 580, "leben": 16,
 		"heim": "dark", "wetter": "fog",
 		"boden": [Color("#1A1622"), Color("#221E2E")],
 		"weg": Color("#6E6478"), "wegkante": Color("#2A2434"),
@@ -370,8 +370,8 @@ const KARTEN := [
 		"legendaer": { "typ": "dark", "gestalt": "thron", "namen": ["Schattenhüter","Nachtwächter","Finsterthron"] },
 	},
 	{
-		"name": "Böenkuppe", "grad": "Fordernd",
-		"faktor": 1.4, "beeren": 320, "leben": 18,
+		"name": "Böenkuppe", "grad": "Erbarmungslos",
+		"faktor": 13, "beeren": 640, "leben": 15,
 		"heim": "wind", "wetter": "boen",
 		"boden": [Color("#3A4A44"), Color("#485A52")],
 		"weg": Color("#AEA890"), "wegkante": Color("#4A4A3C"),

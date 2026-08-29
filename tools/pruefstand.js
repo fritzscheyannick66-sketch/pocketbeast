@@ -107,11 +107,23 @@ function machElement(tag, tiefe) {
 }
 
 /* Lädt index.html und gibt die laufende Spielwelt zurück. */
-function ladeSpiel(datei) {
+/* umbau darf den Quelltext vor dem Laden anfassen. Gedacht fuer Messungen,
+   die eine Konstante durchprobieren wollen — BEUTE_FAKTOR etwa steht als
+   const im Skript und laesst sich von aussen nicht mehr umsetzen. Wer eine
+   Reihe von Werten vergleichen will, laedt das Spiel je Wert einmal neu.
+
+   Der Umbau muss etwas zurueckgeben, sonst laeuft das Original weiter. */
+function ladeSpiel(datei, umbau) {
   const html = fs.readFileSync(datei, "utf8");
   const treffer = html.match(/<script>([\s\S]*)<\/script>/);
   if (!treffer) throw new Error("Kein <script>-Block in " + datei);
-  const quelltext = treffer[1];
+  let quelltext = treffer[1];
+  if (umbau) {
+    const umgebaut = umbau(quelltext);
+    if (typeof umgebaut !== "string" || !umgebaut.length)
+      throw new Error("umbau() hat keinen Quelltext geliefert");
+    quelltext = umgebaut;
+  }
 
   const speicher = {};
   const sandkasten = {};
@@ -191,6 +203,7 @@ function ladeSpiel(datei) {
   canPlace, feldArt, darfHier, baueFelder,
   tierOf, statDmg, statRange, towerValue, sellValue, recalcAuras,
   istNacht, nachtAnteil, boon, rank,
+  TALENTS, talCost, talentPointsLeft,
   sterne, sternVergeben, legendaerFrei,
   save, offerBoon, takeBoon,
   pathAt, genWave, estimateDefense, pickMod, pathCoverage,

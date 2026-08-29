@@ -1,6 +1,6 @@
 # Werkzeuge
 
-Sechs Dateien, die zusammen das Spiel messbar machen.
+Zehn Dateien, die zusammen das Spiel messbar machen.
 
 ## Schnellstart
 
@@ -35,7 +35,7 @@ node tools/testlauf.js --merken
 
 Weitere Schalter: `--laeufe 5` für mehr Läufe, `--karte 0` für eine einzelne.
 
-## Die sechs Teile
+## Die zehn Teile
 
 **`pruefstand.js`** lädt das Spiel aus `index.html` in Node und macht es
 taktbar. Das Spiel braucht vom Browser wenig — 19 Zugriffe auf `document`,
@@ -64,6 +64,42 @@ nicht — 700 statt 470 Beeren ergaben unverändert Welle 34.
 `index.html`. Eine von Hand gepflegte zweite Fassung wäre binnen Tagen
 falsch, ohne dass es jemandem auffiele.
 
+**`pfad.js`** misst, ob der Trainerpfad trägt. Er spielt dieselbe Karte mit
+verschiedenen Punktevorräten — null, 55, 220, 700 — und dreht dazu
+`BEEREN_MULT` durch. Damit beantwortet er die einzige Frage, die über den
+Aufbau des Spiels entscheidet: *Wie viel Fortschritt braucht man, um hundert
+Wellen zu halten?* Weil `BEEREN_MULT` als `const` im Skript steht, lädt er
+das Spiel je Wert einmal neu. Deshalb darf `index.html` während eines Laufs
+nicht angefasst werden — sonst misst die obere Tabellenhälfte ein anderes
+Spiel als die untere.
+
+Mit `--feldzug` spielt er die ganze Kampagne durch: jede Karte mit genau
+dem Punktevorrat, den die vorigen Karten abgeworfen haben. Das ist die
+einzige Messung, die den Aufbau wirklich prüft — ein runder Vorrat von 220
+auf Karte 11 sagt nichts, weil dort niemand mit 220 Punkten steht.
+
+Er schlüsselt bewusst **je Karte** auf. Der zusammengeworfene Median verbirgt
+genau das, worauf es ankommt: Bei `BEEREN_MULT 0,52` ohne Punkte hielt der
+Grünpfad bis Welle 62 und der Traumhain bis 9 — beide sind als „Ruhig"
+ausgewiesen. Der gemeinsame Median von 21 kam auf keiner der beiden Karten
+vor.
+
+**`invarianten.js`** prüft nach jedem Bild, ob der Spielzustand noch möglich
+ist — nicht ob er gut ist. Neunzehn Regeln: Leben unter null, Gegner über
+Höchstleben, zwei Wächter auf einem Feld, Wasser-Wächter auf dem Trockenen.
+Solche Fehler werfen keine Ausnahme und drucken nichts; sie sind nur zu
+sehen, wenn man im richtigen Moment auf den richtigen Wert schaut.
+
+**`konzept-bauen.js`** erzeugt `KONZEPT-ASSETS.md` aus `index.html` — die
+Beschreibung aller Wächter, Gegner, Karten und Farben für die
+Assetgenerierung. Von Hand gepflegt wäre sie binnen Tagen falsch.
+
+**`server.js`** liefert das Spiel über HTTP aus, damit `localStorage` sich
+so verhält wie beim Spieler. Nicht `python3 -m http.server`: dessen
+Argumentaufbau ruft beim Starten `os.getcwd()` auf und bricht ab, wenn die
+Umgebung das Arbeitsverzeichnis nicht preisgibt — mit einer Meldung, die
+aussieht, als läge es am Verzeichnis.
+
 **`beitrag.js`** misst, was ein Wächter beiträgt — nicht nur, was er
 austeilt. Die Schadensstatistik des Testlaufs sieht einen Wächter nicht,
 der Gegner festhält, verlangsamt, markiert oder Nachbarn stärkt. Sie hat
@@ -80,8 +116,15 @@ Wichtig zu kennen, bevor man seinen Zahlen glaubt:
   kommt, bleibt er stehen. Ein Mensch würde entlassen und neu setzen.
 - Er **ruft nie früher** eine Welle, verzichtet also auf den Frühstart-Bonus.
 - Er nutzt **keine Zielauswahl** — jeder Wächter feuert auf den Ersten.
-- Er spielt **ohne Talente des Trainerpfads**; der Spielstand wird vor jedem
-  Lauf zurückgesetzt, damit die Läufe unabhängig bleiben.
+- Er spielt standardmäßig **ohne Talente des Trainerpfads**; der Spielstand
+  wird vor jedem Lauf zurückgesetzt, damit die Läufe unabhängig bleiben.
+  `opt.talente` gibt ihm einen Punktevorrat, den er vom billigsten Rang an
+  gleichmäßig über alle Zweige verteilt — nicht optimal, sondern so, wie
+  jemand ausgibt, der nichts durchgerechnet hat.
+- Er **spart nicht**. Kann er keine Stufe bezahlen, kauft er den nächsten
+  billigen Wächter. Das klingt nach einem Fehler und ist gemessen keiner:
+  Eine Sparregel kostete auf dem Grünpfad sechzehn Wellen (40 → 24). Sie
+  steht abgeschaltet in `bot.js` unter `opt.sparen`.
 
 Er soll nicht optimal spielen, sondern wie jemand, der die Regeln verstanden
 hat. Was er nicht schafft, ist für einen aufmerksamen Menschen vermutlich
@@ -97,7 +140,7 @@ Typen, keinen einzigen Wasser-Wächter bei vier Wasserfeldern, und neun seiner
 zwanzig Wächter waren derselbe billige Typ. Was er maß, war seine eigene
 veraltete Strategie.
 
-## Sechs Lehren aus dem Messen
+## Acht Lehren aus dem Messen
 
 Alle zeigen, wie leicht ein Messinstrument in die Irre führt — und jede
 einzelne verschob die Ergebnisse um mehr als vierzig Wellen, ohne dass sich
@@ -166,5 +209,43 @@ reproduzierbarer Befund ohne Erklärung ist ein unangenehmes, aber gültiges
 Ergebnis. Er wurde umgesetzt (die Flutruine bekam vier Felder) und als
 ungeklärt vermerkt, statt eine hübsche Geschichte darüberzulegen.
 
+**Und einmal eine Erklärung, die beim Messen durchfiel — zum zweiten Mal.**
+Mit gedrosseltem Beerenzufluss endete der Traumhain bei Welle 10: sieben
+Wächter, alle auf Stufe 0, drei Familien. Die Erklärung lag auf der Hand —
+der Bot kann nicht sparen, also kauft er in der Knappheit lauter billige
+Wächter, statt für eine Stufe zurückzulegen. Ich habe ihm das Sparen
+beigebracht, mit derselben Werteinheit für beide Optionen, und nachgemessen:
+
+```
+ohne Sparen   Grünpfad Welle 40,  Traumhain Welle 10
+mit Sparen    Grünpfad Welle 24,  Traumhain Welle  9
+```
+
+Sechzehn Wellen schlechter. Vermutlich zählt früh die Abdeckung und nicht
+die Stufe: Ein zweiter Wächter beschießt einen Wegabschnitt, den vorher
+niemand sah; eine zweite Stufe beschießt nur härter denselben.
+
+Dasselbe Muster wie beim Kraftfeld — eine gute Begründung, eine plausible
+Änderung, ein schlechteres Ergebnis. Zweimal hintereinander ist kein Zufall
+mehr, sondern eine Eigenschaft dieses Systems: Wer eine Erklärung hat, hat
+noch keinen Befund.
+
+**Und einmal die Turmgrenze des Bots als Befund verkleidet.** Auf der
+Böenkuppe blieben bei Rang 39 noch 392.268 Beeren übrig. Mein Schluss: Ab
+etwa Rang 40 tun die Wirtschaftszweige des Trainerpfads nichts mehr, weil
+die Armee längst vollständig ist. Klingt zwingend — die Karte hat aber 187
+freie Bauplätze, und der Bot hört bei 45 auf. Dieselbe Messung mit 100:
+
+```
+mul 13, höchstens  45 Wächter    Rang 62:  0/3
+mul 13, höchstens 100 Wächter    Rang 62:  2/3
+```
+
+Aus sicherem Scheitern wird knappes Halten. Die überschüssigen Beeren
+kaufen also sehr wohl noch Armee — wenn Platz da ist. Der Überschuss war zur
+Hälfte eine Eigenschaft des Messgeräts.
+
 Wer hier weiterbaut, sollte bei jedem überraschenden Ergebnis zuerst fragen,
 ob der Bot etwas nicht kennt, und erst danach, ob das Spiel unausgewogen ist.
+Und die eigene Erklärung immer messen, bevor sie stehenbleibt. Dreimal an
+einem Tag hat hier die Messung eine gut begründete Erklärung kassiert.

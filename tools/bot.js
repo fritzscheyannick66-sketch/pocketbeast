@@ -178,11 +178,14 @@ function bauen(spiel, zustand) {
 
     // --- 2. Aufwerten, bevorzugt was gegen die kommende Welle wirkt ---
     let besterAufstieg = null, besterWert = 0;
+    /* Auch der beste NICHT bezahlbare Aufstieg wird gemerkt. Er ist das
+       Sparziel: Wenn er mehr Schaden je Beere bringt als der Wächter, den
+       man sich jetzt leisten könnte, ist Warten die bessere Ausgabe. */
+    let sparWert = 0, sparKosten = 0;
     for (const t of G.towers) {
       if (t.tier >= 2 || t.mega) continue;
       if (!spiel.darfEntwickeln(t)) continue;   // Fee bei Nacht, Unlicht bei Tag
       const kosten = t.def.tiers[t.tier + 1].cost;
-      if (G.gold < kosten) continue;
       const wirkung = nutzenGegen(spiel, t.def.type, gruppen);
       // Zuwachs an Schaden je Beere, gewichtet mit dem Typenvorteil
       const a = t.def.tiers[t.tier], b = t.def.tiers[t.tier + 1];
@@ -200,7 +203,11 @@ function bauen(spiel, zustand) {
       const heimT = (spiel.heimTyp && spiel.heimTyp() === t.def.type)
         ? (1 + (spiel.HEIM_WAECHTER_SCHADEN || 0.2)) : 1;
       const wert = ((dann - jetzt) / kosten) * wirkung * heimT;
-      if (wert > besterWert) { besterWert = wert; besterAufstieg = t; }
+      if (G.gold >= kosten) {
+        if (wert > besterWert) { besterWert = wert; besterAufstieg = t; }
+      } else if (wert > sparWert) {
+        sparWert = wert; sparKosten = kosten;
+      }
     }
     if (besterAufstieg) {
       spiel.upgradeTower(besterAufstieg);
@@ -208,13 +215,60 @@ function bauen(spiel, zustand) {
       continue;
     }
 
-    // --- 3. Neuen Wächter setzen ---
+    /* --- 3. Neuen Wächter setzen — oder für den Aufstieg sparen ---
+
+       Bis hierher fiel der Bot auf den nächsten billigen Wächter zurück,
+       sobald keine Stufe mehr bezahlbar war. Solange Beeren reichlich waren,
+       fiel das nicht auf: Die Stufe kam eine Welle später ohnehin. Mit
+       gedrosseltem Zufluss wurde daraus eine Abwärtsspirale — gemessen auf
+       dem Traumhain Welle 10 mit sieben Wächtern, alle auf Stufe 0, drei
+       Familien. Jeder Kauf machte die Truppe breiter und keinen einzigen
+       Wächter stärker.
+
+       Die Regel dagegen ist dieselbe, die ein Mensch anwendet: Sparen, wenn
+       man mehr als halb am Ziel ist und das Ziel mehr bringt als der Kauf.
+
+       Beide Zahlen stehen in derselben Einheit — Schadensdurchsatz je Beere.
+       Die des neuen Wächters trägt zusätzlich Vielfalt, Luftstrafe und
+       Platzgüte, ist also eher zu hoch als zu niedrig; die Schwelle 1.15
+       gleicht das aus.
+
+       Die ersten Wächter werden immer gesetzt. Ohne sie gibt es nichts
+       aufzuwerten, und Sparen ohne Sparziel wäre nur Nichtstun.
+
+       GEMESSEN — UND ABGESCHALTET
+
+       Die Regel klingt richtig und ist es nicht. Gleicher Code, gleicher
+       Multiplikator, nur der Bot getauscht:
+
+         ohne Sparen   Grünpfad Welle 40,  Traumhain Welle 10
+         mit Sparen    Grünpfad Welle 24,  Traumhain Welle  9
+
+       Sechzehn Wellen schlechter. Der Grund ist vermutlich, dass früh die
+       Abdeckung zählt und nicht die Stufe: Ein zweiter Wächter feuert auf
+       einen Wegabschnitt, den vorher niemand sah; eine zweite Stufe feuert
+       nur härter auf denselben. Wer dafür spart, lässt die Lücke offen.
+
+       Das ist das zweite Mal, dass eine gut begründete Erklärung sich beim
+       Messen als falsch erwiesen hat — beim Kraftfeld der Flutruine war es
+       genauso. Die Regel bleibt drin und aus, damit die Messung dokumentiert
+       ist und jemand sie später mit besseren Schwellen erneut prüfen kann.
+       Einschalten mit opt.sparen. */
+    const SPAR_SCHWELLE = 1.15;
+    const GRUNDSTOCK = 4;
     if (G.towers.length < zustand.maxTuerme) {
       const kandidat = waehleNeuenWaechter(spiel, gruppen, luft);
       if (kandidat) {
-        spiel.placeTower(kandidat.id, kandidat.c, kandidat.r);
-        handelte = true;
-        continue;
+        const lohntSparen = zustand.sparen
+          && sparKosten > 0
+          && G.towers.length >= GRUNDSTOCK
+          && sparKosten <= G.gold * 2.2          // in Reichweite, nicht in Ferne
+          && sparWert > kandidat.wert * SPAR_SCHWELLE;
+        if (!lohntSparen) {
+          spiel.placeTower(kandidat.id, kandidat.c, kandidat.r);
+          handelte = true;
+          continue;
+        }
       }
     }
 
@@ -337,7 +391,7 @@ function waehleNeuenWaechter(spiel, gruppen, luft) {
       * (1 + platz.wert * 0.0015);
     if (wert > besterWert) {
       besterWert = wert;
-      bester = { id: def.id, c: platz.c, r: platz.r };
+      bester = { id: def.id, c: platz.c, r: platz.r, wert };
     }
   }
   return bester;
@@ -378,6 +432,7 @@ function spieleRunde(spiel, mapIdx, opt) {
   const { G } = spiel;
   const zustand = {
     maxTuerme: opt.maxTuerme || 22,
+    sparen: !!opt.sparen,
     megaGesamt: 0,
     letzteSegnung: 0,
     segnungen: [],
@@ -400,6 +455,48 @@ function spieleRunde(spiel, mapIdx, opt) {
     spiel.save.sterne = {};
     spiel.save.endless = 0;
     spiel.save.best = 0;
+  }
+
+  /* Trainerpfad. Ohne Angabe spielt der Bot ohne einen einzigen Talentpunkt
+     — das ist der erste Lauf eines neuen Spielers und damit die härteste
+     Probe, die das Spiel stellt.
+
+     opt.talente ist ein PUNKTEVORRAT, keine Stufe. Der Pfad hat kein Ende
+     mehr, also gibt es kein "voll ausgebaut", gegen das sich messen ließe;
+     es gibt nur "so viele Punkte hat der Spieler bisher verdient". 220
+     entspricht ungefähr drei Anläufen, 700 einem gewonnenen Durchgang plus
+     Vorgeschichte.
+
+     Ausgegeben wird immer der billigste nächste Rang. Das verteilt die
+     Punkte gleichmäßig über alle Zweige — nicht optimal, aber das, was
+     jemand tut, der nichts durchgerechnet hat. Ein Bot, der den Pfad
+     optimal ausbaut, misst seine eigene Rechnung und nicht das Spiel. */
+  if (opt.talente) {
+    const raenge = {};
+    if (typeof opt.talente === "object") {
+      Object.assign(raenge, opt.talente);
+    } else {
+      let vorrat = Number(opt.talente) || 0;
+      for (const t of spiel.TALENTS) raenge[t.id] = 0;
+      for (;;) {
+        let billigster = null, preis = Infinity;
+        for (const t of spiel.TALENTS) {
+          const p = spiel.talCost(raenge[t.id]);
+          if (p < preis) { preis = p; billigster = t.id; }
+        }
+        if (!billigster || preis > vorrat) break;
+        vorrat -= preis;
+        raenge[billigster]++;
+      }
+    }
+    spiel.save.ranks = raenge;
+    /* points und spent müssen zusammenpassen: talentPointsLeft() ist die
+       Differenz, und ein negativer Rest brächte das Menü durcheinander. */
+    let bezahlt = 0;
+    for (const [id, r] of Object.entries(raenge))
+      for (let i = 0; i < r; i++) bezahlt += spiel.talCost(i);
+    spiel.save.points = bezahlt;
+    spiel.save.spent = bezahlt;
   }
 
   spiel.newRun(mapIdx, true);

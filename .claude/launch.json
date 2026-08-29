@@ -3,9 +3,10 @@
   "configurations": [
     {
       "name": "pocketbeast",
-      "runtimeExecutable": "python3",
-      "runtimeArgs": ["-m", "http.server", "8731"],
-      "port": 8731
+      "runtimeExecutable": "node",
+      "runtimeArgs": ["/Users/yannick/Desktop/pocketbeast/tools/server.js"],
+      "port": 8734,
+      "autoPort": false
     }
   ]
 }

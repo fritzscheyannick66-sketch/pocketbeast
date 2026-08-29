@@ -17,6 +17,20 @@ const Daten = preload("res://scripts/daten.gd")
 ## Eine Kachel misst dort 56 Pixel und hier 2 Meter.
 const PIXEL_JE_METER := 28.0
 
+## Wie stark der Beerenzufluss gedrosselt ist. Dieselbe Zahl wie BEEREN_MULT
+## im Browserspiel, und aus demselben Grund: Ohne Drosselung liefert eine
+## gehaltene Runde mehr Beeren, als sich überhaupt ausgeben lässt — dann
+## entwickelt man jeden Wächter und muss keinen mehr auswählen.
+##
+## Sie greift an jedem Zufluss, aber nicht an den Startbeeren: die sind die
+## Aussaat und werden im Browserspiel über ein eigenes Talent gehoben.
+const BEEREN_MULT := 0.55
+
+
+## Jede Einnahme geht hier durch.
+static func beeren_von(betrag: float) -> int:
+	return int(round(betrag * BEEREN_MULT))
+
 var karte_idx := 0
 var beeren := 0
 var leben := 0
@@ -221,7 +235,7 @@ func durchbruch() -> void:
 
 ## Ein Gegner wurde erledigt.
 func erledigt(art: Dictionary) -> void:
-	beeren += int(round(float(art["beute"]) * (1.0 + float(welle) * 0.08)))
+	beeren += beeren_von(float(art["beute"]) * (1.0 + float(welle) * 0.08))
 	punkte += 10 + welle
 
 
@@ -230,7 +244,7 @@ func welle_geschafft() -> void:
 	welle_laeuft = false
 	if welle >= Daten.WELLEN_JE_KARTE and not endlos:
 		gewonnen = true
-	var bonus := 22 + welle * 5
+	var bonus := beeren_von(22.0 + float(welle) * 5.0)
 	beeren += bonus
 	punkte += 120 + welle * 20
 
