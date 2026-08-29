@@ -2999,6 +2999,7 @@ function pickMod(w) {
 function genWave(w, mul) {
   const groups = [];
   const mod = pickMod(w);
+  werteGen++;   // die Laune kann die Reichweite ändern
   const hpBase = waveHP(w, mul) * (mod && mod.hp ? mod.hp : 1);
   /* Freischaltung nach Lebenspunkten *und* Panzerung.
      Vorher zählte nur die HP-Stufe. Eine Art mit wenig Leben, aber schwerer
@@ -3370,6 +3371,7 @@ G.messen = false;
 G.gegnerSekunden = 0;
 
 function recalcAuras() {
+  werteGen++;
   for (const t of G.towers) { t.aDmg = 0; t.aRng = 0; t.aVon = null; }
   for (const s of G.towers) {
     const st = tierOf(s);
@@ -3398,7 +3400,20 @@ function statDmg(t) {
   return tierOf(t).dmg * (1 + rank("kraft") * .04) * (1 + (t.aDmg || 0)) * trainMul(t)
        * (1 + boon("dmg") * .12) * (1 + hainStufe("schliff") * .03) * schlot * heim;
 }
+/* Ein Zähler, der hochgeht, wenn sich irgendetwas an den Werten ändert:
+   Ausbau, Training, Megaentwicklung, Segnung, Hain, Wellenlaune, Setzen und
+   Entlassen. Jeder davon läuft über recalcAuras() oder ist unten einzeln
+   vermerkt.
+
+   Warum das nötig ist: statRange() macht eine Kartenabfrage, ein includes()
+   und fünf Funktionsaufrufe — und wurde bei JEDEM Schuss neu gerechnet.
+   Gemessen waren das 0,30 der 0,94 Millisekunden je Rechenschritt, und bei
+   dreifachem Tempo läuft der dreimal je Bild. Fast alles daran ändert sich
+   während einer Welle nie. */
+let werteGen = 0;
+
 function statRange(t) {
+  if (t._rGen === werteGen) return t._r;
   const modR = G.mod && G.mod.range ? G.mod.range : 1;
   // Kraftfelder erweitern die Sicht des Wächters, der darauf steht
   const art = feldArt(t.c, t.r);
@@ -3409,10 +3424,12 @@ function statRange(t) {
     const voll = FELD_HOEHE_TYPEN.includes(t.def.type);
     feld = 1 + FELD_HOEHE_BONUS * (voll ? 1 : 0.33);
   }
-  return tierOf(t).range * (1 + rank("weit") * .03) * (1 + (t.aRng || 0))
+  const wert = tierOf(t).range * (1 + rank("weit") * .03) * (1 + (t.aRng || 0))
        * (1 + (t.train || 0) * .02) * (1 + boon("rng") * .08) * modR * feld
        * (1 + hainStufe("fern") * .02)
        * (istHeimWaechter(t) ? (1 + HEIM_WAECHTER_REICHWEITE) : 1);
+  t._rGen = werteGen; t._r = wert;
+  return wert;
 }
 const TRAIN_MAX = 15;
 
@@ -3460,6 +3477,7 @@ function hainPreis(id) {
 }
 
 function hainKaufen(id) {
+  werteGen++;
   if (!G.endless) return false;              // nur im Endlosmodus
   const preis = hainPreis(id);
   if (G.gold < preis) { warnGold(); return false; }
@@ -3484,6 +3502,7 @@ function trainCost(t) { return Math.round(80 * Math.pow(1.24, t.train || 0)); }
 function trainGrenze() { return G.endless ? Infinity : TRAIN_MAX; }
 
 function trainTower(t) {
+  werteGen++;
   if (t.tier < 2 || (t.train || 0) >= trainGrenze()) return;
   const c = trainCost(t);
   if (G.gold < c) { warnGold(); return; }
@@ -4126,7 +4145,7 @@ function ranken(x, y, col, n) {
   const arme = [];
   for (let i = 0; i < (n || 5); i++)
     arme.push({ a: Math.random() * 7, l: 22 + Math.random() * 24, kr: (Math.random() - .5) * 2.4 });
-  G.fx.push({ kind: "ranke", x, y, col, arme, life: .55, max: .55 });
+  fxPlatz(); G.fx.push({ kind: "ranke", x, y, col, arme, life: .55, max: .55 });
 }
 
 /* Zackenblitz zwischen zwei Punkten. Der Verlauf wird einmal gewürfelt und
@@ -4142,7 +4161,7 @@ function zacken(x, y, x2, y2, col, life) {
     const ab = (i === 0 || i === n) ? 0 : (Math.random() - .5) * len * .22;
     pkt.push({ x: x + dx * k + nx * ab, y: y + dy * k + ny * ab });
   }
-  G.fx.push({ kind: "zacken", pkt, col, life: life || .18, max: life || .18 });
+  fxPlatz(); G.fx.push({ kind: "zacken", pkt, col, life: life || .18, max: life || .18 });
 }
 
 /* Einschlag: was am Ziel passiert, wenn ein Geschoss ankommt. */
@@ -4150,12 +4169,12 @@ const EINSCHLAG = {
   fire(x, y, col) {
     teilchen({ x, y, col, n: 18, v0: 45.0, v1: 165.0, r0: 3.6, r1: 7.2, life: .42, form: "funke" });
     teilchen({ x, y: y - 4, col: "#6B5B52", n: 8, v0: 12.0, v1: 39.0, r0: 7.2, r1: 12.6, life: .8, form: "rauch", auftrieb: 34 });
-    G.fx.push({ kind: "ring", x, y, r0: 7.2, r1: 54.0, life: .3, col });
+    fxPlatz(); G.fx.push({ kind: "ring", x, y, r0: 7.2, r1: 54.0, life: .3, col });
   },
   water(x, y, col) {
     // Spritzkrone: Tropfen fliegen schräg nach oben und fallen zurück
     teilchen({ x, y, col, n: 16, v0: 60.0, v1: 150.0, r0: 3.2, r1: 6.1, life: .5, form: "tropfen", schwere: 190 });
-    G.fx.push({ kind: "ring", x, y, r0: 5.4, r1: 61.2, life: .42, col, flach: true });
+    fxPlatz(); G.fx.push({ kind: "ring", x, y, r0: 5.4, r1: 61.2, life: .42, col, flach: true });
   },
   grass(x, y, col) {
     ranken(x, y, col, 6);
@@ -4171,34 +4190,36 @@ const EINSCHLAG = {
   rock(x, y, col) {
     teilchen({ x, y, col: shade(col, -.25), n: 13, v0: 45.0, v1: 135.0, r0: 4.3, r1: 9.0, life: .55, form: "splitter", schwere: 240 });
     teilchen({ x, y, col: "#9A8A78", n: 9, v0: 15.0, v1: 51.0, r0: 9.0, r1: 16.2, life: .6, form: "rauch", auftrieb: 8 });
-    G.fx.push({ kind: "ring", x, y, r0: 7.2, r1: 46.8, life: .26, col: "#9A8A78", flach: true });
+    fxPlatz(); G.fx.push({ kind: "ring", x, y, r0: 7.2, r1: 46.8, life: .26, col: "#9A8A78", flach: true });
   },
   psychic(x, y, col) {
     // Drei versetzte Ringe: die Verzerrung läuft nach außen
-    for (let i = 0; i < 3; i++)
+    for (let i = 0; i < 3; i++) {
+      fxPlatz();
       G.fx.push({ kind: "ring", x, y, r0: 5.4, r1: 39.6 + i * 13, life: .42 + i * .12, col, dünn: true });
+    }
     teilchen({ x, y, col, n: 9, v0: 18.0, v1: 60.0, r0: 2.9, r1: 5.4, life: .6, form: "funke", auftrieb: 26 });
   },
   ice(x, y, col) {
     teilchen({ x, y, col, n: 14, v0: 52.5, v1: 142.5, r0: 4.0, r1: 7.9, life: .5, form: "splitter", schwere: 120 });
-    G.fx.push({ kind: "eisblume", x, y, col, life: .5, max: .5, arme: 6 });
+    fxPlatz(); G.fx.push({ kind: "eisblume", x, y, col, life: .5, max: .5, arme: 6 });
   },
   steel(x, y, col) {
     teilchen({ x, y, col: "#FFE9A8", n: 18, v0: 135.0, v1: 300.0, r0: 1.8, r1: 3.6, life: .25, form: "funke", schwere: 200 });
-    G.fx.push({ kind: "ring", x, y, r0: 3.6, r1: 39.6, life: .2, col: "#FFE9A8" });
-    G.fx.push({ kind: "ring", x, y, r0: 10.8, r1: 61.2, life: .32, col, flach: true });
+    fxPlatz(); G.fx.push({ kind: "ring", x, y, r0: 3.6, r1: 39.6, life: .2, col: "#FFE9A8" });
+    fxPlatz(); G.fx.push({ kind: "ring", x, y, r0: 10.8, r1: 61.2, life: .32, col, flach: true });
   },
   fairy(x, y, col) {
     teilchen({ x, y, col, n: 17, v0: 30.0, v1: 112.5, r0: 3.2, r1: 6.5, life: .75, form: "stern", auftrieb: 22 });
-    G.fx.push({ kind: "ring", x, y, r0: 5.4, r1: 46.8, life: .4, col, dünn: true });
+    fxPlatz(); G.fx.push({ kind: "ring", x, y, r0: 5.4, r1: 46.8, life: .4, col, dünn: true });
   },
   dark(x, y, col) {
-    G.fx.push({ kind: "wirbel", x, y, col, life: .5, max: .5 });
+    fxPlatz(); G.fx.push({ kind: "wirbel", x, y, col, life: .5, max: .5 });
     teilchen({ x, y, col: shade(col, -.4), n: 12, v0: 27.0, v1: 90.0, r0: 5.4, r1: 10.8, life: .55, form: "rauch", auftrieb: -6 });
   },
   legend(x, y, col) {
-    G.fx.push({ kind: "ring", x, y, r0: 5.4, r1: 72.0, life: .45, col });
-    G.fx.push({ kind: "ring", x, y, r0: 5.4, r1: 46.8, life: .3, col: "#FFF3C4" });
+    fxPlatz(); G.fx.push({ kind: "ring", x, y, r0: 5.4, r1: 72.0, life: .45, col });
+    fxPlatz(); G.fx.push({ kind: "ring", x, y, r0: 5.4, r1: 46.8, life: .3, col: "#FFF3C4" });
     teilchen({ x, y, col, n: 21, v0: 75.0, v1: 225.0, r0: 2.9, r1: 6.1, life: .6, form: "stern" });
     teilchen({ x, y, col: "#FFF3C4", n: 10, v0: 30.0, v1: 75.0, r0: 3.6, r1: 7.2, life: .8, form: "funke", auftrieb: 30 });
   },
@@ -4236,7 +4257,7 @@ function muendung(t, ziel) {
       teilchen({ x, y, col, n: 5, v0: 20, v1: 55, r0: 1.4, r1: 2.6, life: .3, form: "splitter", richtung: a, kegel: .8 });
       break;
     case "psychic": case "fairy": case "legend":
-      G.fx.push({ kind: "ring", x, y, r0: 2, r1: 13, life: .18, col, dünn: true });
+      fxPlatz(); G.fx.push({ kind: "ring", x, y, r0: 2, r1: 13, life: .18, col, dünn: true });
       break;
     case "dark":
       teilchen({ x, y, col: shade(col, -.3), n: 4, v0: 12, v1: 34, r0: 2.4, r1: 4.4, life: .32, form: "rauch", auftrieb: -4 });
@@ -4730,8 +4751,40 @@ function update(dt) {
   if (G.waveActive && !G.queue.length && !G.enemies.length && !G.over) endWave();
 }
 
-function fx(o) { o.max = o.life; if (o.kind === "burst") { o.parts = []; for (let i = 0; i < o.n; i++) { const a = Math.random() * 7, v = 40 + Math.random() * 120; o.parts.push({ a, v, r: 1.5 + Math.random() * 2.5 }); } } G.fx.push(o); }
-function float(x, y, txt, col, life) { G.floats.push({ x, y, txt, col, life: life || .8, max: life || .8 }); }
+/* Deckel für Schaueffekte und Schadenszahlen.
+
+   In späten Wellen standen gemessen 344 Schadenszahlen gleichzeitig im
+   Bild. Das kostete 1,1 Millisekunden je Bild — und war vor allem
+   unlesbar: Wo dreihundert Zahlen übereinanderliegen, liest man keine
+   einzige. Der Deckel ist also nicht nur schneller, sondern besser.
+
+   Verworfen wird das ÄLTESTE, nicht das neueste. Was gerade passiert,
+   interessiert; was vor einer halben Sekunde passierte, ist ohnehin am
+   Verblassen. */
+const FLOATS_MAX = 60;
+const FX_MAX = 140;
+
+/* Vier Stellen legen Effekte direkt in G.fx ab, ohne über fx() zu gehen —
+   der Deckel dort allein reichte nicht, gemessen standen trotzdem 173 im
+   Bild. Diese Klammer greift überall. */
+function fxPlatz() { while (G.fx.length >= FX_MAX) G.fx.shift(); }
+
+function fx(o) {
+  fxPlatz();
+  o.max = o.life;
+  if (o.kind === "burst") {
+    o.parts = [];
+    for (let i = 0; i < o.n; i++) {
+      const a = Math.random() * 7, v = 40 + Math.random() * 120;
+      o.parts.push({ a, v, r: 1.5 + Math.random() * 2.5 });
+    }
+  }
+  G.fx.push(o);
+}
+function float(x, y, txt, col, life) {
+  if (G.floats.length >= FLOATS_MAX) G.floats.shift();
+  G.floats.push({ x, y, txt, col, life: life || .8, max: life || .8 });
+}
 
 /* ============================================================
    Zeichnen
@@ -6358,8 +6411,15 @@ function zeichneStehendes(g, m) {
       bodenSchatten(g, o.x, o.y + TILE * .17, TILE * .28, .30);
       aufrecht(g, o.x, o.y, () => drawTower(g, o));
     } else {
-      const br = (o.s || 12) * .82;
-      bodenSchatten(g, o.x, o.y + br * .5, br, .26);
+      /* Fliegende werfen einen kleineren, weiter entfernten und blasseren
+         Schatten als laufende — daran liest man die Flughöhe ab, ohne dass
+         es erklärt wird. */
+      const r = o.rad || (o.s || 12) * .8;
+      g.fillStyle = o.flying ? "rgba(0,0,0,.17)" : "rgba(0,0,0,.30)";
+      g.beginPath();
+      g.ellipse(o.x + r * .28, o.y + r * (o.flying ? 1.9 : 1.05),
+        r * (o.flying ? .62 : .85), r * .33, .1, 0, 7);
+      g.fill();
       aufrecht(g, o.x, o.y, () => drawEnemy(g, o));
     }
   }
@@ -7160,6 +7220,37 @@ function zeichneRune(g, typ, x, y) {
   }
 }
 
+/* Zwischenbilder der Wächterfiguren. Zehn Atemstufen genügen: Der Atem ist
+   eine langsame Welle, und bei zehn Stufen liegt der Sprung unter einem
+   Pixel. */
+let waechterBilder = new Map();
+const ATEM_STUFEN = 10;
+
+function waechterBild(t, col, gr, blick) {
+  const atem = Math.floor(((G.time * .24 + t.x * .01) % 1) * ATEM_STUFEN) % ATEM_STUFEN;
+  const at = ((atem % ATEM_STUFEN) + ATEM_STUFEN) % ATEM_STUFEN;
+  const schluessel = t.def.id + "|" + t.tier + "|" + (t.mega ? 1 : 0) + "|"
+    + (t.variante || 0) + "|" + blick + "|" + at + "|" + Math.round(gr);
+
+  let b = waechterBilder.get(schluessel);
+  if (b) return b;
+
+  const bw = Math.ceil(gr * 5.4), bh = Math.ceil(gr * 6.4);
+  const fx2 = Math.round(bw / 2), fy2 = Math.round(bh * .60);
+  const c = document.createElement("canvas");
+  c.width = Math.max(1, Math.ceil(bw * KREATUR_DPR));
+  c.height = Math.max(1, Math.ceil(bh * KREATUR_DPR));
+  const gg = c.getContext("2d");
+  gg.setTransform(KREATUR_DPR, 0, 0, KREATUR_DPR, 0, 0);
+  drawCreature(gg, fx2, fy2, gr, col, t.def.shape, at / ATEM_STUFEN / .24, {
+    dir: blick, tier: t.tier, type: t.def.type,
+    variante: t.variante || 0, mega: !!t.mega, zuck: 0, brems: 0,
+  });
+  b = { cv: c, bw, bh, fx: fx2, fy: fy2 };
+  waechterBilder.set(schluessel, b);
+  return b;
+}
+
 function drawTower(g, t) {
   const col = TYPES[t.def.type].col;
   const st = tierOf(t);
@@ -7210,14 +7301,44 @@ function drawTower(g, t) {
     g.beginPath(); g.arc(t.x, t.y - 9, gr * (1.7 + gl), 0, 7); g.fill();
     g.restore();
   }
-  drawCreature(g, t.x, t.y - 9 + rec * 2 + ausholen * 1.6, gr, col, t.def.shape,
-    G.time + t.x * .01, {
-      dir: (t.face !== undefined && Math.cos(t.face) < 0) ? -1 : 1,
-      tier: t.tier, type: t.def.type, variante: t.variante || 0, mega: !!t.mega,
-      // Ausholen wirkt wie ein Zucken, nur andersherum: erst ducken, dann Schuss
-      zuck: ausholen * .55,
-      brems: t.stunT > 0 ? 1 : 0,
-    });
+  /* Die Figur des Wächters kommt aus einem Zwischenbild — dieselbe Technik
+     wie bei Gegnern und Pflanzen. Gemessen kosteten fünfundvierzig Wächter
+     2,53 Millisekunden je Bild, mehr als dreihundertachtundfünfzig Gegner.
+
+     Im Schlüssel steht alles, was das Aussehen bestimmt: Familie, Stufe,
+     Mega, Erscheinung, Blickrichtung und der Atemtakt in zehn Stufen.
+     Rückstoß, Ausholen und Betäubung werden beim Aufsetzen angewandt, weil
+     sie die ganze Figur verschieben oder verformen — sie im Schlüssel zu
+     führen hätte die Zahl der Bilder vervielfacht.
+
+     Während der Verwandlung wird live gezeichnet: Sie dauert weniger als
+     eine Sekunde und ändert die Größe fortlaufend. */
+  const blick = (t.face !== undefined && Math.cos(t.face) < 0) ? -1 : 1;
+  const versatz = -9 + rec * 2 + ausholen * 1.6;
+  const wb = evoP >= 0 ? null : waechterBild(t, col, gr, blick);
+  if (wb) {
+    if (ausholen > .01 || t.stunT > 0) {
+      g.save();
+      g.translate(t.x, t.y);
+      if (t.stunT > 0) g.rotate(-.16);
+      const z = ausholen * .55;
+      if (z > .01) g.scale(1 + z * .16, 1 - z * .13);
+      g.translate(-t.x, -t.y);
+      g.drawImage(wb.cv, t.x - wb.fx, t.y + versatz - wb.fy, wb.bw, wb.bh);
+      g.restore();
+    } else {
+      g.drawImage(wb.cv, t.x - wb.fx, t.y + versatz - wb.fy, wb.bw, wb.bh);
+    }
+  } else {
+    drawCreature(g, t.x, t.y - 9 + rec * 2 + ausholen * 1.6, gr, col, t.def.shape,
+      G.time + t.x * .01, {
+        dir: blick,
+        tier: t.tier, type: t.def.type, variante: t.variante || 0, mega: !!t.mega,
+        // Ausholen wirkt wie ein Zucken, nur andersherum: erst ducken, dann Schuss
+        zuck: ausholen * .55,
+        brems: t.stunT > 0 ? 1 : 0,
+      });
+  }
   if (evoP >= 0) {
     const gl = evoLeuchten(evoP);
     g.save();
@@ -7255,18 +7376,108 @@ function drawTower(g, t) {
   g.restore();
 }
 
+/* ============================================================
+   Kreaturbilder
+   ============================================================
+
+   Ab Welle 80 ruckelte es, ab 110 stark. Gemessen bei 358 Gegnern:
+   Zeichnen 11,4 Millisekunden, davon 6,7 allein für die Kreaturen. Jede
+   wird aus Dutzenden Bögen, Verläufen und Strichen aufgebaut — Bild für
+   Bild, dreihundertmal.
+
+   Wie schon bei den Pflanzen: einmal zeichnen, dann nur noch kopieren.
+
+   DAS PROBLEM DABEI IST DIE BEWEGUNG. Eine Pflanze steht still, eine
+   Kreatur läuft. Deshalb wird der Schrittstand in zwölf Stufen gerastert
+   und in den Schlüssel aufgenommen. Jede Figur hat ihren eigenen
+   Schrittstand, also verteilen sie sich über die zwölf Stufen und laufen
+   NICHT im Gleichschritt — das wäre der offensichtliche Fehler dieses
+   Verfahrens.
+
+   Auch die Nachschwingzeit hängt an der Stufe, damit Ohren und Schweife
+   nicht bei allen gleich stehen.
+
+   NICHT ZWISCHENGESPEICHERT werden:
+     Anführer          zu selten, um sich zu lohnen, und zu groß
+     getroffene Figuren  das Zucken ist ein eigener Zustand je Figur
+     gebremste Figuren   dasselbe
+   Sie werden wie bisher live gezeichnet. Das sind wenige zur selben Zeit,
+   und sie behalten damit ihre volle Eigenbewegung.
+   ============================================================ */
+let kreaturBilder = new Map();
+const KREATUR_DPR = 1.5;
+const SCHRITT_STUFEN = 12;
+
+function kreaturBild(e, col) {
+  /* Anführer nicht: zu selten, um sich zu lohnen, und zu groß.
+
+     ZUCKEN UND BREMSE STEHEN NICHT IM SCHLÜSSEL. Ein erster Anlauf schloss
+     zuckende und gebremste Figuren aus — auf einem Feld mit Eis- und
+     Wasser-Wächtern ist aber fast jeder Gegner dauernd verlangsamt oder
+     gerade getroffen, und gemessen kamen dadurch nur 208 von 356 Figuren
+     aus dem Speicher. Ein zweiter Anlauf hätte beides in den Schlüssel
+     genommen und die Zahl der Bilder verzwölffacht.
+
+     Beides sind aber Verformungen der GANZEN Figur — Stauchen beim Treffer,
+     Neigen beim Gebremstwerden. Die lassen sich beim Aufsetzen anwenden,
+     statt sie mitzuspeichern. Das Bild bleibt eines, und die Figur reagiert
+     trotzdem. */
+  if (e.boss) return null;
+
+  const s = e.rad * .78;
+  const stufe = e.flying
+    ? Math.floor(((G.time * .5 + e.wob) % 1) * SCHRITT_STUFEN) % SCHRITT_STUFEN
+    : Math.floor(((e.walk || 0) / (Math.PI * 2)) * SCHRITT_STUFEN) % SCHRITT_STUFEN;
+  const st = ((stufe % SCHRITT_STUFEN) + SCHRITT_STUFEN) % SCHRITT_STUFEN;
+  const dir = e.dir === -1 ? -1 : 1;
+  const schluessel = e.spec.id + "|" + (e.variante || 0) + "|" + st + "|" + dir;
+
+  let b = kreaturBilder.get(schluessel);
+  if (b) return b;
+
+  /* Hülle großzügig: Kreaturen ragen mit Kranz, Ohren und Schweif über den
+     Körper hinaus, und die Aufrichtung streckt sie zusätzlich. Lieber ein
+     paar Pixel zu viel als eine abgeschnittene Figur. */
+  const bw = Math.ceil(s * 5.2), bh = Math.ceil(s * 6.0);
+  const fx2 = Math.round(bw / 2), fy2 = Math.round(bh * .58);
+  const c = document.createElement("canvas");
+  c.width = Math.max(1, Math.ceil(bw * KREATUR_DPR));
+  c.height = Math.max(1, Math.ceil(bh * KREATUR_DPR));
+  const gg = c.getContext("2d");
+  gg.setTransform(KREATUR_DPR, 0, 0, KREATUR_DPR, 0, 0);
+  /* OHNE Aufrichtung zeichnen. drawEnemy läuft im Feld bereits innerhalb von
+     aufrecht(), und das Bild wird dort beim Aufsetzen mitgestreckt. Wer hier
+     zusätzlich streckt, streckt zweimal — die Figuren wären lang und dünn.
+     Geprüft, indem ich die Höhe der aufgesetzten Figur mit der live
+     gezeichneten verglichen habe. */
+  drawCreature(gg, fx2, fy2, s, col, e.spec.shape,
+    st * 0.41 + (e.spec.id.length % 5) * 1.3, {
+      boss: false, dir,
+      walk: e.flying ? undefined : (st / SCHRITT_STUFEN) * Math.PI * 2,
+      tier: e.spec.rang || 0, type: e.spec.type,
+      fliegt: !!e.flying, zuck: 0, brems: 0, variante: e.variante || 0,
+    });
+
+  b = { cv: c, bw, bh, fx: fx2, fy: fy2 };
+  kreaturBilder.set(schluessel, b);
+  return b;
+}
+
 function drawEnemy(g, e) {
   const col = TYPES[e.spec.type].col;
   g.save();
-  /* Fliegende werfen einen kleineren, weiter entfernten und blasseren Schatten
-     als laufende — daran liest man die Flughöhe ab, ohne dass es erklärt wird. */
-  const hoehe = e.flying ? 1.9 : 1.05;
-  const weite = e.flying ? .62 : .85;
-  const kraft = e.flying ? .17 : .30;
-  g.fillStyle = `rgba(0,0,0,${kraft})`;
-  g.beginPath();
-  g.ellipse(e.x + e.rad * .28, e.y + e.rad * hoehe, e.rad * weite, e.rad * .33, .1, 0, 7);
-  g.fill();
+  /* Der Schatten wird nicht mehr hier gezeichnet, sondern in
+     zeichneStehendes() — also AUSSERHALB der Aufrichtung.
+
+     Hier drin lag er falsch: aufrecht() streckt alles senkrecht, damit
+     Figuren stehen statt auf dem Boden zu kleben. Ein Schatten LIEGT aber
+     auf dem Boden und muss gestaucht bleiben. Er wurde also mitgestreckt und
+     war zu hoch.
+
+     Dazu kam, dass zeichneStehendes bereits einen zweiten, einfacheren
+     Schatten zeichnete — jeder Gegner hatte zwei. Aufgefallen beim Messen:
+     bodenSchatten kostete 0,57 Millisekunden für Arbeit, die zur Hälfte
+     doppelt war. */
   if (e.rootT > 0) {
     g.strokeStyle = "rgba(87,206,124,.85)"; g.lineWidth = 2.4;
     for (let i = 0; i < 4; i++) {
@@ -7275,17 +7486,36 @@ function drawEnemy(g, e) {
       g.lineTo(e.x + Math.cos(a) * e.rad * 1.5, e.y + e.rad * 1.1); g.stroke();
     }
   }
-  drawCreature(g, e.x, e.y, e.rad * .78, col, e.spec.shape, G.time + e.wob, {
+  /* Der Trefferblitz dauert 0,12 Sekunden. Daraus wird ein Zucken, das mit
+     dem Blitz abklingt — Farbe und Bewegung gehören zusammen. */
+  const zuck = e.flash > 0 ? Math.min(1, e.flash / .12) : 0;
+  /* Festgehalten oder verlangsamt: die Figur stemmt sich dagegen. */
+  const brems = e.rootT > 0 ? 1 : (e.slowT > 0 ? (e.slow || 0) : 0);
+  const opt = {
     boss: e.boss, dir: e.dir === -1 ? -1 : 1,
     walk: e.flying ? undefined : (e.walk || 0),
     tier: e.boss ? 2 : (e.spec.rang || 0), type: e.spec.type,
-    /* Der Trefferblitz dauert 0,12 Sekunden. Daraus wird ein Zucken, das
-       mit dem Blitz abklingt — Farbe und Bewegung gehören zusammen. */
-    fliegt: !!e.flying,
-    zuck: e.flash > 0 ? Math.min(1, e.flash / .12) : 0,
-    /* Festgehalten oder verlangsamt: die Figur stemmt sich dagegen. */
-    brems: e.rootT > 0 ? 1 : (e.slowT > 0 ? (e.slow || 0) : 0),
-  });
+    fliegt: !!e.flying, zuck, brems, variante: e.variante || 0,
+  };
+  const bild = kreaturBild(e, col);
+  if (bild) {
+    /* Dieselben Verformungen, die drawCreature auf die ganze Figur anwendet,
+       hier auf das fertige Bild: Beim Treffer staucht sie und sackt, beim
+       Gebremstwerden stemmt sie sich gegen die Richtung. */
+    if (zuck > .01 || brems > .01) {
+      g.save();
+      g.translate(e.x, e.y);
+      if (brems > .01) g.rotate(-brems * .16);
+      if (zuck > .01) g.scale(1 + zuck * .16, 1 - zuck * .13);
+      g.translate(-e.x, -e.y);
+      g.drawImage(bild.cv, e.x - bild.fx, e.y - bild.fy + zuck * e.rad * .09, bild.bw, bild.bh);
+      g.restore();
+    } else {
+      g.drawImage(bild.cv, e.x - bild.fx, e.y - bild.fy, bild.bw, bild.bh);
+    }
+  } else {
+    drawCreature(g, e.x, e.y, e.rad * .78, col, e.spec.shape, G.time + e.wob, opt);
+  }
   if (e.flash > 0) {
     /* Begrenzt. e.flash * 2,4 konnte über eins hinauslaufen, und additiv
        gezeichnet addierte sich das bei dicht stehenden Gegnern weiter auf.
@@ -7887,6 +8117,7 @@ function offerBoon() {
 }
 
 function takeBoon(b) {
+  werteGen++;
   G.boons[b.id] = (G.boons[b.id] || 0) + 1;
   if (b.id === "life") { G.lives += 3; }
   if (b.id === "cash") { G.gold += 300; }
