@@ -1240,7 +1240,23 @@ const MAPS = [
        Problem saß im Anlauf. */
     /* Mehr Erhöhungen als anderswo: In einer Ruine stehen überall Mauerreste,
        und die Karte ist die schwerste — gute Stellungen sind hier am nötigsten. */
-    sonderfelder: [["wasser", 5], ["kraft", 6], ["hoehe", 5]],
+    /* Vier Kraftfelder, nicht sechs wie auf den anderen Karten.
+
+       Gemessen, acht Läufe je Fassung: Mit sieben Kraftfeldern scheiterte
+       die Flutruine in fünf von acht Läufen, mit vier in null von acht. Der
+       Befund hielt über drei verschiedene Bewertungsfassungen des Bots —
+       er ist also nicht bloß eine Laune des Messgeräts.
+
+       WARUM das so ist, weiß ich nicht. Ein Kraftfeld gibt dreißig Prozent
+       mehr Reichweite und schränkt nichts ein; mehr davon sollte eine Karte
+       nicht schwerer machen. Meine Erklärung — der Bot überbewerte solche
+       Felder und stelle Wächter auf schlechte Plätze — habe ich geprüft und
+       verworfen: Nach der Berichtigung war es schlechter, nicht besser.
+
+       Die Flutruine ist die schwerste Karte des Spiels (Multiplikator 1,95,
+       fünfzehn Leben) und hat den geringsten Spielraum. Deshalb hier der
+       gemessen sichere Wert, während die anderen zehn bei sechs bleiben. */
+    sonderfelder: [["wasser", 5], ["kraft", 4], ["hoehe", 5]],
     heim: "water", legendaer: { typ: "water", gestalt: "thron",
       namen: ["Tiefenhüter", "Flutwächter", "Strömungsthron"],
       text: "Was in der Ruine versank, wacht wieder — und hält die Flut." },
