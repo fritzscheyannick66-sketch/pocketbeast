@@ -182,7 +182,7 @@ function ladeSpiel(datei) {
   const anhang = `
 ;globalThis.__spiel = {
   G, MAPS, TOWERS, TOWER_BY_ID, SPECIES, BOSSES, TYPES, CHART, eff,
-  TILE, COLS, ROWS, W, H,
+  TILE, COLS, ROWS, W, H, MEGA_NAMEN, LEGENDAER_GABE,
   WELLEN_JE_KARTE, BOSS_WAVES, isBossWave, bossFuerWelle, waveHP, refSpecHP,
   MEGA_KILLS, MEGA_TRAIN, MEGA_KOSTEN, TRAIN_MAX,
   newRun, startWave, endWave, update,
