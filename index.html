@@ -893,7 +893,7 @@ const TOWERS = [
        Bewusst ohne Tag- oder Nachtbindung: im Endlosmodus laufen die Wellen
        unbegrenzt weiter, und ein Wächter, der die halbe Zeit ruht, wäre dort
        kein Anker, sondern ein Ärgernis. */
-    id: "legend", type: "legend", shape: "hueter", air: true,
+    id: "legend", type: "legend", shape: "thron", air: true,
     legendaer: true,
     blurb: "Kennt weder Schwäche noch Vorteil — trifft alles gleich hart.",
     tiers: [
@@ -1128,7 +1128,7 @@ const MAPS = [
        der Schleife bestreicht zwei Wegabschnitte. Wer ihn haben will, muss
        jetzt einen Wasser-Wächter dorthin stellen — oder darum herum bauen. */
     sonderfelder: [["wasser", 7, "see", [7, 7]], ["kraft", 6], ["hoehe", 3]],
-    heim: "grass", legendaer: { typ: "grass", gestalt: "hueter",
+    heim: "grass", legendaer: { typ: "grass", gestalt: "thron",
       namen: ["Hainhüter", "Waldwächter", "Wurzelthron"],
       text: "Der Hüter des Grünpfads — hier gewachsen, hier verwurzelt." },
     name: "Grünpfad", diff: "Ruhig", mul: 1.25, gold: 280, lives: 20,
@@ -1199,7 +1199,7 @@ const MAPS = [
        die Messung nicht — die Streuung reicht von 42 bis 100 und überdeckt
        alles Feinere. */
     sonderfelder: [["vulkan", 8], ["kraft", 6], ["hoehe", 3]],
-    heim: "fire", legendaer: { typ: "fire", gestalt: "hueter",
+    heim: "fire", legendaer: { typ: "fire", gestalt: "thron",
       namen: ["Aschehüter", "Glutwächter", "Schlundthron"],
       text: "Aus der Asche der Schlucht erwacht — er kennt kein Verlöschen." },
     name: "Glutschlucht", diff: "Fordernd", mul: 1.44, gold: 300, lives: 18,
@@ -1241,7 +1241,7 @@ const MAPS = [
     /* Mehr Erhöhungen als anderswo: In einer Ruine stehen überall Mauerreste,
        und die Karte ist die schwerste — gute Stellungen sind hier am nötigsten. */
     sonderfelder: [["wasser", 5], ["kraft", 6], ["hoehe", 5]],
-    heim: "water", legendaer: { typ: "water", gestalt: "hueter",
+    heim: "water", legendaer: { typ: "water", gestalt: "thron",
       namen: ["Tiefenhüter", "Flutwächter", "Strömungsthron"],
       text: "Was in der Ruine versank, wacht wieder — und hält die Flut." },
     name: "Flutruine", diff: "Brutal", mul: 1.95, gold: 500, lives: 15,
@@ -1260,7 +1260,7 @@ const MAPS = [
        Wetterleuchten zieht. Der Weg läuft über den Grat, links und rechts
        fällt es ab; Erhöhungen gibt es hier reichlich. */
     heim: "electric",
-    legendaer: { typ: "electric", gestalt: "hueter",
+    legendaer: { typ: "electric", gestalt: "thron",
       namen: ["Blitzhüter", "Sturmwächter", "Wetterthron"],
       text: "Über dem Kamm gebar ihn ein Schlag, der nie verhallte." },
     sonderfelder: [["hoehe", 7], ["kraft", 6], ["wasser", 4]],
@@ -1278,7 +1278,7 @@ const MAPS = [
     /* Gestein — Steinkessel. Ein ausgetrocknetes Felsbecken. Der Weg windet
        sich zwischen Blöcken, viel Deckung, wenig Weite. */
     heim: "rock",
-    legendaer: { typ: "rock", gestalt: "hueter",
+    legendaer: { typ: "rock", gestalt: "thron",
       namen: ["Steinhüter", "Felswächter", "Grundthron"],
       text: "Er stand schon, als der Kessel noch Meer war." },
     sonderfelder: [["hoehe", 6], ["kraft", 6], ["wasser", 4]],
@@ -1296,7 +1296,7 @@ const MAPS = [
     /* Psycho — Traumhain. Ein Wald, der nicht ganz wirklich ist. Sanfte
        Farben, weiche Wege, überall Feldwirkung. */
     heim: "psychic",
-    legendaer: { typ: "psychic", gestalt: "hueter",
+    legendaer: { typ: "psychic", gestalt: "thron",
       namen: ["Traumhüter", "Seherwächter", "Gedankenthron"],
       text: "Er träumt den Hain, und der Hain träumt ihn." },
     sonderfelder: [["kraft", 7], ["wasser", 5], ["hoehe", 3]],
@@ -1314,7 +1314,7 @@ const MAPS = [
     /* Eis — Firnfeld. Weite, offene Schneefläche. Wenig Deckung, lange
        Sichtlinien — hier zählt Reichweite mehr als anderswo. */
     heim: "ice",
-    legendaer: { typ: "ice", gestalt: "hueter",
+    legendaer: { typ: "ice", gestalt: "thron",
       namen: ["Firnhüter", "Frostwächter", "Ewigthron"],
       text: "Unter dem Firn schlief er, bis die Wildnis ihn weckte." },
     sonderfelder: [["wasser", 7], ["kraft", 6], ["hoehe", 4]],
@@ -1332,7 +1332,7 @@ const MAPS = [
     /* Stahl — Erzwerk. Eine verlassene Grube. Rechtwinklig, eng, hart —
        Durchschlag entscheidet hier. */
     heim: "steel",
-    legendaer: { typ: "steel", gestalt: "hueter",
+    legendaer: { typ: "steel", gestalt: "thron",
       namen: ["Erzhüter", "Schmiedwächter", "Ambossthron"],
       text: "Im Erz geschmiedet, vom Erz getragen." },
     sonderfelder: [["hoehe", 5], ["kraft", 6], ["wasser", 4]],
@@ -1350,7 +1350,7 @@ const MAPS = [
     /* Fee — Glanzwiese. Hell, offen, freundlich. Die leichteste Karte nach
        dem Grünpfad, mit vielen Kraftfeldern. */
     heim: "fairy",
-    legendaer: { typ: "fairy", gestalt: "hueter",
+    legendaer: { typ: "fairy", gestalt: "thron",
       namen: ["Glanzhüter", "Lichtwächter", "Morgenthron"],
       text: "Wo er steht, wird es einen Atemzug lang heller." },
     sonderfelder: [["kraft", 6], ["wasser", 5], ["hoehe", 3]],
@@ -1368,7 +1368,7 @@ const MAPS = [
     /* Unlicht — Nachtgrund. Die dunkelste Karte. Enge Wege, viel Deckung,
        kaum Übersicht. */
     heim: "dark",
-    legendaer: { typ: "dark", gestalt: "hueter",
+    legendaer: { typ: "dark", gestalt: "thron",
       namen: ["Schattenhüter", "Nachtwächter", "Finsterthron"],
       text: "Er wirft keinen Schatten — er ist einer." },
     sonderfelder: [["hoehe", 4], ["kraft", 6], ["wasser", 5]],
@@ -1397,7 +1397,7 @@ const MAPS = [
     /* Wind — Böenkuppe. Die offenste Karte, weite Sicht in alle Richtungen.
        Erhöhungen überall, und Flieger sind hier zu Hause. */
     heim: "wind",
-    legendaer: { typ: "wind", gestalt: "hueter",
+    legendaer: { typ: "wind", gestalt: "thron",
       namen: ["Böenhüter", "Windwächter", "Wirbelthron"],
       text: "Man hört ihn kommen, lange bevor man ihn sieht." },
     sonderfelder: [["hoehe", 8], ["kraft", 6], ["wasser", 4]],
@@ -1792,42 +1792,17 @@ function tierBehind(g, s, col, tier, type, t, mega) {
 }
 
 /* Vor dem Körper: Kragen, Schulterplatten, Zeichen der Art. */
-function tierFront(g, s, col, tier, type, t) {
-  if (!tier) return;
-  const mark = TIER_MARK[type] || TIER_MARK.rock;
-  // Halskragen ab Stufe 2
-  g.save();
-  g.strokeStyle = tier >= 2 ? rgba(mark.c, .85) : rgba(shade(col, .5), .6);
-  g.lineWidth = Math.max(1.2, s * (tier >= 2 ? .17 : .12));
-  g.beginPath(); g.ellipse(0, s * .5, s * .72, s * .26, 0, .15, Math.PI - .15); g.stroke();
-  g.restore();
+/* Das Zeichen eines Elements — Flamme, Flosse, Blatt, Zacke und so fort.
 
-  if (tier < 2) return;
+   Stand fest verdrahtet in tierFront(). Der legendäre Wächter trägt
+   dieselben Zeichen als Krone und im Brustschild, also gehören sie in
+   eine eigene Funktion statt zweimal ausgeschrieben. Farbe und Strichbreite
+   setzt der Aufrufer; hier steht nur die Form.
 
-  // Schulterstücke: eckige Platten statt runder Formen, damit sie als
-  // Rüstung lesbar sind und nicht wie Blasen am Körper kleben
-  g.save();
-  g.fillStyle = rgba(mark.c, .82); g.strokeStyle = shade(col, -.62);
-  g.lineWidth = Math.max(.8, s * .05);
-  for (const sg of [-1, 1]) {
-    g.save();
-    g.translate(sg * s * .86, s * .3); g.rotate(sg * .38);
-    g.beginPath();
-    g.moveTo(-s * .26, -s * .12); g.lineTo(s * .26, -s * .18);
-    g.lineTo(s * .2, s * .14); g.lineTo(-s * .22, s * .1);
-    g.closePath(); g.fill(); g.stroke();
-    g.restore();
-  }
-  g.restore();
-
-  // Zeichen der Art, über dem Kopf
-  const my = -s * 1.72, puls = 1 + Math.sin(t * 2.4) * .07;
-  g.save();
-  g.translate(0, my); g.scale(puls, puls);
-  g.fillStyle = mark.c; g.strokeStyle = shade(mark.c, -.55);
-  g.lineWidth = Math.max(.7, s * .045);
-  const u = s * .34;
-  switch (mark.form) {
+   u ist die halbe Größe des Zeichens, t die Zeit für die Formen, die sich
+   bewegen. */
+function zeichneZeichen(g, u, form, t) {
+  switch (form) {
     case "flamme":
       g.beginPath();
       g.moveTo(0, -u * 1.3); g.quadraticCurveTo(u * .9, -u * .1, 0, u * .8);
@@ -1853,11 +1828,18 @@ function tierFront(g, s, col, tier, type, t) {
       g.closePath(); g.fill(); g.stroke();
       g.strokeStyle = rgba("#ffffff", .7);
       g.beginPath(); g.moveTo(0, -u * 1.15); g.lineTo(0, u * 1.15); g.stroke(); break;
-    case "niete":
+    case "niete": {
+      /* Die Nieten waren dunkler als das Zeichen selbst. Beim Herauslösen
+         stand hier mark.c — die Funktion kennt aber nur die Form, nicht das
+         Element. Die Farbe kommt jetzt aus dem, was der Aufrufer gesetzt
+         hat, und wird davon abgedunkelt. */
+      const grund = g.fillStyle;
       rr(g, -u * .8, -u * .55, u * 1.6, u * 1.1, u * .26); g.fill(); g.stroke();
-      g.fillStyle = shade(mark.c, -.4);
+      g.fillStyle = shade(String(grund), -.4);
       for (const sg of [-1, 1]) { g.beginPath(); g.arc(sg * u * .45, 0, u * .16, 0, 7); g.fill(); }
+      g.fillStyle = grund;
       break;
+    }
     case "funkel":
       // vierzackiger Stern, wie das Zeichen der Fee auf dem Podest
       g.beginPath();
@@ -1904,6 +1886,44 @@ function tierFront(g, s, col, tier, type, t) {
       g.lineTo(u * .55, -u * .8); g.lineTo(u * .9, u * .5);
       g.closePath(); g.fill(); g.stroke();
   }
+}
+
+function tierFront(g, s, col, tier, type, t) {
+  if (!tier) return;
+  const mark = TIER_MARK[type] || TIER_MARK.rock;
+  // Halskragen ab Stufe 2
+  g.save();
+  g.strokeStyle = tier >= 2 ? rgba(mark.c, .85) : rgba(shade(col, .5), .6);
+  g.lineWidth = Math.max(1.2, s * (tier >= 2 ? .17 : .12));
+  g.beginPath(); g.ellipse(0, s * .5, s * .72, s * .26, 0, .15, Math.PI - .15); g.stroke();
+  g.restore();
+
+  if (tier < 2) return;
+
+  // Schulterstücke: eckige Platten statt runder Formen, damit sie als
+  // Rüstung lesbar sind und nicht wie Blasen am Körper kleben
+  g.save();
+  g.fillStyle = rgba(mark.c, .82); g.strokeStyle = shade(col, -.62);
+  g.lineWidth = Math.max(.8, s * .05);
+  for (const sg of [-1, 1]) {
+    g.save();
+    g.translate(sg * s * .86, s * .3); g.rotate(sg * .38);
+    g.beginPath();
+    g.moveTo(-s * .26, -s * .12); g.lineTo(s * .26, -s * .18);
+    g.lineTo(s * .2, s * .14); g.lineTo(-s * .22, s * .1);
+    g.closePath(); g.fill(); g.stroke();
+    g.restore();
+  }
+  g.restore();
+
+  // Zeichen der Art, über dem Kopf
+  const my = -s * 1.72, puls = 1 + Math.sin(t * 2.4) * .07;
+  g.save();
+  g.translate(0, my); g.scale(puls, puls);
+  g.fillStyle = mark.c; g.strokeStyle = shade(mark.c, -.55);
+  g.lineWidth = Math.max(.7, s * .045);
+  const u = s * .34;
+  zeichneZeichen(g, u, mark.form, t);
   g.restore();
 }
 
@@ -2181,6 +2201,140 @@ function drawCreature(g, x, y, s, col, shape, t, opts) {
        gewöhnlicher. Diese Form soll neben den anderen fünfzehn älter wirken —
        aufrecht, ruhig, mit gesenktem Kopf und einer Schleppe, die breiter ist
        als der Körper. Keine Zähne, keine Krallen: Würde statt Drohung. */
+    /* ============================================================
+       Thron — die Gestalt der legendären Wächter
+       ============================================================
+
+       Elf Karten hatten elf legendäre Wächter, und alle sahen gleich aus:
+       dieselbe Hüterfigur in einer anderen Farbe. Was man sich über
+       hundert Wellen verdient, war von außen nicht als eigenes Wesen zu
+       erkennen.
+
+       Diese Gestalt macht drei Dinge anders als jede andere im Spiel:
+
+       SIE STEHT NICHT. Sie schwebt, mit einer Lücke zum Boden und einem
+       Schatten darunter. Nichts sonst im Spiel tut das — allein daran
+       erkennt man sie, bevor man Einzelheiten sieht.
+
+       SIE HAT KEIN GESICHT. Statt Augen und Mund ein schmaler Visierschlitz
+       mit zwei Lichtpunkten. Die Kreaturen des Spiels sind freundlich; ein
+       legendärer Wächter soll das nicht sein.
+
+       SIE TRÄGT EINE KRONE, DIE SIE NICHT BERÜHRT. Die Splitter kreisen frei
+       über dem Haupt, in der Form des Elements — Flammen, Flossen, Blätter,
+       Zacken. Das ist der Zug, der sie je Karte verschieden macht.
+
+       Und je Element ändern sich außerdem: die Zahl der Splitter, die Breite
+       des Mantels, wie stark der Reif geneigt ist und wie schnell alles
+       kreist. Kein Zufall — abgeleitet aus dem Elementnamen, damit dieselbe
+       Karte immer dieselbe Erscheinung hat.
+       ============================================================ */
+    case "thron": {
+      const typ = opts.type || "legend";
+      const mark = TIER_MARK[typ] || TIER_MARK.rock;
+      /* Merkmale aus dem Elementnamen ableiten. Jede Karte bekommt damit
+         eine feste, aber verschiedene Erscheinung. */
+      let saat = 0;
+      for (let i = 0; i < typ.length; i++) saat = (saat * 31 + typ.charCodeAt(i)) >>> 0;
+      const splitter = 3 + (saat % 5);              // 3 bis 7 Kronensplitter
+      const mantelBreite = 1.55 + ((saat >> 3) % 5) * 0.14;
+      const reifNeig = -0.30 + ((saat >> 6) % 5) * 0.15;
+      const tempo = 0.55 + ((saat >> 9) % 4) * 0.22;
+      const schlank = 1.0 - ((saat >> 12) % 3) * 0.08;
+
+      // Schatten am Boden — sie schwebt darüber
+      g.save();
+      g.fillStyle = "rgba(0,0,0,.30)";
+      g.beginPath();
+      g.ellipse(0, s * 1.62, s * .72, s * .2, 0, 0, 7);
+      g.fill();
+      g.restore();
+
+      // Der ganze Körper hebt und senkt sich langsam
+      const hebt = Math.sin(t * .9) * s * .10 - s * .18;
+      g.save();
+      g.translate(0, hebt);
+
+      /* Reif hinter der Figur. Geneigt, damit er als Ring im Raum liest und
+         nicht als Kreis auf dem Bild. */
+      g.save();
+      g.rotate(reifNeig);
+      g.strokeStyle = rgba(mark.c, .30 + Math.sin(t * 1.3) * .12);
+      g.lineWidth = Math.max(1.4, s * .11);
+      g.beginPath(); g.ellipse(0, -s * .35, s * 1.62, s * .58, 0, 0, 7); g.stroke();
+      g.strokeStyle = rgba(rim, .16);
+      g.lineWidth = Math.max(.8, s * .05);
+      g.beginPath(); g.ellipse(0, -s * .35, s * 1.44, s * .46, 0, 0, 7); g.stroke();
+      g.restore();
+
+      /* Mantel: zwei Bahnen, die unten auslaufen statt aufzusetzen. Sie
+         wehen gegenläufig, damit die Figur nicht wie ein Kegel wirkt. */
+      for (const sg of [-1, 1]) {
+        const weh = Math.sin(t * 1.15 + (sg > 0 ? 0 : 1.7)) * s * .16;
+        g.fillStyle = rgba(sg > 0 ? dark : shade(dark, -.12), .88);
+        g.beginPath();
+        g.moveTo(0, -s * .62);
+        g.quadraticCurveTo(sg * s * mantelBreite, s * .25 + weh,
+          sg * s * (mantelBreite * .62) + weh, s * 1.45);
+        g.quadraticCurveTo(sg * s * .30, s * 1.02, 0, s * 1.18);
+        g.closePath(); g.fill(); g.stroke();
+      }
+      // Lichtsaum an der Mantelkante
+      g.strokeStyle = rgba(mark.c, .34);
+      g.lineWidth = Math.max(1, s * .07);
+      for (const sg of [-1, 1]) {
+        const weh = Math.sin(t * 1.15 + (sg > 0 ? 0 : 1.7)) * s * .16;
+        g.beginPath();
+        g.moveTo(0, -s * .62);
+        g.quadraticCurveTo(sg * s * mantelBreite, s * .25 + weh,
+          sg * s * (mantelBreite * .62) + weh, s * 1.45);
+        g.stroke();
+      }
+      g.strokeStyle = deep; g.lineWidth = Math.max(1, s * .085);
+
+      // Körper: schmal und hoch, ohne Beine
+      bodyRR(s * 1.06 * schlank, s * 1.9, s * .5, -s * .1);
+
+      // Brustzeichen des Elements
+      g.save();
+      g.fillStyle = rgba(mark.c, .55);
+      zeichneZeichen(g, s * .34, mark.form, t);
+      g.restore();
+
+      /* Haupt: eine glatte Kapuze ohne Gesicht, darin ein Visierschlitz.
+         Zwei Lichtpunkte statt Augen — genug, dass man einen Blick
+         hineinliest, zu wenig, dass es freundlich wirkt. */
+      g.fillStyle = shade(col, -.22);
+      g.beginPath();
+      g.ellipse(0, -s * 1.02, s * .62, s * .58, 0, 0, 7);
+      g.fill(); g.stroke();
+      g.fillStyle = "rgba(6,10,14,.9)";
+      rr(g, -s * .42, -s * 1.12, s * .84, s * .26, s * .12); g.fill();
+      const glut = .55 + Math.sin(t * 1.9) * .3;
+      g.fillStyle = rgba(mark.c, blink ? .12 : glut);
+      g.beginPath(); g.ellipse(-s * .18, -s * .99, s * .12, s * .07, 0, 0, 7); g.fill();
+      g.beginPath(); g.ellipse(s * .18, -s * .99, s * .12, s * .07, 0, 0, 7); g.fill();
+
+      /* Krone: Splitter in Elementform, die frei über dem Haupt kreisen.
+         Der vordere Bogen wird heller gezeichnet als der hintere, damit man
+         sieht, dass sie herumlaufen und nicht bloß liegen. */
+      for (let i = 0; i < splitter; i++) {
+        const a = t * tempo + (i / splitter) * Math.PI * 2;
+        const px = Math.cos(a) * s * .78;
+        const py = -s * 1.74 + Math.sin(a) * s * .17;
+        const vorn = Math.sin(a) > 0;
+        g.save();
+        g.translate(px, py);
+        g.rotate(Math.sin(a * .5 + t) * .4);
+        g.fillStyle = rgba(mark.c, vorn ? .95 : .45);
+        g.strokeStyle = rgba(shade(mark.c, -.55), vorn ? .9 : .4);
+        g.lineWidth = Math.max(.6, s * .04);
+        zeichneZeichen(g, s * (vorn ? .26 : .21), mark.form, t);
+        g.restore();
+      }
+      g.restore();
+      break;
+    }
     case "hueter": {
       // Schleppe hinter dem Körper, weit ausgestellt
       g.fillStyle = rgba(dark, .8);
@@ -3293,18 +3447,66 @@ function legendaerFrei(mapIdx) { return sterne(mapIdx) >= WELLEN_JE_KARTE; }
 
 /* Der legendäre Wächter dieser Karte — Werte der Grundfassung, aber Name,
    Element und Gestalt aus der Karte. */
+/* Die Gabe des Landes.
+
+   Alle elf legendären Wächter trugen dieselben Werte — nur Name, Element und
+   Aussehen wechselten. Wer den zweiten erspielt hatte, bekam denselben
+   Wächter noch einmal.
+
+   Jetzt bringt jeder eine Gabe mit, die zu seinem Land passt. Sie kommt ZU
+   der gemeinsamen Grundausstattung dazu (Flächenschaden, Brand, Kettenschlag,
+   Panzerbruch) — sie ersetzt nichts, sonst wäre der eine schwächer als der
+   andere. Elf Wächter, elf Handschriften, gleiche Stärke.
+
+   Die Werte sind bewusst maßvoll: Der legendäre Wächter ist schon der
+   stärkste im Spiel, die Gabe soll ihn kennzeichnen, nicht überhöhen. */
+const LEGENDAER_GABE = {
+  grass:    { root: { p: .30, dur: 1.1 } },              // hält fest, wie der Hain
+  fire:     { burnMal: 1.6 },                            // brennt länger und heißer
+  water:    { slow: { amt: .40, dur: 2.0 } },            // schwemmt weg
+  electric: { chainPlus: 3 },                            // springt weiter
+  rock:     { splashMal: 1.5 },                          // erschüttert breiter
+  psychic:  { aura: { dmg: .22, rng: .14 } },            // stärkt die Nachbarn
+  ice:      { slow: { amt: .55, dur: 2.6 } },            // friert am tiefsten ein
+  steel:    { piercePlus: 26 },                          // durchschlägt alles
+  fairy:    { mark: .28 },                               // markiert für alle
+  dark:     { dmgMal: 1.22 },                            // schlägt am härtesten
+  wind:     { ratePlus: .45, rangePlus: 60 },            // schnell und weitsichtig
+};
+
+/* Wie die Gabe je Stufe wirkt. Auf Stufe 1 zur Hälfte, auf Stufe 3 voll —
+   sonst wäre die Grundstufe schon die halbe Endstufe. */
+function gabeAnteil(stufe) { return [.5, .75, 1][stufe] || 1; }
+
 function legendaerDef(mapIdx) {
   const grund = TOWER_BY_ID[LEGENDAER_ID];
   const m = MAPS[mapIdx];
   if (!m || !m.legendaer) return grund;
   const eigen = m.legendaer;
+  const gabe = LEGENDAER_GABE[eigen.typ] || {};
   return {
     ...grund,
     id: LEGENDAER_ID,
     type: eigen.typ || grund.type,
     shape: eigen.gestalt || grund.shape,
     blurb: eigen.text || grund.blurb,
-    tiers: grund.tiers.map((t, i) => ({ ...t, name: eigen.namen[i] })),
+    tiers: grund.tiers.map((t, i) => {
+      const a = gabeAnteil(i);
+      const n = { ...t, name: eigen.namen[i] };
+      if (gabe.root)  n.root = { p: gabe.root.p * a, dur: gabe.root.dur * a };
+      if (gabe.slow)  n.slow = { amt: gabe.slow.amt * a, dur: gabe.slow.dur * a };
+      if (gabe.aura)  n.aura = { dmg: gabe.aura.dmg * a, rng: gabe.aura.rng * a };
+      if (gabe.mark)  n.mark = gabe.mark * a;
+      if (gabe.burnMal && n.burn)
+        n.burn = { dps: Math.round(n.burn.dps * gabe.burnMal), dur: n.burn.dur * gabe.burnMal };
+      if (gabe.splashMal) n.splash = Math.round(n.splash * (1 + (gabe.splashMal - 1) * a));
+      if (gabe.dmgMal)    n.dmg = Math.round(n.dmg * (1 + (gabe.dmgMal - 1) * a));
+      if (gabe.chainPlus) n.chain = (n.chain || 0) + Math.round(gabe.chainPlus * a);
+      if (gabe.piercePlus) n.pierce = Math.round(n.pierce + gabe.piercePlus * a);
+      if (gabe.ratePlus)  n.rate = +(n.rate * (1 + gabe.ratePlus * a)).toFixed(2);
+      if (gabe.rangePlus) n.range = Math.round(n.range + gabe.rangePlus * a);
+      return n;
+    }),
   };
 }
 
@@ -3555,6 +3757,17 @@ function istNacht(welle) {
 
    Seit die Kegel gedeckelt sind, trägt die Nacht mehr Dunkelheit. */
 const NACHT_OBEN = 0.60, NACHT_UNTEN = 0.68;
+
+/* Wie hell ein Wächter nachts sein Umfeld erleuchtet.
+
+   Stand bei 0,26 in der Mitte. Auch nachdem die Kegel nicht mehr
+   additiv übereinanderliegen, blieb das Feld zu hell — dreißig Wächter
+   nebeneinander ergeben eine durchgehend beleuchtete Fläche, und von der
+   Nacht bleibt nichts.
+
+   Der Kegel soll sagen "hier steht einer und sieht etwas", nicht das
+   Gelände ausleuchten. */
+const LICHT_MITTE = 0.15, LICHT_RAND = 0.05;
 
 function nachtAnteil() {
   const w = Math.max(1, G.sent);
@@ -6759,8 +6972,8 @@ function zeichneNacht(g) {
     const rr = statRange(t) * .55;
     const lg = lg2.createRadialGradient(t.x, t.y - 6, 4, t.x, t.y - 6, rr);
     const c = TYPES[t.def.type].col;
-    lg.addColorStop(0, rgba(c, .26 * a));
-    lg.addColorStop(.5, rgba(c, .10 * a));
+    lg.addColorStop(0, rgba(c, LICHT_MITTE * a));
+    lg.addColorStop(.5, rgba(c, LICHT_RAND * a));
     lg.addColorStop(1, rgba(c, 0));
     lg2.fillStyle = lg;
     lg2.beginPath(); lg2.arc(t.x, t.y - 6, rr, 0, 7); lg2.fill();
