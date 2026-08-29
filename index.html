@@ -8971,7 +8971,23 @@ function starteRunde(mapIdx) {
   newRun(mapIdx);
 }
 
+/* Die Zwischenspeicher für Kreatur- und Wächterbilder leeren.
+
+   Sie füllen sich mit dem, was gerade auf dem Feld steht. Über mehrere
+   Runden und Karten hinweg blieben Bilder liegen, die nie wieder gebraucht
+   werden — bei einem langen Endloslauf über mehrere Karten wächst das
+   stetig. Beim Rundenstart ist der richtige Moment: Was danach kommt,
+   braucht ohnehin neue Bilder.
+
+   Die Pflanzenbilder leeren sich schon selbst, weil sie an der Kartennummer
+   hängen. */
+function bilderLeeren() {
+  kreaturBilder = new Map();
+  waechterBilder = new Map();
+}
+
 function newRun(mapIdx, quiet) {
+  bilderLeeren();
   G.mapIdx = mapIdx;
   G.map = MAPS[mapIdx];
   /* Eine Karte kann mehrere Routen führen. `wp` ist die Hauptroute, `wpB` eine
