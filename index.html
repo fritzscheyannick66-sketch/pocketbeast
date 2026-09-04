@@ -891,6 +891,30 @@ const TOWERS = [
     ],
   },
   {
+    /* Marco Bongkopf — der einzige Wächter, der nicht zuschlägt, sondern
+       auslegt. Er pustet Rauchschwaden, die bremsen und vergiften; sein
+       eigener Schaden ist der niedrigste im Spiel.
+
+       Damit ist er das Gegenstück zum Gesteins-Wächter: Der macht aus einem
+       Treffer viel, Marco aus vielen Treffern etwas. Sein Gift stapelt, also
+       zahlt es sich erst aus, wenn die Schwade steht und die Welle
+       hindurchläuft — auf einer kurzen Wegstrecke ist er wertlos.
+
+       Element Pflanze, weil Gift dort hingehört. Auf dem Grünpfad teilt er
+       sich den Heimvorteil mit dem Keimling — zwei Familien desselben
+       Elements mit gegensätzlicher Aufgabe. */
+    id: "marco", stern: 300, type: "grass", shape: "marco", air: true,
+    blurb: "Pustet Rauch: bremst und vergiftet. Kaum eigener Schaden.",
+    tiers: [
+      { name: "Marco Bongkopf", cost: 135, dmg: 4,  rate: 1.0, range: 132, splash: 40,
+        slow: { amt: .22, dur: 1.8 }, gift: { dps: 5,  dur: 4 } },
+      { name: "Marco Blaudunst", cost: 200, dmg: 8,  rate: 1.1, range: 158, splash: 54,
+        slow: { amt: .34, dur: 2.2 }, gift: { dps: 11, dur: 5 } },
+      { name: "Marco Nebelfürst", cost: 345, dmg: 15, rate: 1.2, range: 184, splash: 70,
+        slow: { amt: .46, dur: 2.8 }, gift: { dps: 23, dur: 6 } },
+    ],
+  },
+  {
     /* Der legendäre Wächter. Freigeschaltet, wenn alle hundert Wellen einer
        Karte gehalten sind, und Voraussetzung für deren Endlosmodus.
 
@@ -939,6 +963,7 @@ function megaWerte(def) {
   if (e.pierce) m.pierce = Math.round(e.pierce * 1.5);
   if (e.mark) m.mark = +(e.mark * 1.4).toFixed(2);
   if (e.burn) m.burn = { dps: Math.round(e.burn.dps * 1.6), dur: e.burn.dur + 1 };
+  if (e.gift) m.gift = { dps: Math.round(e.gift.dps * 1.6), dur: e.gift.dur + 1 };
   if (e.slow) m.slow = { amt: Math.min(.75, e.slow.amt * 1.25), dur: e.slow.dur + .6 };
   if (e.aura) m.aura = { dmg: e.aura.dmg * 1.5, rng: e.aura.rng * 1.5 };
   if (e.root) m.root = { p: Math.min(.4, e.root.p * 1.5), dur: e.root.dur + .3 };
@@ -2779,6 +2804,152 @@ function drawCreature(g, x, y, s, col, shape, t, opts) {
       g.beginPath(); g.arc(s * 1.02, s * .12, s * .16, -.5 * Math.PI, .5 * Math.PI); g.stroke();
       break;
     }
+    /* Marco — Lockenkopf mit Pfeife. Die einzige Gestalt im Spiel, die etwas
+       in der Hand hält, und die einzige, die etwas ausstößt statt zu schlagen.
+
+       Drei Dinge tragen sie:
+
+         DIE LOCKEN   Kein gezeichneter Umriss, sondern vierzehn überlappende
+                      Kreise auf zwei Bögen. Jeder schwingt für sich, mit
+                      eigenem Versatz — eine Mähne, die als ein Stück
+                      mitschwingt, sieht aus wie ein Helm. Dunkelbraun, fest
+                      gesetzt statt aus der Elementfarbe abgeleitet: Marcos
+                      Haar ist braun, egal welche Farbe seine Familie trägt.
+
+         DIE PFEIFE   Rechts unten, in der Hand, mit glimmendem Kopf. Der
+                      Glimmpunkt pulsiert langsam gegen den Atem — daran
+                      hängt der Blick, weil es der hellste Punkt der Figur ist.
+
+         DER RAUCH    Fünf Schwaden, die aus dem Mund steigen, dabei größer
+                      und blasser werden. Sie steigen nicht gerade, sondern
+                      driften seitlich weg; der Versatz je Schwade kommt aus
+                      der Zeit, damit sie sich nicht im Takt bewegen. */
+    case "marco": {
+      const haar = "#3B2617", haarHell = "#523320";
+      if (moving) feet(g, 0, s * .86, s * .95, col, ph, dark);
+
+      /* Rauch zuerst, damit er HINTER Kopf und Pfeife liegt. Läge er davor,
+         verdeckte die erste Schwade das Gesicht, und die Figur schaute aus
+         einer Wolke statt in sie hinein.
+
+         Er steigt aus dem Mund, nicht aus der Pfeife: gepustet, nicht
+         geraucht. Die Schwaden werden beim Steigen größer und blasser und
+         driften seitlich weg — der Versatz je Schwade kommt aus der Zeit,
+         damit sie sich nicht im Gleichtakt bewegen. */
+      for (let i = 0; i < 6; i++) {
+        const ph2 = (t * .5 + i * .167 + s * .07) % 1;
+        const gr = s * (.10 + ph2 * .40);
+        const hoehe = -s * (.10 + ph2 * 1.45);
+        const drift = s * (.26 + ph2 * .95) + Math.sin(t * 1.5 + i * 2.1) * s * .14;
+        /* Hellgrau statt eingefärbt. Ein Rauch aus der Elementfarbe
+           verschwindet vor dem Körper derselben Farbe — und bei Spielgröße,
+           dreizehn bis neunzehn Pixel, bleibt von einer 30-Prozent-Schwade
+           nichts übrig. Der Rauch ist das Erkennungszeichen dieser Familie,
+           also muss er der hellste Teil nach dem Gesicht sein. */
+        g.fillStyle = rgba("#D7E2DC", .46 * (1 - ph2 * .78));
+        g.beginPath(); g.arc(drift, hoehe, gr, 0, 7); g.fill();
+      }
+
+      bodyRR(s * 1.58, s * 1.6, s * .64);
+      belly(s * .46, s * .4, s * .34);
+
+      /* Die Mähne. Kein gezeichneter Umriss, sondern überlappende Kreise auf
+         zwei Bögen — vierzehn Stück, jeder mit eigenem Schwung. Eine Mähne,
+         die als ein Stück mitschwingt, sieht aus wie ein Helm.
+
+         Der hintere Bogen reicht unter die Ohren hinab: das ist die Länge.
+         Ein erster Anlauf ließ ihn ganz herumlaufen, und dann umkränzten die
+         Locken auch das Kinn — das las sich als Bart, nicht als Haar.
+
+         Dunkelbraun ist fest gesetzt und nicht aus der Elementfarbe
+         abgeleitet: Marcos Haar ist braun, egal welche Farbe seine Familie
+         trägt. */
+      for (const [von, bis, n, rad, mitte, farbe] of [
+        [-1.30, 0.30, 9, s * .29, -s * .40, haar],
+        [-0.90, -0.10, 5, s * .19, -s * .60, haarHell],
+      ]) {
+        for (let i = 0; i < n; i++) {
+          const a = (von + (i / (n - 1)) * (bis - von)) * Math.PI;
+          const eigen = Math.sin(t * 2.2 + i * 1.4 + s) * .055 * regung;
+          const lx = Math.cos(a) * s * .80 * (1 + eigen);
+          const ly = Math.sin(a) * s * .72 * (1 + eigen) + mitte + nach * s * .035;
+          g.fillStyle = farbe;
+          g.beginPath(); g.arc(lx, ly, rad, 0, 7); g.fill();
+        }
+      }
+
+      face(g, 0, -s * .14, s, .30, { blink, blush: true });
+
+      /* Die Bong, in der Hand und unterhalb des Gesichts.
+
+         Ein erster Anlauf führte einen Pfeifenstiel quer über die Wange —
+         der Kopf saß dann auf Mundhöhe und las sich als zweiter Mund. Die
+         Bong steht deshalb aufrecht neben der Figur: Bei Spielgröße,
+         dreizehn bis neunzehn Pixel, ist ein senkrechter Gegenstand neben
+         einer runden Silhouette das Einzige, was überhaupt zu erkennen ist.
+
+         Fünf Teile, von unten nach oben: Standkolben, Wasserstand mit
+         aufsteigenden Blasen, Rohr, Kopf am seitlichen Stutzen mit Glut,
+         und das Mundstück oben. Die Hand liegt am Rohr. */
+      const bx = s * .86, by = s * .46;
+      const glasR = "rgba(190,228,235,.55)", glasF = "rgba(150,205,215,.26)";
+      g.save();
+      g.rotate(-.16);
+      g.strokeStyle = glasR; g.lineWidth = Math.max(1, s * .075);
+
+      // Standkolben
+      g.fillStyle = glasF;
+      g.beginPath(); g.ellipse(bx, by, s * .30, s * .25, 0, 0, 7); g.fill(); g.stroke();
+      // Wasser darin
+      g.fillStyle = "rgba(120,180,120,.5)";
+      g.beginPath(); g.ellipse(bx, by + s * .07, s * .24, s * .15, 0, 0, 7); g.fill();
+      // Blasen, die im Wasser aufsteigen
+      for (let i = 0; i < 3; i++) {
+        const bp = (t * 1.1 + i * .33) % 1;
+        g.fillStyle = rgba("#EAF6F2", .5 * (1 - bp));
+        g.beginPath();
+        g.arc(bx + Math.sin(t * 3 + i * 2) * s * .06, by + s * .12 - bp * s * .26,
+          s * .035, 0, 7);
+        g.fill();
+      }
+      // Rohr
+      g.fillStyle = glasF;
+      g.beginPath();
+      g.moveTo(bx - s * .12, by - s * .16);
+      g.lineTo(bx - s * .10, by - s * .96);
+      g.lineTo(bx + s * .10, by - s * .96);
+      g.lineTo(bx + s * .12, by - s * .16);
+      g.closePath(); g.fill(); g.stroke();
+      // Mundstück
+      g.beginPath();
+      g.ellipse(bx, by - s * .99, s * .16, s * .07, 0, 0, 7); g.fill(); g.stroke();
+      // Seitlicher Stutzen mit Kopf
+      g.strokeStyle = glasR; g.lineWidth = Math.max(1, s * .09);
+      g.beginPath();
+      g.moveTo(bx + s * .11, by - s * .40);
+      g.lineTo(bx + s * .40, by - s * .56);
+      g.stroke();
+      g.fillStyle = "#3A2716"; g.strokeStyle = "#241708";
+      g.lineWidth = Math.max(1, s * .06);
+      g.beginPath();
+      g.ellipse(bx + s * .46, by - s * .60, s * .13, s * .10, -.5, 0, 7);
+      g.fill(); g.stroke();
+      /* Die Glut pulsiert langsam gegen den Atem. Sie ist der hellste Punkt
+         der Figur, also hängt der Blick daran — deshalb bewusst klein. */
+      const glut = .55 + Math.sin(t * 2.1 + s) * .45;
+      g.fillStyle = rgba("#FF8A3C", .3 + glut * .6);
+      g.beginPath();
+      g.arc(bx + s * .46, by - s * .64, s * .07 * (.8 + glut * .4), 0, 7);
+      g.fill();
+      g.restore();
+
+      // Hand am Rohr
+      g.fillStyle = light; g.strokeStyle = deep; g.lineWidth = Math.max(1, s * .07);
+      g.beginPath(); g.arc(s * .70, s * .18, s * .19, 0, 7); g.fill(); g.stroke();
+
+      g.lineWidth = Math.max(1, s * 0.085); g.strokeStyle = deep;
+      break;
+    }
     case "wisp": {
       const pulse = .86 + Math.sin(t * 5) * .13;
       const grd = g.createRadialGradient(0, 0, s * .1, 0, 0, s * 1.8 * pulse);
@@ -4320,6 +4491,34 @@ const WAECHTER_JE_KARTE = 45;
    damit niemand vor einer leeren Liste steht. Vorgeschlagen werden die acht,
    die gegen die Fauna dieser Route am besten dastehen; Wasser fällt weg, wo
    es keine Wasserstelle gibt. */
+/* Was eine Familie über die Typentabelle hinaus leistet.
+
+   Die erste Fassung der Vorauswahl rechnete nur die Typwirkung gegen die
+   Fauna der Karte. Damit waren zwei Familien desselben Elements exakt
+   gleichwertig — und Marco Bongkopf, Element Pflanze wie der Keimling, wurde
+   nie vorgeschlagen, obwohl er etwas völlig anderes tut. Die Reihenfolge
+   entschied allein, wer zuerst deklariert war.
+
+   Fläche, Bremse, Gift, Kette, Fessel und Feldwirkung zählen deshalb mit.
+   Grob gewichtet — die Vorauswahl soll einen brauchbaren Vorschlag machen,
+   nicht die beste Aufstellung berechnen. Das bleibt die Aufgabe des
+   Spielers. */
+function familienWert(def, karte) {
+  const wilde = karte.wilde || Object.keys(TYPES);
+  const typ = wilde.reduce((a, t) => a + eff(def.type, t), 0) / wilde.length;
+  const st = def.tiers[1] || def.tiers[0];
+  let extra = 1;
+  if (st.splash) extra *= 1 + st.splash / 140;
+  if (st.slow) extra *= 1 + st.slow.amt * .5;
+  if (st.root) extra *= 1 + st.root.p * 1.2;
+  if (st.burn) extra *= 1 + Math.min(.35, st.burn.dps / 80);
+  if (st.gift) extra *= 1 + Math.min(.55, (st.gift.dps * st.gift.dur) / 260);
+  if (st.chain) extra *= 1 + st.chain * .2;
+  if (st.aura) extra *= 1 + (st.aura.dmg || 0) * 1.4;
+  if (st.pierce) extra *= 1 + Math.min(.4, st.pierce / 50);
+  return typ * extra * (def.air ? 1.12 : 1);
+}
+
 function aufstellungFuer(idx) {
   if (!save.aufstellung) save.aufstellung = {};
   const frei = TOWERS.filter(d => !d.legendaer && waechterFrei(d));
@@ -4331,8 +4530,7 @@ function aufstellungFuer(idx) {
     const wasser = karteHatWasserAuf(idx);
     liste = frei
       .filter(d => d.type !== "water" || wasser)
-      .map(d => ({ id: d.id,
-        wert: wilde.reduce((a, t) => a + eff(d.type, t), 0) / wilde.length * (d.air ? 1.15 : 1) }))
+      .map(d => ({ id: d.id, wert: familienWert(d, karte) }))
       .sort((a, b) => b.wert - a.wert)
       .slice(0, AUFSTELLUNG_MAX)
       .map(x => x.id);
@@ -4494,7 +4692,24 @@ function sellTower(t) {
 /* ============================================================
    Kampf
    ============================================================ */
-function damage(en, amount, type, src) {
+/* ohnePanzer: Schaden, der an der Panzerung vorbeigeht.
+
+   Gebraucht wird das für Gift, und der Grund ist rechnerisch, nicht
+   thematisch. Panzerung wird JE SCHADENSAUFRUF abgezogen, Schaden über Zeit
+   aber je Bild verrechnet — also in Dreißigsteln. Gift von 44 je Sekunde
+   kommt als 1,47 je Bild an; davon zieht Panzerung 20 ab, und übrig bleibt
+   die Untergrenze von achtzehn Prozent. Aus 44 werden 7,9.
+
+   Ein Wächter, dessen ganze Wirkung im Gift liegt, wäre damit gegen jeden
+   gepanzerten Gegner wertlos, ohne dass irgendwo eine Zahl darauf hindeutet.
+   Dass Gift durch Panzerung sickert, ist die passende Erklärung — aber die
+   Ursache ist, dass ein Abzug je Aufruf und ein Schaden je Bild nicht
+   zusammenpassen.
+
+   Brand bleibt bewusst wie er ist: Er trifft dasselbe Problem, aber er ist
+   bei keiner Familie die Hauptwirkung, und eine Änderung dort verschöbe
+   Feuer, Unlicht und den legendären Wächter gleich mit. */
+function damage(en, amount, type, src, ohnePanzer) {
   if (en.dead) return;
   let m = eff(type, en.spec.type);
   if (type === "electric" && en.flying) m *= 1.5;
@@ -4509,9 +4724,11 @@ function damage(en, amount, type, src) {
   }
   /* Panzerung: erst zieht der Durchschlag des Wächters ab (Stahl-Wächter
      tragen ihn als feste Stufeneigenschaft), dann die Segnung Steinbrecher. */
-  const durchschlag = ((src && src.def && tierOf(src).pierce) || 0) + tal("durch");
-  const arm = Math.max(0, (en.armor || 0) - durchschlag) * (1 - boon("pierce") * .30);
-  d = Math.max(d * .18, d - arm);
+  if (!ohnePanzer) {
+    const durchschlag = ((src && src.def && tierOf(src).pierce) || 0) + tal("durch");
+    const arm = Math.max(0, (en.armor || 0) - durchschlag) * (1 - boon("pierce") * .30);
+    d = Math.max(d * .18, d - arm);
+  }
   // Schild fängt zuerst ab, Strom bricht ihn doppelt schnell
   if (en.shield > 0) {
     const f = type === "electric" ? 2 : 1;
@@ -4601,7 +4818,7 @@ function bossAbility(e, dt) {
       break;
     }
     case "cleanse": {
-      e.burnT = 0; e.slowT = 0; e.rootT = 0; e.mark = 0; e.wetT = 0;
+      e.burnT = 0; e.giftT = 0; e.gift = 0; e.slowT = 0; e.rootT = 0; e.mark = 0; e.wetT = 0;
       e.hp = Math.min(e.max, e.hp + e.max * .045);
       fx({ kind: "ring", x: e.x, y: e.y, r0: 8, r1: e.rad * 3, life: .45, col });
       float(e.x, e.y - e.rad * 2, "abgestreift", col, .9);
@@ -5106,6 +5323,25 @@ function zeichneGeschoss(g, s, zeit) {
    Gezählt wird nur bei laufender Messung. Im Spiel kosten diese Zeilen
    nichts, weil G.messen dort falsch ist. */
 function applyStatus(e, st, quelle) {
+  /* Gift ist kein zweiter Brand.
+
+     Brand nimmt bei jedem Treffer das Maximum: Zehnmal getroffen ist so
+     schlimm wie einmal. Gift SUMMIERT sich — jeder Treffer legt eine
+     Schwade nach, bis zur Sättigung. Damit ist es das Gegenteil eines
+     Wächters, der einmal hart zuschlägt: Es lohnt sich nur, wenn dauerhaft
+     draufgehalten wird, und es wirkt erst nach einer Weile.
+
+     Die Grenze ist das Vierfache einer einzelnen Schwade. Acht waren es im
+     ersten Anlauf, und das war zu viel: Bei Feuerrate 1,1 und fünf Sekunden
+     Dauer landet ein einzelner Wächter fünf Treffer im offenen Fenster, käme
+     also fast an die Grenze — und weil die Schwade eine Fläche trifft, läge
+     das an einer ganzen Gruppe an. Vier bedeutet, dass die Wirkung nach rund
+     vier Sekunden steht und nicht weiter wächst. */
+  if (st.gift) {
+    const eine = st.gift.dps * (1 + boon("burn") * .4);
+    e.gift = Math.min(eine * 4, (e.gift || 0) + eine);
+    e.giftT = Math.max(e.giftT || 0, st.gift.dur);
+  }
   if (st.burn) {
     e.burn = Math.max(e.burn || 0, st.burn.dps * (1 + boon("burn") * .6));
     e.burnT = Math.max(e.burnT || 0, st.burn.dur);
@@ -5190,7 +5426,7 @@ function spawnEnemy(s, hp, spd, bounty, boss, d, isSplit) {
     /* Gegner des Heimtyps sind auf dieser Karte ebenfalls zu Hause. Ohne das
        wäre der Heimvorteil ein reines Geschenk statt einer Eigenheit. */
     heimstark: heimTyp() === s.type,
-    burn: 0, burnT: 0, slow: 0, slowT: 0, rootT: 0, mark: 0, markT: 0, wetT: 0,
+    burn: 0, burnT: 0, gift: 0, giftT: 0, slow: 0, slowT: 0, rootT: 0, mark: 0, markT: 0, wetT: 0,
     shield: 0, shieldMax: 0, shieldT: 0, abT: 0, comboT: 0,
     wob: Math.random() * 9, dead: false, dir: 1, walk: 0, isSplit: !!isSplit,
     off: (Math.random() - .5) * TILE * (boss ? .2 : .46),
@@ -5216,6 +5452,17 @@ function update(dt) {
   for (const e of G.enemies) {
     if (e.dead) continue;
     if (e.burnT > 0) { e.burnT -= dt; damage(e, e.burn * dt, "fire", null); if (e.dead) continue; }
+    /* Gift zehrt als Pflanzenschaden und klingt ab, wenn die Zeit ausläuft —
+       nicht schlagartig, sondern indem der Stapel zurückfällt. Ein Gegner,
+       der aus der Wolke läuft, ist nicht sofort gesund. */
+    if (e.giftT > 0) {
+      e.giftT -= dt;
+      damage(e, (e.gift || 0) * dt, "grass", null, true);
+      if (e.dead) continue;
+    } else if (e.gift) {
+      e.gift = Math.max(0, e.gift - e.gift * 2.2 * dt);
+      if (e.gift < .5) e.gift = 0;
+    }
     if (e.slowT > 0) e.slowT -= dt; else e.slow = 0;
     if (e.wetT > 0) e.wetT -= dt;
     if (e.comboT > 0) e.comboT -= dt;
@@ -8523,6 +8770,7 @@ function traits(st, def) {
   const out = [];
   if (st.splash) out.push("Fläche " + st.splash);
   if (st.burn) out.push("Brand " + st.burn.dps + "/s");
+  if (st.gift) out.push("Gift " + st.gift.dps + "/s, stapelt 4×, ignoriert Panzerung");
   if (st.slow) out.push("Verlangsamt " + Math.round(st.slow.amt * 100) + "%");
   if (st.root) out.push("Fesselt " + Math.round(st.root.p * 100) + "%");
   if (st.chain) out.push("Kette ×" + st.chain);
@@ -8601,6 +8849,10 @@ function estimateDefense(groups) {
       const abstand = Math.max(1, (g.gap || .5) * spd);
       if (st.splash) proSchuss *= Math.min(g.count, 1 + (2 * st.splash) / abstand);
       if (st.chain)  proSchuss *= Math.min(g.count, 1 + st.chain + boon("chain"));
+      /* Gift geht an der Panzerung vorbei und stapelt — die Vorschau muss es
+         mitrechnen, sonst hält sie einen Wächter mit Schaden 4 für wirkungslos
+         und meldet eine Welle als knapp, die längst steht. */
+      if (st.gift) proSchuss += st.gift.dps * 4 * Math.min(st.gift.dur, sek) / Math.max(.5, sek);
       dmg += proSchuss * st.rate * sek;
     }
     // gegen die Lebenspunkte der ganzen Gruppe, nicht eines Einzelnen
@@ -8988,15 +9240,14 @@ function menuHTML() {
         const drin = gewaehlt.includes(d.id);
         /* Wie stark die Familie gegen die Wilden dieser Route steht:
            Mittel der Typwirkung über alle Elemente, die hier vorkommen. */
-        const wilde = karte.wilde || Object.keys(TYPES);
-        const wirkung = wilde.reduce((a, t) => a + eff(d.type, t), 0) / wilde.length;
+        const wirkung = familienWert(d, karte);
         const tot = d.type === "water" && !wasser;
         return `<button class="tal" data-id="${d.id}" data-max="${drin ? 1 : 0}"
             style="${drin ? "border-color:var(--acc)" : "opacity:.55"}">
           <div class="tn"><span>${drin ? "✓ " : ""}${d.tiers[0].name}</span>
             <span class="pips" style="color:${TYPES[d.type].col}">${TYPES[d.type].name}</span></div>
           <div class="td">${tot ? "Ohne Wasserstelle hier nicht setzbar"
-            : "Wirkung gegen diese Fauna ×" + wirkung.toFixed(2)}${d.air ? "" : " · nur Boden"}</div>
+            : "Eignung für diese Route " + wirkung.toFixed(2)}${d.air ? "" : " · nur Boden"}</div>
         </button>`; }).join("")}</div>
       <p class="empty" style="margin-top:8px">Höchstens ${WAECHTER_JE_KARTE} Wächter stehen gleichzeitig auf einer Route.</p>
     </section>`;

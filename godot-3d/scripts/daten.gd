@@ -163,6 +163,16 @@ const WAECHTER := [
 		],
 	},
 	{
+		"id": "marco", "typ": "grass", "gestalt": "marco",
+		"luft": true,
+		"beschreibung": "Pustet Rauch: bremst und vergiftet. Kaum eigener Schaden.",
+		"stufen": [
+			{ "name": "Marco Bongkopf", "kosten": 135, "schaden": 4, "rate": 1, "reichweite": 132, "flaeche": 40, "bremse": { "amt": 0.22, "dur": 1.8 } },
+			{ "name": "Marco Blaudunst", "kosten": 200, "schaden": 8, "rate": 1.1, "reichweite": 158, "flaeche": 54, "bremse": { "amt": 0.34, "dur": 2.2 } },
+			{ "name": "Marco Nebelfürst", "kosten": 345, "schaden": 15, "rate": 1.2, "reichweite": 184, "flaeche": 70, "bremse": { "amt": 0.46, "dur": 2.8 } },
+		],
+	},
+	{
 		"id": "legend", "typ": "legend", "gestalt": "thron",
 		"luft": true, "legendaer": true,
 		"beschreibung": "Kennt weder Schwäche noch Vorteil — trifft alles gleich hart.",

@@ -78,6 +78,17 @@ function nebenwirkung(stufe, gruppen) {
   if (stufe.slow) f *= 1 + stufe.slow.amt * 0.75;
   if (stufe.root) f *= 1 + stufe.root.p * 1.6;
   if (stufe.burn) f *= 1 + Math.min(0.5, stufe.burn.dps / 60);
+  /* Gift zählt anders als Brand, weil es sich stapelt: Der Wert hängt nicht
+     an einer Schwade, sondern an dem, was bei anhaltendem Feuer zusammen-
+     kommt. Angesetzt sind vier Stapel — die Grenze liegt bei acht, und die
+     erreicht nur ein Wächter, der die ganze Zeit auf dasselbe Ziel hält.
+
+     Ohne diese Zeile sähe der Bot bei Marco Bongkopf nur seinen Schaden von
+     vier und baute ihn nie. Er hätte damit gemessen, dass die Familie
+     wertlos ist — was nur hieße, dass sein Maß ihre einzige Wirkung nicht
+     kennt. Genau dieser Fehler hat schon einmal acht Familien scheinbar
+     entwertet. */
+  if (stufe.gift) f *= 1 + Math.min(1.6, (stufe.gift.dps * 4 * stufe.gift.dur) / 220);
   if (stufe.chain) f *= 1 + stufe.chain * 0.28;
   if (stufe.mark) f *= 1 + stufe.mark * 0.8;
   if (stufe.pierce) {

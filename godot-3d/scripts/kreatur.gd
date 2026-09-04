@@ -199,6 +199,27 @@ static func baue(eltern: Node3D, form: String, farbe: Color, groesse: float,
 			ring.inner_radius = 0.34 * g
 			ring.outer_radius = 0.40 * g
 			_teil(koerper, ring, Vector3(0, 0.72 * g, 0), hell, Vector3(0.4, 0, 0.3), 0.5)
+		"marco":
+			# Marco Bongkopf: Lockenmähne aus überlappenden Kugeln, dazu die
+			# Bong neben dem Körper. Bei der Kameradistanz der 3D-Fassung ist
+			# die Silhouette alles, was ankommt — also ein voluminöser Schopf
+			# und ein senkrechter Gegenstand daneben.
+			for i in range(9):
+				var w3 := PI * (-1.05 + float(i) / 8.0 * 1.30)
+				_teil(koerper, _kugel(0.15 * g),
+					Vector3(cos(w3) * 0.34 * g, kopf_y + 0.20 * g + sin(w3) * 0.26 * g,
+						-0.06 * g),
+					Color(0.23, 0.15, 0.09).srgb_to_linear())
+			# Standkolben, Rohr, Mundstück
+			_teil(koerper, _kugel(0.15 * g), Vector3(0.44 * g, 0.22 * g, 0.10 * g),
+				Color(0.62, 0.83, 0.85).srgb_to_linear(), Vector3.ZERO, 0.4)
+			_teil(koerper, _quader(0.10 * g, 0.52 * g, 0.10 * g),
+				Vector3(0.44 * g, 0.60 * g, 0.10 * g),
+				Color(0.62, 0.83, 0.85).srgb_to_linear(), Vector3.ZERO, 0.4)
+			# Kopf am Seitenstutzen, glimmend
+			_teil(koerper, _kegel(0.09 * g, 0.14 * g),
+				Vector3(0.62 * g, 0.56 * g, 0.10 * g),
+				Color(1.0, 0.54, 0.24).srgb_to_linear(), Vector3(0, 0, -0.9), 1.1)
 		"hueter", "thron":
 			# Der legendäre Wächter: kein Gesicht, ein Visierschlitz, und über
 			# dem Haupt eine Krone aus Splittern.

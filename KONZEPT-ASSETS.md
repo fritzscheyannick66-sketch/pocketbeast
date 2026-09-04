@@ -1,6 +1,6 @@
 # PocketBeast — Konzept für die Assetgenerierung
 
-Stand: 2026-08-29. Erzeugt aus `index.html` mit `node tools/konzept-bauen.js` —
+Stand: 2026-09-04. Erzeugt aus `index.html` mit `node tools/konzept-bauen.js` —
 die Tabellen sind der tatsächliche Spielinhalt, keine Wunschliste.
 
 ---
@@ -151,6 +151,14 @@ höheren Kranz in Elementfarbe und ein Zeichen des Elements.
 - **Rolle:** Feuert unaufhörlich über große Weite und findet dabei jede Lücke im Panzer.
 - **Meganame:** —
 
+### Marco Bongkopf → Marco Blaudunst → Marco Nebelfürst
+
+- **Element:** Pflanze (`#57CE7C`)
+- **Gestalt:** marco
+- **Trifft Flieger:** ja
+- **Rolle:** Pustet Rauch: bremst und vergiftet. Kaum eigener Schaden.
+- **Meganame:** Urwaldwächter
+
 ### Megaentwicklung
 
 Die vierte Stufe. Ein Drittel größer als Stufe 3, neun statt sieben
@@ -267,6 +275,7 @@ nur einmal — die Elementfarbe unterscheidet die Träger.
 | `falke` | Greifvogelartig. Hoch und schmal, angelegte Schwingen, schmaler Kopf, Hakenschnabel, Augenstreif. |
 | `fish` | Fischartig. Spindelförmig, Schwanzflosse, Rückenflosse, Brustflossen, Schuppen. |
 | `fox` | Fuchsartig. Schlanker als die Katze, sehr große spitze Ohren, buschiger Schweif, keilförmige Schnauze. |
+| `marco` | — |
 | `moth` | Falterartig. Schmaler Leib, zwei große gemusterte Flügelpaare, gefiederte Fühler, Flauschkragen. |
 | `owl` | Eulenartig. Rund und gedrungen, Federohren, Gesichtsscheiben, kurzer Schnabel, angelegte Flügel. |
 | `ox` | Ochsenartig. Breit und schwer, geschwungene helle Hörner, kurze Schnauze mit Nüstern, Rückenplatten. |
@@ -288,7 +297,7 @@ Bewuchs, eigenes Wetter und einen eigenen Himmel.
 ### Grünpfad
 
 - **Heimatelement:** Pflanze
-- **Grad:** Ruhig
+- **Grad:** Sanft
 - **Boden:** `#1E3324` bis `#27422C`, Weg `#9C7B54`
 - **Himmel:** `#3E5C6B` bis `#7C9689`
 - **Bewuchs:** grass, bush, conifer, broadleaf, flower, mushroom, rock
@@ -298,7 +307,7 @@ Bewuchs, eigenes Wetter und einen eigenen Himmel.
 ### Glutschlucht
 
 - **Heimatelement:** Feuer
-- **Grad:** Fordernd
+- **Grad:** Ruhig
 - **Boden:** `#241310` bis `#331914`, Weg `#9E7359`
 - **Himmel:** `#3B1F1E` bis `#8F5238`
 - **Bewuchs:** grass, rock, deadtree, crystalrock, vent
@@ -308,7 +317,7 @@ Bewuchs, eigenes Wetter und einen eigenen Himmel.
 ### Flutruine
 
 - **Heimatelement:** Wasser
-- **Grad:** Brutal
+- **Grad:** Ruhig
 - **Boden:** `#1B2B3A` bis `#223447`, Weg `#6D7E8E`
 - **Himmel:** `#33505F` bis `#7690A0`
 - **Bewuchs:** grass, rubble, rock, pillar, pool, broadleaf
@@ -338,7 +347,7 @@ Bewuchs, eigenes Wetter und einen eigenen Himmel.
 ### Traumhain
 
 - **Heimatelement:** Psycho
-- **Grad:** Ruhig
+- **Grad:** Fordernd
 - **Boden:** `#2E2440` bis `#3A2E50`, Weg `#9C8AB4`
 - **Himmel:** `#4A3A62` bis `#9A86B4`
 - **Bewuchs:** grass, mushroom, broadleaf, flower, bush, wisp
@@ -348,7 +357,7 @@ Bewuchs, eigenes Wetter und einen eigenen Himmel.
 ### Firnfeld
 
 - **Heimatelement:** Eis
-- **Grad:** Fordernd
+- **Grad:** Hart
 - **Boden:** `#3E4C5A` bis `#4E5E6E`, Weg `#B4BEC8`
 - **Himmel:** `#54687E` bis `#AEC2D4`
 - **Bewuchs:** conifer, rock, deadtree, crystalrock, grass, bush
@@ -358,7 +367,7 @@ Bewuchs, eigenes Wetter und einen eigenen Himmel.
 ### Erzwerk
 
 - **Heimatelement:** Stahl
-- **Grad:** Brutal
+- **Grad:** Hart
 - **Boden:** `#32363C` bis `#3E434A`, Weg `#8E8E92`
 - **Himmel:** `#3A4048` bis `#7E868E`
 - **Bewuchs:** rubble, rock, pillar, deadtree, crystalrock, grass
@@ -368,7 +377,7 @@ Bewuchs, eigenes Wetter und einen eigenen Himmel.
 ### Glanzwiese
 
 - **Heimatelement:** Fee
-- **Grad:** Ruhig
+- **Grad:** Hart
 - **Boden:** `#3E3448` bis `#4C4058`, Weg `#C4A8B4`
 - **Himmel:** `#6E5A72` bis `#C4A8BE`
 - **Bewuchs:** flower, grass, broadleaf, bush, mushroom, wisp
@@ -388,7 +397,7 @@ Bewuchs, eigenes Wetter und einen eigenen Himmel.
 ### Böenkuppe
 
 - **Heimatelement:** Wind
-- **Grad:** Fordernd
+- **Grad:** Erbarmungslos
 - **Boden:** `#3A4A44` bis `#485A52`, Weg `#AEA890`
 - **Himmel:** `#5A7280` bis `#A6C0C6`
 - **Bewuchs:** grass, bush, conifer, rock, deadtree, flower
@@ -459,7 +468,7 @@ Dazu Umgebung je Karte: Wald, Regen, Wind, Feuer, Höhle.
 
 **Was zuerst gebraucht wird**, wenn nicht alles auf einmal entsteht:
 
-1. Die 17 Gestalten, je in drei Stufen — das sind die Figuren, die man
+1. Die 18 Gestalten, je in drei Stufen — das sind die Figuren, die man
    dauernd ansieht.
 2. Die elf legendären Wächter — sie sind das Ziel des Spiels.
 3. Boden und Weg je Karte.
