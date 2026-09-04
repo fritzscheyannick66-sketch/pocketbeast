@@ -8,7 +8,7 @@ extends RefCounted
 ## Wer hier etwas ändert, verliert es beim nächsten Lauf. Die Werte
 ## gehören ins Browserspiel; diese Datei zieht nach.
 ##
-## Stand: 2026-08-29
+## Stand: 2026-09-04
 ##
 
 ## Elementfarben. Dieselben Hexwerte wie im Browserspiel, damit ein
@@ -252,6 +252,7 @@ const KARTEN := [
 		"name": "Grünpfad", "grad": "Sanft",
 		"faktor": 1, "beeren": 320, "leben": 24,
 		"heim": "grass", "wetter": "pollen",
+		"wilde": ["grass", "water", "fire"],
 		"boden": [Color("#1E3324"), Color("#27422C")],
 		"weg": Color("#9C7B54"), "wegkante": Color("#41301F"),
 		"laub": Color("#4E9257"), "himmel": [Color("#3E5C6B"), Color("#7C9689")],
@@ -265,6 +266,7 @@ const KARTEN := [
 		"name": "Glutschlucht", "grad": "Ruhig",
 		"faktor": 1.35, "beeren": 300, "leben": 20,
 		"heim": "fire", "wetter": "embers",
+		"wilde": ["grass", "water", "fire", "electric"],
 		"boden": [Color("#241310"), Color("#331914")],
 		"weg": Color("#9E7359"), "wegkante": Color("#241509"),
 		"laub": Color("#8E5730"), "himmel": [Color("#3B1F1E"), Color("#8F5238")],
@@ -277,6 +279,7 @@ const KARTEN := [
 		"name": "Flutruine", "grad": "Ruhig",
 		"faktor": 1.65, "beeren": 340, "leben": 19,
 		"heim": "water", "wetter": "rain",
+		"wilde": ["grass", "water", "fire", "electric", "rock"],
 		"boden": [Color("#1B2B3A"), Color("#223447")],
 		"weg": Color("#6D7E8E"), "wegkante": Color("#28323F"),
 		"laub": Color("#4E8878"), "himmel": [Color("#33505F"), Color("#7690A0")],
@@ -289,6 +292,7 @@ const KARTEN := [
 		"name": "Gewitterkamm", "grad": "Fordernd",
 		"faktor": 2.05, "beeren": 360, "leben": 19,
 		"heim": "electric", "wetter": "storm",
+		"wilde": ["grass", "water", "fire", "electric", "rock", "ice"],
 		"boden": [Color("#2A2E3C"), Color("#353B4C")],
 		"weg": Color("#8C8474"), "wegkante": Color("#3A362C"),
 		"laub": Color("#6B7A96"), "himmel": [Color("#2F3A52"), Color("#6E7B96")],
@@ -301,6 +305,7 @@ const KARTEN := [
 		"name": "Steinkessel", "grad": "Fordernd",
 		"faktor": 2.55, "beeren": 390, "leben": 18,
 		"heim": "rock", "wetter": "dust",
+		"wilde": ["grass", "water", "fire", "electric", "rock", "ice", "wind"],
 		"boden": [Color("#3A342C"), Color("#463E34")],
 		"weg": Color("#A89478"), "wegkante": Color("#4A4034"),
 		"laub": Color("#7A6E5A"), "himmel": [Color("#4A4038"), Color("#8C7E6C")],
@@ -313,6 +318,7 @@ const KARTEN := [
 		"name": "Traumhain", "grad": "Fordernd",
 		"faktor": 3.2, "beeren": 420, "leben": 18,
 		"heim": "psychic", "wetter": "traum",
+		"wilde": ["grass", "water", "fire", "electric", "rock", "ice", "wind", "psychic"],
 		"boden": [Color("#2E2440"), Color("#3A2E50")],
 		"weg": Color("#9C8AB4"), "wegkante": Color("#40325A"),
 		"laub": Color("#8A6EB4"), "himmel": [Color("#4A3A62"), Color("#9A86B4")],
@@ -325,6 +331,7 @@ const KARTEN := [
 		"name": "Firnfeld", "grad": "Hart",
 		"faktor": 4.05, "beeren": 450, "leben": 17,
 		"heim": "ice", "wetter": "snow",
+		"wilde": ["grass", "water", "fire", "electric", "rock", "ice", "wind", "psychic", "steel"],
 		"boden": [Color("#3E4C5A"), Color("#4E5E6E")],
 		"weg": Color("#B4BEC8"), "wegkante": Color("#4E5866"),
 		"laub": Color("#96AABE"), "himmel": [Color("#54687E"), Color("#AEC2D4")],
@@ -337,6 +344,7 @@ const KARTEN := [
 		"name": "Erzwerk", "grad": "Hart",
 		"faktor": 5.2, "beeren": 490, "leben": 17,
 		"heim": "steel", "wetter": "russ",
+		"wilde": ["grass", "water", "fire", "electric", "rock", "ice", "wind", "psychic", "steel", "fairy"],
 		"boden": [Color("#32363C"), Color("#3E434A")],
 		"weg": Color("#8E8E92"), "wegkante": Color("#3A3C40"),
 		"laub": Color("#78828E"), "himmel": [Color("#3A4048"), Color("#7E868E")],
@@ -349,6 +357,7 @@ const KARTEN := [
 		"name": "Glanzwiese", "grad": "Hart",
 		"faktor": 6.9, "beeren": 530, "leben": 16,
 		"heim": "fairy", "wetter": "sun",
+		"wilde": ["grass", "water", "fire", "electric", "rock", "ice", "wind", "psychic", "steel", "fairy", "dark"],
 		"boden": [Color("#3E3448"), Color("#4C4058")],
 		"weg": Color("#C4A8B4"), "wegkante": Color("#584A5E"),
 		"laub": Color("#B48ABE"), "himmel": [Color("#6E5A72"), Color("#C4A8BE")],
@@ -361,6 +370,7 @@ const KARTEN := [
 		"name": "Nachtgrund", "grad": "Brutal",
 		"faktor": 9.4, "beeren": 580, "leben": 16,
 		"heim": "dark", "wetter": "fog",
+		"wilde": ["grass", "water", "fire", "electric", "rock", "ice", "wind", "psychic", "steel", "fairy", "dark"],
 		"boden": [Color("#1A1622"), Color("#221E2E")],
 		"weg": Color("#6E6478"), "wegkante": Color("#2A2434"),
 		"laub": Color("#5A4C72"), "himmel": [Color("#1E1A2A"), Color("#453C58")],
@@ -373,6 +383,7 @@ const KARTEN := [
 		"name": "Böenkuppe", "grad": "Erbarmungslos",
 		"faktor": 13, "beeren": 640, "leben": 15,
 		"heim": "wind", "wetter": "boen",
+		"wilde": ["grass", "water", "fire", "electric", "rock", "ice", "wind", "psychic", "steel", "fairy", "dark"],
 		"boden": [Color("#3A4A44"), Color("#485A52")],
 		"weg": Color("#AEA890"), "wegkante": Color("#4A4A3C"),
 		"laub": Color("#8AA69A"), "himmel": [Color("#5A7280"), Color("#A6C0C6")],

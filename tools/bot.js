@@ -431,7 +431,7 @@ function spieleRunde(spiel, mapIdx, opt) {
   opt = opt || {};
   const { G } = spiel;
   const zustand = {
-    maxTuerme: opt.maxTuerme || 22,
+    maxTuerme: opt.maxTuerme || spiel.WAECHTER_JE_KARTE || 22,
     sparen: !!opt.sparen,
     megaGesamt: 0,
     letzteSegnung: 0,
@@ -471,6 +471,35 @@ function spieleRunde(spiel, mapIdx, opt) {
      Punkte gleichmäßig über alle Zweige — nicht optimal, aber das, was
      jemand tut, der nichts durchgerechnet hat. Ein Bot, der den Pfad
      optimal ausbaut, misst seine eigene Rechnung und nicht das Spiel. */
+  /* Sterne. Sie entscheiden, welche Wächterfamilien überhaupt zur Verfügung
+     stehen — vier von Anfang an, sieben über Sterne.
+
+     Ohne Angabe bekommt der Bot alle: Die vorhandenen Werkzeuge messen
+     Balance, nicht Fortschritt, und sollen dabei dasselbe Spiel sehen wie
+     vorher. Der Feldzugsmodus setzt die Zahl ausdrücklich auf das, was man
+     an dieser Stelle der Kampagne hätte. */
+  {
+    const alleSterne = opt.sterne === undefined
+      ? spiel.MAPS.length * spiel.WELLEN_JE_KARTE
+      : opt.sterne;
+    spiel.save.sterne = {};
+    let rest = alleSterne;
+    for (let i = 0; i < spiel.MAPS.length && rest > 0; i++) {
+      const nimm = Math.min(spiel.WELLEN_JE_KARTE, rest);
+      spiel.save.sterne[i] = nimm;
+      rest -= nimm;
+    }
+  }
+
+  /* Aufstellung. Acht Familien je Route, sobald mehr freigeschaltet sind —
+     der Bot nimmt dieselbe Vorbelegung, die das Spiel vorschlägt: die acht
+     mit der besten Typwirkung gegen die Fauna dieser Karte.
+
+     Damit misst er, was ein Spieler tut, der die Vorauswahl übernimmt. Ein
+     Bot, der sich seine acht selbst optimiert, misst seine eigene Rechnung. */
+  spiel.save.aufstellung = {};
+  if (spiel.aufstellungFuer) spiel.aufstellungFuer(mapIdx);
+
   if (opt.talente) {
     const raenge = {};
     if (typeof opt.talente === "object") {

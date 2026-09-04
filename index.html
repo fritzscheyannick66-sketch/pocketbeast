@@ -436,6 +436,8 @@ canvas{display:block;width:100%;height:auto;touch-action:manipulation}
 
 .helpgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 @media (max-width:640px){.helpgrid{grid-template-columns:1fr}}
+.card[data-zu="1"]{opacity:.42;filter:grayscale(.7);cursor:not-allowed}
+.card[data-zu="1"] .cost{color:#F5C542}
 .talents{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:8px}
 .tal .naechst{opacity:.62;font-size:11px;margin-top:2px}
 .tal{background:var(--panel-2);border:1px solid var(--line);border-radius:10px;padding:9px;text-align:left;cursor:pointer;transition:border-color .15s}
@@ -743,7 +745,8 @@ const LEGENDAER_ID = "legend";
 
 const TOWERS = [
   {
-    id: "fire", type: "fire", shape: "cat", air: true,
+    id: "fire",
+    stern: 0, type: "fire", shape: "cat", air: true,
     blurb: "Schnelle Einzelziele, entzündet Gegner.",
     tiers: [
       { name: "Zündling",    cost: 90,  dmg: 12, rate: 1.6, range: 86 },
@@ -752,7 +755,8 @@ const TOWERS = [
     ],
   },
   {
-    id: "water", type: "water", shape: "drop", air: true,
+    id: "water",
+    stern: 0, type: "water", shape: "drop", air: true,
     blurb: "Flächenschaden, verlangsamt alles im Umkreis.",
     tiers: [
       { name: "Tröpfling",   cost: 110, dmg: 14, rate: 1.0,  range: 140, splash: 36, slow: { amt: .2, dur: 1.2 } },
@@ -761,7 +765,8 @@ const TOWERS = [
     ],
   },
   {
-    id: "grass", type: "grass", shape: "sprout", air: true,
+    id: "grass",
+    stern: 0, type: "grass", shape: "sprout", air: true,
     blurb: "Günstig und verlässlich, fesselt mit Ranken.",
     tiers: [
       { name: "Keimling",    cost: 65,  dmg: 10, rate: 1.3, range: 104 },
@@ -770,7 +775,8 @@ const TOWERS = [
     ],
   },
   {
-    id: "electric", type: "electric", shape: "fox", air: true,
+    id: "electric",
+    stern: 0, type: "electric", shape: "fox", air: true,
     blurb: "Feuert sehr schnell, Blitze springen weiter.",
     tiers: [
       { name: "Blitzmilbe",   cost: 100, dmg: 7,  rate: 3.2, range: 121 },
@@ -779,7 +785,8 @@ const TOWERS = [
     ],
   },
   {
-    id: "rock", type: "rock", shape: "ox", air: false,
+    id: "rock",
+    stern: 20, type: "rock", shape: "ox", air: false,
     blurb: "Wuchtige Erschütterung — trifft keine Flieger.",
     tiers: [
       { name: "Kiesling",      cost: 130, dmg: 34,  rate: .55, range: 169, splash: 52 },
@@ -788,7 +795,8 @@ const TOWERS = [
     ],
   },
   {
-    id: "psychic", type: "psychic", shape: "owl", air: true,
+    id: "psychic",
+    stern: 220, type: "psychic", shape: "owl", air: true,
     blurb: "Stärkt benachbarte Wächter und markiert Ziele.",
     tiers: [
       { name: "Traumflaum", cost: 150, dmg: 9,  rate: .9,  range: 180, aura: { dmg: .10, rng: .08 } },
@@ -799,7 +807,7 @@ const TOWERS = [
   {
     /* Eis: die stärkste Verlangsamung im Spiel bei geringem Schaden — ein
        Unterstützer, der Wellen vor den Schadensträgern staut. */
-    id: "ice", type: "ice", shape: "zottel", air: true,
+    id: "ice", stern: 35, type: "ice", shape: "zottel", air: true,
     blurb: "Friert Gegner ein — die stärkste Verlangsamung.",
     tiers: [
       { name: "Frostfell",   cost: 105, dmg: 9,  rate: 1.1, range: 147, splash: 30, slow: { amt: .3,  dur: 1.6 } },
@@ -810,7 +818,7 @@ const TOWERS = [
   {
     /* Stahl: langsam, aber jeder Treffer sitzt und durchschlägt Panzerung.
        Das Gegenstück zum Elektro-Wächter, der viele schwache Treffer setzt. */
-    id: "steel", type: "steel", shape: "bolzen", air: false,
+    id: "steel", stern: 80, type: "steel", shape: "bolzen", air: false,
     blurb: "Schwere Treffer, durchschlägt Panzerung — bodengebunden.",
     tiers: [
       { name: "Nietling",    cost: 140, dmg: 40,  rate: .7,  range: 92, pierce: 6 },
@@ -821,7 +829,7 @@ const TOWERS = [
   {
     /* Fee: heilt keine Wunden, sondern schwächt — markiert Ziele und trifft
        Unlicht hart. Entwickeln nur bei Tag: nachts ruht die Kraft. */
-    id: "fairy", type: "fairy", shape: "wisp", air: true,
+    id: "fairy", stern: 160, type: "fairy", shape: "wisp", air: true,
     nurBei: "tag",
     blurb: "Markiert Ziele und bricht Unlicht — entwickelt sich nur am Tag.",
     tiers: [
@@ -833,7 +841,7 @@ const TOWERS = [
   {
     /* Unlicht: schlägt aus dem Hinterhalt, hoher Einzelschaden mit Brandwirkung.
        Entwickeln nur bei Nacht. */
-    id: "dark", type: "dark", shape: "eye", air: true,
+    id: "dark", stern: 110, type: "dark", shape: "eye", air: true,
     nurBei: "nacht",
     blurb: "Schlägt hart aus dem Dunkel — entwickelt sich nur nachts.",
     tiers: [
@@ -857,7 +865,7 @@ const TOWERS = [
 
        Keine Fläche, keine Kette, kein Brand — reines Einzelziel. Seine
        Stärke ist, dass er nie aufhört zu feuern. */
-    id: "wind", type: "wind", shape: "falke", air: true,
+    id: "wind", stern: 55, type: "wind", shape: "falke", air: true,
     /* Stärker gemacht, und zwar an der Stelle, an der es nötig war.
 
        Gerechnet gegen die tatsächliche Gegnermischung später Wellen — 480
@@ -894,7 +902,7 @@ const TOWERS = [
        Bewusst ohne Tag- oder Nachtbindung: im Endlosmodus laufen die Wellen
        unbegrenzt weiter, und ein Wächter, der die halbe Zeit ruht, wäre dort
        kein Anker, sondern ein Ärgernis. */
-    id: "legend", type: "legend", shape: "thron", air: true,
+    id: "legend", stern: 0, type: "legend", shape: "thron", air: true,
     legendaer: true,
     blurb: "Kennt weder Schwäche noch Vorteil — trifft alles gleich hart.",
     tiers: [
@@ -1133,6 +1141,7 @@ const MAPS = [
       namen: ["Hainhüter", "Waldwächter", "Wurzelthron"],
       text: "Der Hüter des Grünpfads — hier gewachsen, hier verwurzelt." },
     name: "Grünpfad", diff: "Sanft", mul: 1.0, gold: 320, lives: 24,
+    wilde: ["grass", "water", "fire"],
     himmel: ["#3E5C6B", "#7C9689"],
     ground: ["#1E3324", "#27422C"], accent: "#4A7350", foliage: "#4E9257",
     path: "#9C7B54", pathEdge: "#41301F", soil: "#BFA173",
@@ -1204,6 +1213,7 @@ const MAPS = [
       namen: ["Aschehüter", "Glutwächter", "Schlundthron"],
       text: "Aus der Asche der Schlucht erwacht — er kennt kein Verlöschen." },
     name: "Glutschlucht", diff: "Ruhig", mul: 1.35, gold: 300, lives: 20,
+    wilde: ["grass", "water", "fire", "electric"],
     himmel: ["#3B1F1E", "#8F5238"],
     ground: ["#241310", "#331914"], accent: "#7A452E", foliage: "#8E5730",
     path: "#9E7359", pathEdge: "#241509", soil: "#C49170",
@@ -1262,6 +1272,7 @@ const MAPS = [
       namen: ["Tiefenhüter", "Flutwächter", "Strömungsthron"],
       text: "Was in der Ruine versank, wacht wieder — und hält die Flut." },
     name: "Flutruine", diff: "Ruhig", mul: 1.65, gold: 340, lives: 19,
+    wilde: ["grass", "water", "fire", "electric", "rock"],
     himmel: ["#33505F", "#7690A0"],
     ground: ["#1B2B3A", "#223447"], accent: "#3A5C78", foliage: "#4E8878",
     path: "#6D7E8E", pathEdge: "#28323F", soil: "#93A5B6",
@@ -1282,6 +1293,7 @@ const MAPS = [
       text: "Über dem Kamm gebar ihn ein Schlag, der nie verhallte." },
     sonderfelder: [["hoehe", 7], ["kraft", 6], ["wasser", 4]],
     name: "Gewitterkamm", diff: "Fordernd", mul: 2.05, gold: 360, lives: 19,
+    wilde: ["grass", "water", "fire", "electric", "rock", "ice"],
     himmel: ["#2F3A52", "#6E7B96"],
     ground: ["#2A2E3C", "#353B4C"], accent: "#5A6480", foliage: "#6B7A96",
     path: "#8C8474", pathEdge: "#3A362C", soil: "#B6AE96",
@@ -1300,6 +1312,7 @@ const MAPS = [
       text: "Er stand schon, als der Kessel noch Meer war." },
     sonderfelder: [["hoehe", 6], ["kraft", 6], ["wasser", 4]],
     name: "Steinkessel", diff: "Fordernd", mul: 2.55, gold: 390, lives: 18,
+    wilde: ["grass", "water", "fire", "electric", "rock", "ice", "wind"],
     himmel: ["#4A4038", "#8C7E6C"],
     ground: ["#3A342C", "#463E34"], accent: "#6E6252", foliage: "#7A6E5A",
     path: "#A89478", pathEdge: "#4A4034", soil: "#C6B294",
@@ -1318,6 +1331,7 @@ const MAPS = [
       text: "Er träumt den Hain, und der Hain träumt ihn." },
     sonderfelder: [["kraft", 7], ["wasser", 5], ["hoehe", 3]],
     name: "Traumhain", diff: "Fordernd", mul: 3.2, gold: 420, lives: 18,
+    wilde: ["grass", "water", "fire", "electric", "rock", "ice", "wind", "psychic"],
     himmel: ["#4A3A62", "#9A86B4"],
     ground: ["#2E2440", "#3A2E50"], accent: "#6A5490", foliage: "#8A6EB4",
     path: "#9C8AB4", pathEdge: "#40325A", soil: "#C4B2DC",
@@ -1336,6 +1350,7 @@ const MAPS = [
       text: "Unter dem Firn schlief er, bis die Wildnis ihn weckte." },
     sonderfelder: [["wasser", 7], ["kraft", 6], ["hoehe", 4]],
     name: "Firnfeld", diff: "Hart", mul: 4.05, gold: 450, lives: 17,
+    wilde: ["grass", "water", "fire", "electric", "rock", "ice", "wind", "psychic", "steel"],
     himmel: ["#54687E", "#AEC2D4"],
     ground: ["#3E4C5A", "#4E5E6E"], accent: "#7A8EA2", foliage: "#96AABE",
     path: "#B4BEC8", pathEdge: "#4E5866", soil: "#D6DEE6",
@@ -1354,6 +1369,7 @@ const MAPS = [
       text: "Im Erz geschmiedet, vom Erz getragen." },
     sonderfelder: [["hoehe", 5], ["kraft", 6], ["wasser", 4]],
     name: "Erzwerk", diff: "Hart", mul: 5.2, gold: 490, lives: 17,
+    wilde: ["grass", "water", "fire", "electric", "rock", "ice", "wind", "psychic", "steel", "fairy"],
     himmel: ["#3A4048", "#7E868E"],
     ground: ["#32363C", "#3E434A"], accent: "#666E78", foliage: "#78828E",
     path: "#8E8E92", pathEdge: "#3A3C40", soil: "#B2B2B6",
@@ -1372,6 +1388,7 @@ const MAPS = [
       text: "Wo er steht, wird es einen Atemzug lang heller." },
     sonderfelder: [["kraft", 6], ["wasser", 5], ["hoehe", 3]],
     name: "Glanzwiese", diff: "Hart", mul: 6.9, gold: 530, lives: 16,
+    wilde: ["grass", "water", "fire", "electric", "rock", "ice", "wind", "psychic", "steel", "fairy", "dark"],
     himmel: ["#6E5A72", "#C4A8BE"],
     ground: ["#3E3448", "#4C4058", "#4C4058"], accent: "#8A6E92", foliage: "#B48ABE",
     path: "#C4A8B4", pathEdge: "#584A5E", soil: "#E2CCD6",
@@ -1401,6 +1418,7 @@ const MAPS = [
        Unlicht-Gegner den Heimvorteil bekamen — dieselbe Änderung, die sie
        thematisch stimmig macht. */
     name: "Nachtgrund", diff: "Brutal", mul: 9.4, gold: 580, lives: 16,
+    wilde: ["grass", "water", "fire", "electric", "rock", "ice", "wind", "psychic", "steel", "fairy", "dark"],
     himmel: ["#1E1A2A", "#453C58"],
     ground: ["#1A1622", "#221E2E"], accent: "#463C58", foliage: "#5A4C72",
     path: "#6E6478", pathEdge: "#2A2434", soil: "#8E82A0",
@@ -1419,6 +1437,7 @@ const MAPS = [
       text: "Man hört ihn kommen, lange bevor man ihn sieht." },
     sonderfelder: [["hoehe", 8], ["kraft", 6], ["wasser", 4]],
     name: "Böenkuppe", diff: "Erbarmungslos", mul: 13.0, gold: 640, lives: 15,
+    wilde: ["grass", "water", "fire", "electric", "rock", "ice", "wind", "psychic", "steel", "fairy", "dark"],
     himmel: ["#5A7280", "#A6C0C6"],
     ground: ["#3A4A44", "#485A52"], accent: "#6E8A7E", foliage: "#8AA69A",
     path: "#AEA890", pathEdge: "#4A4A3C", soil: "#D2CCB2",
@@ -3162,21 +3181,53 @@ function wellenPunkte(w) {
 
    Und kein Anführer zweimal hintereinander: Fällt die Reihe auf denselben
    wie in der Vorwelle, rückt sie um einen weiter. */
+/* Auch die Anführer stammen aus der Fauna der Karte.
+
+   Vorher liefen sie durch die volle Elfer-Reihe, unabhängig davon, welche
+   Wilden die Route sonst kennt. Auf dem Grünpfad — drei Elemente, vier
+   freigeschaltete Wächterfamilien — stand auf Welle 24 ein Anführer, gegen
+   den es kein Gegenmittel gab. Gemessen: Die Runde endete dort mit zehn
+   Lebenspunkten und dreiundzwanzig ausgebauten Wächtern, also nicht an
+   Schwäche, sondern an einem Gegner aus dem falschen Element.
+
+   Der Kniff ist, die Reihenfolge zu behalten und nur den Vorrat zu
+   verkleinern: Dieselbe Welle liefert auf derselben Karte immer denselben
+   Anführer, und kein zwei Mal hintereinander denselben. */
+function bossVorrat() {
+  const fauna = G.map && G.map.wilde;
+  if (!fauna) return BOSSES;
+  const eigene = BOSSES.filter(b => fauna.includes(b.type));
+  if (!eigene.length) return BOSSES;
+  /* Nach Panzerung sortiert, die weichen zuerst.
+
+     Panzerung wird je Treffer abgezogen, nicht multipliziert — deshalb trifft
+     sie früh viel härter als spät. Ein Keimling mit zehn Schaden macht gegen
+     Panzerung 11 noch 1,8, ein ausgebauter Wächter mit 300 Schaden verliert
+     kaum etwas. Ein gepanzerter Anführer auf Welle 16 ist also nicht "etwas
+     schwerer", sondern eine Wand.
+
+     Die Reihenfolge war vorher die der Deklaration, also willkürlich. */
+  return eigene.slice().sort((a, b) =>
+    ((a.armor || 0) - (b.armor || 0)) || (a.hp - b.hp));
+}
 function bossFuerWelle(w) {
-  const reihe = (x) => BOSSES[(Math.floor(x / 8) - 1 + BOSSES.length) % BOSSES.length];
+  const vorrat = bossVorrat();
+  const reihe = (x) => vorrat[(Math.floor(x / 8) - 1 + vorrat.length) % vorrat.length];
   if (w === WELLEN_JE_KARTE) {
     const heim = G.map && G.map.heim;
-    const eigen = heim ? BOSSES.find(b => b.type === heim) : null;
+    const eigen = heim ? vorrat.find(b => b.type === heim) : null;
     const vor = reihe(Math.floor((w - 1) / 8) * 8);
     if (eigen && eigen !== vor) return eigen;
     // Heimatanführer stand schon in der Vorwelle: den stärksten nehmen,
     // der nicht derselbe ist. Ein Ende gegen einen Wiederholungstäter wäre
     // genau der Fehler, den diese Funktion behebt.
-    return BOSSES.filter(b => b !== vor).reduce((a, b) => (b.hp > a.hp ? b : a));
+    const andere = vorrat.filter(b => b !== vor);
+    if (!andere.length) return vor;
+    return andere.reduce((a, b) => (b.hp > a.hp ? b : a));
   }
   const b = reihe(w);
   const vor = w > 8 ? reihe(w - 8) : null;
-  return b === vor ? BOSSES[(Math.floor(w / 8)) % BOSSES.length] : b;
+  return b === vor ? vorrat[(Math.floor(w / 8)) % vorrat.length] : b;
 }
 
 /* Wellenstärke. Die Wachstumsrate fällt glatt von WAVE_R0 auf WAVE_R1:
@@ -3333,7 +3384,21 @@ function genWave(w, mul) {
      Welle 5 mit Panzerung 17, während die Wächter dieser Phase 10 bis 26
      Schaden machen. Da Panzerung pro Treffer fest abgezogen wird, war er
      praktisch unknackbar. Jetzt entscheidet der höhere der beiden Werte. */
+  /* Nicht jede Art auf jeder Karte.
+
+     Vorher liefen alle vierundvierzig Arten überall, und damit sah jede
+     Route gleich aus: dieselbe Mischung, nur andere Farben. Jetzt hat jede
+     Karte ihre eigene Fauna, und sie wächst mit der Reihe — der Grünpfad
+     kennt drei Elemente, die letzten beiden Routen alle elf.
+
+     Die Reihenfolge, in der die Elemente dazukommen, hängt an den
+     Wächtern: Ein Wilder darf erst auftauchen, wenn es den Wächter gibt,
+     der ihn kontert. Elektro-Wilde kommen auf Karte 3, weil der
+     Gesteins-Wächter bei 60 Sternen freigeschaltet ist; Fee-Wilde erst auf
+     Karte 8, weil Stahl 400 kostet. */
+  const fauna = G.map && G.map.wilde;
   const pool = SPECIES.filter(s => {
+    if (fauna && !fauna.includes(s.type)) return false;
     const hpStufe = s.hp >= 2.5 ? 3 : s.hp >= 1.4 ? 2 : 1;
     const panzerStufe = (s.armor || 0) >= 8 ? 3 : (s.armor || 0) >= 4 ? 2 : 1;
     return w >= (Math.max(hpStufe, panzerStufe) - 1) * 5;
@@ -4172,6 +4237,16 @@ function karteHatWasser() {
   return false;
 }
 
+/* Dasselbe für eine Karte, die gerade nicht läuft — das Menü muss die Frage
+   beantworten, bevor die Runde beginnt. Die Sonderfelder stehen als Arrays
+   in der Kartendefinition: ["wasser", 7, "see", [7,7]] heißt sieben
+   Wasserfelder als zusammenhängender See. */
+function karteHatWasserAuf(idx) {
+  const k = MAPS[idx];
+  if (!k || !k.sonderfelder) return false;
+  return k.sonderfelder.some(f => (Array.isArray(f) ? f[0] : f) === "wasser");
+}
+
 /* Wer darf wohin.
 
    Wasser-Wächter stehen ausschließlich auf Wasserstellen — ohne Ausnahme.
@@ -4196,9 +4271,96 @@ function darfHier(id, c, r) {
 }
 
 /* Kann diese Familie auf dieser Karte überhaupt gesetzt werden? */
+/* ---------------- Freigeschaltete Wächter ----------------
+
+   Am Anfang stehen vier: Feuer, Wasser, Pflanze, Elektro. Das ist das
+   Typendreieck plus einer, der Flieger trifft — genug, um die erste Route
+   zu halten, und wenig genug, dass die Wahl noch eine ist.
+
+   Vorher standen alle elf von der ersten Sekunde an bereit. Damit war die
+   Frage "welchen Wächter setze ich?" beantwortet, bevor sie sich stellte:
+   Man setzte gegen jede Welle den, der gerade doppelt trifft, und ein
+   Typendreieck, das man immer bedienen kann, ist keines mehr.
+
+   Die übrigen sieben kommen über Sterne, einer etwa je Route. Die
+   Reihenfolge ist nicht beliebig, sondern folgt dem, was auf den Karten
+   auftaucht — der Gesteins-Wächter kommt zuerst, weil er das Gegenmittel
+   gegen Elektro und Wind ist, und beide erscheinen früh. */
+/* ---------------- Aufstellung und Truppenstärke ----------------
+
+   ACHT FAMILIEN JE ROUTE
+
+   Freigeschaltet zu sein heißt nicht, dabei zu sein. Wer alle elf Familien
+   besitzt, wählt vor jeder Route acht davon aus. Damit ist die Wahl nicht
+   mehr "welchen setze ich als nächstes", sondern "womit gehe ich hier
+   überhaupt hinein" — und dieselbe Karte lässt sich mit verschiedenen
+   Aufstellungen verschieden lösen.
+
+   Solange weniger als acht freigeschaltet sind, gilt alles Freigeschaltete.
+   Der legendäre Wächter zählt nicht mit: Er gehört zur Karte, nicht zur
+   Aufstellung, und man hat ihn nur dort, wo man ihn erspielt hat.
+
+   FÜNFUNDVIERZIG WÄCHTER
+
+   Die Böenkuppe hat 187 freie Bauplätze. Ohne Grenze stehen dort am Ende
+   dreistellig viele Wächter, und dann ruckelt es — jeder Wächter kostet
+   Zeichenaufrufe, Zielsuche und Reichweitenprüfung, in jedem Bild.
+
+   Fünfundvierzig ist keine runde Zahl aus dem Bauch: Es ist die Grenze, mit
+   der alle Balancemessungen dieses Spiels gefahren wurden. Wäre sie im Spiel
+   höher, hätte ich die Kartenrampe gegen etwas anderes ausgelegt als das,
+   was tatsächlich spielbar ist. */
+const AUFSTELLUNG_MAX = 8;
+const WAECHTER_JE_KARTE = 45;
+
+/* Die gewählte Aufstellung einer Karte. Fehlt sie, gilt alles, was
+   freigeschaltet ist — so verhält sich das Spiel für jemanden, der noch
+   nicht acht Familien besitzt, ohne Sonderfall. */
+/* Die Aufstellung einer Karte zum Bearbeiten — mit sinnvoller Vorbelegung,
+   damit niemand vor einer leeren Liste steht. Vorgeschlagen werden die acht,
+   die gegen die Fauna dieser Route am besten dastehen; Wasser fällt weg, wo
+   es keine Wasserstelle gibt. */
+function aufstellungFuer(idx) {
+  if (!save.aufstellung) save.aufstellung = {};
+  const frei = TOWERS.filter(d => !d.legendaer && waechterFrei(d));
+  const gueltig = new Set(frei.map(d => d.id));
+  let liste = (save.aufstellung[idx] || []).filter(id => gueltig.has(id));
+  if (!liste.length) {
+    const karte = MAPS[idx];
+    const wilde = karte.wilde || Object.keys(TYPES);
+    const wasser = karteHatWasserAuf(idx);
+    liste = frei
+      .filter(d => d.type !== "water" || wasser)
+      .map(d => ({ id: d.id,
+        wert: wilde.reduce((a, t) => a + eff(d.type, t), 0) / wilde.length * (d.air ? 1.15 : 1) }))
+      .sort((a, b) => b.wert - a.wert)
+      .slice(0, AUFSTELLUNG_MAX)
+      .map(x => x.id);
+    save.aufstellung[idx] = liste;
+  }
+  return liste;
+}
+
+function aufstellung(idx) {
+  const gewaehlt = (save.aufstellung || {})[idx === undefined ? G.mapIdx : idx];
+  return Array.isArray(gewaehlt) && gewaehlt.length ? gewaehlt : null;
+}
+function inAufstellung(def) {
+  if (def.legendaer) return true;      // gehört zur Route, nicht zur Truppe
+  const gewaehlt = aufstellung();
+  return !gewaehlt || gewaehlt.includes(def.id);
+}
+
+function waechterFrei(def) {
+  if (!def) return false;
+  if (def.legendaer) return legendaerFrei(G.mapIdx);
+  return sterneGesamt() >= (def.stern || 0);
+}
 function familieSetzbar(id) {
   const def = TOWER_BY_ID[id];
   if (!def) return false;
+  if (!waechterFrei(def)) return false;
+  if (!inAufstellung(def)) return false;
   if (def.type === "water") return karteHatWasser();
   return true;
 }
@@ -4233,6 +4395,11 @@ function placeTower(id, c, r) {
 function placeTowerDef(def, c, r) {
   const id = def.id;
   const cost = def.tiers[0].cost;
+  if (G.towers.length >= WAECHTER_JE_KARTE) {
+    banner("Höchstens " + WAECHTER_JE_KARTE + " Wächter je Route");
+    sfxUI();
+    return;
+  }
   if (G.gold < cost) { warnGold(); return; }
   if (!canPlace(c, r)) return;
   if (!darfHier(id, c, r)) {
@@ -8094,7 +8261,7 @@ let feldShopStand = "";
 function feldShop() {
   const box = $("feldshop");
   if (!box) return;
-  const liste = TOWERS.filter(d => !d.legendaer || legendaerFrei(G.mapIdx));
+  const liste = TOWERS.filter(d => waechterFrei(d));
   const stand = G.mapIdx + "|" + liste.map(d => d.id).join(",");
 
   if (stand !== feldShopStand) {
@@ -8139,22 +8306,31 @@ function renderShop() {
        Wellen lang nicht anfassen kann. Im Menü steht, wie er zu bekommen ist. */
     if (d.legendaer && !legendaerFrei(G.mapIdx)) return;
     if (d.legendaer) d = legendaerDef(G.mapIdx);
+    /* Gesperrte Familien stehen sichtbar im Laden, mit ihrer Sternzahl.
+       Sie wegzulassen wäre aufgeräumter und würde verschweigen, worauf man
+       hinspielt — die Sterne sind nur dann ein Ziel, wenn man sieht, was
+       an ihnen hängt. */
+    const frei = waechterFrei(d);
     const t0 = d.tiers[0];
     const el = document.createElement("button");
     el.className = "card";
     el.dataset.id = d.id;
     el.dataset.sel = G.place === d.id ? "1" : "0";
-    el.dataset.afford = G.gold >= t0.cost ? "1" : "0";
+    el.dataset.afford = frei && G.gold >= t0.cost ? "1" : "0";
+    el.dataset.zu = frei ? "0" : "1";
+    if (!frei) el.disabled = true;
     el.innerHTML = `<div class="row1"><canvas></canvas>
       <div style="min-width:0"><div class="nm">${t0.name}</div>
       <div class="tp" style="color:${TYPES[d.type].col}">${TYPES[d.type].name} · ${i + 1}</div></div></div>
       <div style="display:flex;justify-content:space-between;align-items:center">
-        <span class="cost">${t0.cost}</span>
+        <span class="cost">${frei ? t0.cost : "★ " + d.stern}</span>
         <span class="tp" style="color:var(--muted)">${d.air ? "Luft ✓" : "nur Boden"}</span>
       </div>
-      <div class="desc">${d.blurb}</div>`;
+      <div class="desc">${frei ? d.blurb
+        : `Verschlossen — ${d.stern - sterneGesamt()} Sterne fehlen noch.`}</div>`;
     iconInto(el.querySelector("canvas"), d.type, d.shape, 34);
     el.addEventListener("click", () => {
+      if (!frei) { banner("★ " + d.stern + " Sterne nötig"); sfxUI(); return; }
       G.place = G.place === d.id ? null : d.id;
       G.sel = null; G.ghost = null;
       sfxUI();
@@ -8785,6 +8961,47 @@ function menuHTML() {
       </button>`).join("")}</div>
   </section>
 
+  ${(() => {
+    /* Aufstellung für die gerade gewählte Route.
+
+       Sie steht direkt unter der Kartenwahl, weil sie zur Karte gehört und
+       nicht zum Spielstand: Welche acht man mitnimmt, hängt davon ab, was
+       dort auftaucht. Deshalb steht neben jeder Familie, wie gut sie gegen
+       die Fauna DIESER Route steht — ohne das wählte man nach Gefühl. */
+    const frei = TOWERS.filter(d => !d.legendaer && waechterFrei(d));
+    if (frei.length <= AUFSTELLUNG_MAX) {
+      return `<section><h2 style="margin-bottom:8px">Aufstellung</h2>
+        <p class="empty">Alle ${zahlwort(frei.length)} freigeschalteten Familien ziehen mit.
+        Ab ${AUFSTELLUNG_MAX + 1} freigeschalteten wählst du vor jeder Route ${zahlwort(AUFSTELLUNG_MAX)} davon aus.</p></section>`;
+    }
+    const gewaehlt = aufstellungFuer(menuMap);
+    const karte = MAPS[menuMap];
+    /* karteHatWasser() liest den Kartenaufbau richtig. Ein erster Versuch
+       prüfte sonderfelder auf f.art — die Einträge sind aber Arrays der Form
+       ["wasser", 7, "see", [7,7]], und f.art ist dort immer undefined. Die
+       Prüfung war also stumm falsch: Sie erklärte den Wasser-Wächter auf
+       JEDER Karte für nutzlos, auch auf denen mit einem See. */
+    const wasser = karteHatWasserAuf(menuMap);
+    return `<section>
+      <h2 style="margin-bottom:8px">Aufstellung für ${karte.name} — ${gewaehlt.length} von ${AUFSTELLUNG_MAX}</h2>
+      <div class="talents" id="aufstellung">${frei.map(d => {
+        const drin = gewaehlt.includes(d.id);
+        /* Wie stark die Familie gegen die Wilden dieser Route steht:
+           Mittel der Typwirkung über alle Elemente, die hier vorkommen. */
+        const wilde = karte.wilde || Object.keys(TYPES);
+        const wirkung = wilde.reduce((a, t) => a + eff(d.type, t), 0) / wilde.length;
+        const tot = d.type === "water" && !wasser;
+        return `<button class="tal" data-id="${d.id}" data-max="${drin ? 1 : 0}"
+            style="${drin ? "border-color:var(--acc)" : "opacity:.55"}">
+          <div class="tn"><span>${drin ? "✓ " : ""}${d.tiers[0].name}</span>
+            <span class="pips" style="color:${TYPES[d.type].col}">${TYPES[d.type].name}</span></div>
+          <div class="td">${tot ? "Ohne Wasserstelle hier nicht setzbar"
+            : "Wirkung gegen diese Fauna ×" + wirkung.toFixed(2)}${d.air ? "" : " · nur Boden"}</div>
+        </button>`; }).join("")}</div>
+      <p class="empty" style="margin-top:8px">Höchstens ${WAECHTER_JE_KARTE} Wächter stehen gleichzeitig auf einer Route.</p>
+    </section>`;
+  })()}
+
   <section>
     <h2 style="margin-bottom:8px">Trainerpfad — ${left} Punkt${left === 1 ? "" : "e"} frei</h2>
     <div class="talents" id="talents">${TALENTS.map(t => {
@@ -8845,6 +9062,19 @@ function wireMenu() {
   if ($("b-resume-run")) $("b-resume-run").addEventListener("click", () => {
     audioInit(); closeVeil();
     if (!resumeRun()) starteRunde(menuMap);
+  });
+  document.querySelectorAll("#aufstellung .tal").forEach(el => {
+    el.addEventListener("click", () => {
+      const id = el.dataset.id;
+      const liste = aufstellungFuer(menuMap);
+      const i = liste.indexOf(id);
+      if (i >= 0) liste.splice(i, 1);
+      else if (liste.length >= AUFSTELLUNG_MAX) { banner("Höchstens " + AUFSTELLUNG_MAX + " Familien"); sfxUI(); return; }
+      else liste.push(id);
+      save.aufstellung[menuMap] = liste;
+      writeSave(); sfxUI();
+      openVeil(menuHTML()); wireMenu();
+    });
   });
   $("b-start").addEventListener("click", () => {
     audioInit(); closeVeil(); starteRunde(menuMap);
@@ -9215,6 +9445,11 @@ function victory() {
 function starteRunde(mapIdx) {
   clearRun();
   statPlus("runden");
+  /* Aufstellung festlegen, bevor die Runde läuft. Wer über das Menü kommt,
+     hat sie schon; wer über "Nochmal" oder eine gespeicherte Runde kommt,
+     bekommt hier die Vorbelegung — sonst stünde er ohne Truppe da. */
+  if (TOWERS.filter(d => !d.legendaer && waechterFrei(d)).length > AUFSTELLUNG_MAX)
+    aufstellungFuer(mapIdx);
   newRun(mapIdx);
 }
 

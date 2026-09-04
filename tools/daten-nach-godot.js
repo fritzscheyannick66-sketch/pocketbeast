@@ -190,6 +190,10 @@ for (const m of spiel.MAPS) {
   z(`\t\t"name": ${JSON.stringify(m.name)}, "grad": ${JSON.stringify(m.diff)},`);
   z(`\t\t"faktor": ${wert(m.mul)}, "beeren": ${m.gold}, "leben": ${m.lives},`);
   z(`\t\t"heim": ${JSON.stringify(m.heim)}, "wetter": ${JSON.stringify(m.weather)},`);
+  /* Die Fauna der Karte: welche Elemente hier überhaupt auftauchen.
+     Ohne sie liefen in Godot wieder alle vierundvierzig Arten überall,
+     und die beiden Fassungen zeigten verschiedene Spiele. */
+  z(`\t\t"wilde": [${(m.wilde || []).map((t) => JSON.stringify(t)).join(", ")}],`);
   z(`\t\t"boden": [Color("${m.ground[0]}"), Color("${m.ground[1]}")],`);
   z(`\t\t"weg": Color("${m.path}"), "wegkante": Color("${m.pathEdge}"),`);
   z(`\t\t"laub": Color("${m.foliage}"), "himmel": [Color("${(m.himmel||["#7FA8C4"])[0]}"), Color("${(m.himmel||["#BFD4D0"])[1]}")],`);

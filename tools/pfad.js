@@ -170,14 +170,25 @@ if (feldzug) {
   console.log("Feldzug — jede Karte mit den Punkten, die man beim Ankommen hätte");
   console.log("Voller Pfad: " + voll.toLocaleString("de-DE") + " Punkte");
   console.log("");
-  console.log("  Karte              mul   Vorrat   Rang   Welle" + " ".repeat(21) + " gehalten");
+  console.log("  Karte              mul   Vorrat   Rang  Wächter  Wilde   Welle" + " ".repeat(21) + " gehalten");
   console.log("  " + "─".repeat(86));
   let vorrat = 0;
   for (let i = 0; i < spiel.MAPS.length; i++) {
+    /* Sterne wie Punkte: Was die vorigen Karten abgeworfen haben. Hundert
+       je gehaltener Route — und daran hängt, welche Wächterfamilien
+       überhaupt im Laden stehen.
+
+       Karte 1 startet damit bei null Sternen und vier Familien, und dort
+       scheitert der Lauf planmäßig um Welle 24. Das ist kein Loch in der
+       Kette: Die 24 Sterne schalten den Gesteins-Wächter frei (20), und mit
+       fünf Familien hält dieselbe Karte gemessen 3 von 3. Diese Zeile misst
+       den ERSTEN Anlauf, nicht den erfolgreichen. */
+    const sterne = i * spiel.WELLEN_JE_KARTE;
+    const frei = spiel.TOWERS.filter(d => !d.legendaer && sterne >= (d.stern || 0)).length;
     const wellen = [];
     for (let n = 0; n < laeufe; n++)
       wellen.push(spieleRunde(spiel, i, {
-        maxTuerme: TUERME_MAX, talente: vorrat, behalteStand: false,
+        maxTuerme: TUERME_MAX, talente: vorrat, sterne, behalteStand: false,
       }).welle);
     const m = median(wellen);
     const durch = wellen.filter((w) => w >= 100).length;
@@ -193,6 +204,8 @@ if (feldzug) {
       String(spiel.MAPS[i].mul).padStart(5) +
       String(vorrat.toLocaleString("de-DE")).padStart(9) +
       String(rang).padStart(7) +
+      String(frei).padStart(8) +
+      String((spiel.MAPS[i].wilde || []).length).padStart(7) +
       String(m).padStart(8) + "  " + balken(m) +
       String(durch + "/" + wellen.length).padStart(7));
     vorrat += ertrag(spiel, i);

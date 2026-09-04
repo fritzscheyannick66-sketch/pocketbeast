@@ -140,7 +140,7 @@ Typen, keinen einzigen Wasser-Wächter bei vier Wasserfeldern, und neun seiner
 zwanzig Wächter waren derselbe billige Typ. Was er maß, war seine eigene
 veraltete Strategie.
 
-## Acht Lehren aus dem Messen
+## Neun Lehren aus dem Messen
 
 Alle zeigen, wie leicht ein Messinstrument in die Irre führt — und jede
 einzelne verschob die Ergebnisse um mehr als vierzig Wellen, ohne dass sich
@@ -244,6 +244,27 @@ mul 13, höchstens 100 Wächter    Rang 62:  2/3
 Aus sicherem Scheitern wird knappes Halten. Die überschüssigen Beeren
 kaufen also sehr wohl noch Armee — wenn Platz da ist. Der Überschuss war zur
 Hälfte eine Eigenschaft des Messgeräts.
+
+**Und einmal ein Ergebnis, das zu glatt war, um Balance zu sein.** Nachdem
+jede Karte ihre eigene Fauna bekam, endete der Grünpfad in jedem Lauf bei
+*exakt* Welle 16 — oder bei 100. Nie dazwischen. Neun Wächterfamilien
+schnitten schlechter ab als sieben.
+
+Eine Schwierigkeitskurve sieht nicht so aus. Zwei Werte und nichts dazwischen
+heißt: eine Bedingung, die erfüllt ist oder nicht. Die Runde endete mit zehn
+Lebenspunkten und dreiundzwanzig ausgebauten Wächtern — also nicht an
+Schwäche.
+
+Es war die **Panzerung** des Anführers auf Welle 16. Sie wird je Treffer
+abgezogen, nicht multipliziert, und trifft deshalb früh ungleich härter: Ein
+Keimling mit zehn Schaden macht gegen Panzerung 11 noch 1,8, ein ausgebauter
+Wächter mit 300 Schaden verliert kaum etwas. Der Grünpfad hatte durch seine
+Fauna ausgerechnet die zwei bestgepanzerten Anführer im Vorrat, und ihre
+Reihenfolge war die der Deklaration — also Zufall.
+
+Die Lehre ist nicht "Panzerung beachten", sondern: **Eine Verteilung ohne
+Mitte ist kein Balanceproblem.** Wenn ein Messwert nur zwei Zustände kennt,
+sucht man nach einer Bedingung, nicht nach einer Zahl.
 
 Wer hier weiterbaut, sollte bei jedem überraschenden Ergebnis zuerst fragen,
 ob der Bot etwas nicht kennt, und erst danach, ob das Spiel unausgewogen ist.
