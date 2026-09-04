@@ -29,20 +29,37 @@ Godot 4.7 öffnen → *Import* → diesen Ordner wählen → *Run* (F5).
   `node tools/daten-nach-godot.js`.
 - **Kreaturen** statt Kugeln: Rumpf, Hals, Kopf, Augen und je Gestalt eigene
   Teile — Ohren, Hörner, Schwingen, Flossen, Blätter, Zacken, Visierschlitz.
-- **Zwölf Wächterfamilien** mit drei Stufen, Training und Megaentwicklung.
-- **44 Gegnerarten** mit Typenvorteil, Panzerung und Flugfähigkeit.
+- **Dreizehn Wächterfamilien** mit drei Stufen, Training und Megaentwicklung.
+- **Nebenwirkungen**: Fläche, Kette, Bremse, Fessel, Brand, Gift, Marke. Sie
+  waren lange exportiert und von niemandem gelesen — `_setze_turm()` nahm
+  fünf Zahlen entgegen, und damit waren alle Familien dasselbe.
+- **44 Gegnerarten** mit Typenvorteil, Panzerung und Flugfähigkeit, je Karte
+  gefiltert: Der Grünpfad kennt drei Elemente, die letzten Routen alle elf.
+- **Anführer** alle acht Wellen, aus der Fauna der Karte und nach Panzerung
+  sortiert; auf der Schlusswelle der des Heimatelements.
 - **Hundert Wellen**, danach Sieg und Endlosmodus.
+- **Speicherstand** unter `user://stand.json`: Sterne, Trainerpunkte, Ränge,
+  gemeisterte Karten, Aufstellungen.
+- **Trainerpfad** bis Rang 100 in zehn Zweigen, mit denselben zwei
+  Kurvenformen wie im Browserspiel — geprüft, dass beide bei Rang 50
+  dieselben Werte liefern.
+- **Freischaltung**: vier Familien von Anfang an, sieben über Sterne.
 - Gelände mit Höhen, eingesenktem Weg, Bewuchs, Licht und Schatten.
 
-Gemessen mit dem Selbstlauf (siehe unten): 16 Wellen mit neun Wächtern auf
-Stufe 1, 241 erledigte Gegner, 20 Durchbrüche, dann verloren. Der Ablauf trägt.
+Gemessen mit dem Selbstlauf (siehe unten), neun Wächter auf Stufe 0:
+
+```
+nur Schaden      16 Wellen, 241 erledigt, 20 Durchbrüche, verloren
+mit Wirkungen    18 Wellen, 315 erledigt,  2 Durchbrüche, 22 von 24 Leben
+```
 
 ## Was noch fehlt
 
 Gegenüber dem Browserspiel: Wetter, Tag und Nacht, Sonderfelder (Wasser,
-Vulkan, Erhöhung), Segnungen, Anführerfähigkeiten, Sterne, Hain der Ahnen,
-Statistik, Bestiarium, Speicherstand, Klang, Nebenwirkungen der Wächter
-(Bremse, Fessel, Brand, Kette, Marke, Fläche).
+Vulkan, Erhöhung), Segnungen, Anführerfähigkeiten, Hain der Ahnen, Statistik,
+Bestiarium, Klang — und die **Bedienoberfläche** für das, was jetzt darunter
+schon läuft: Trainerpfad, Aufstellung und Sterne haben noch kein Menü. Die
+Logik steht, sie ist nur nicht zu bedienen.
 
 ## Prüfen ohne hinzusehen
 
@@ -163,9 +180,24 @@ Der größere Teil:
 | Klang | 12 Arten, prozedural | keiner |
 | Bedienung, Menüs, Speicherstand | vollständig | nichts |
 
-## Vier Fallstricke, die schon aufgetreten sind
+## Fünf Fallstricke, die schon aufgetreten sind
 
 Wer hier weiterbaut, spart sich damit Zeit:
+
+**0. Prüfschalter dürfen sich nicht gegenseitig voraussetzen.** Der Aufbau
+hing zuerst an `POCKETBEAST_SCHAU`: Ohne Schaubild lief die Prüfung ins
+Leere, und der Selbstlauf startete nie eine Welle. Das habe ich behoben —
+und denselben Fehler eine Ebene tiefer stehen lassen: `POCKETBEAST_SPIEL`
+wurde erst *innerhalb* von `_auto_aufbau()` gelesen, und das lief nur bei
+gesetztem `POCKETBEAST_AUTO`.
+
+Ein Lauf mit `POCKETBEAST_SPIEL` allein tat deshalb nichts. Er stürzte nicht
+ab und meldete nichts — er saß bei **2,7 Prozent Rechenlast** auf einer
+leeren Karte und wartete auf eine Eingabe, die nie kam. Zehn Minuten lang sah
+das aus wie ein hängender Selbstlauf, und ich habe zweimal die falsche
+Ursache geraten, bevor ich die Rechenlast gemessen habe.
+
+Zweimal derselbe Fehler heißt: Jeder Schalter zieht jetzt den Aufbau selbst.
 
 **1. `class_name` greift beim ersten Start nicht.** Godot kennt eigene
 Klassennamen erst nach einem Projekt-Scan; ein frisch geklonter Ordner

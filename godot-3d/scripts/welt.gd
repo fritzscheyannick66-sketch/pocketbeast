@@ -751,6 +751,12 @@ func _setze_waechter(id: String, stufe: int, pos: Vector3, kachel: Vector2i = Ve
 		String(def.get("gestalt", "blob")), stufe)
 	t["id"] = id
 	t["stufe"] = stufe
+	## Die ganze Stufe wird mitgeführt, nicht nur Schaden und Reichweite.
+	## Vorher übernahm _setze_turm() fünf Zahlen, und alles andere — Fläche,
+	## Bremse, Brand, Gift, Kette, Marke, Fessel — blieb in daten.gd liegen,
+	## ordentlich exportiert und von niemandem gelesen. Damit waren alle
+	## dreizehn Familien in der 3D-Fassung dasselbe: ein Schuss, ein Schaden.
+	t["st"] = st
 	t["kachel"] = kachel
 	t["erledigt"] = 0
 	t["training"] = 0
@@ -810,8 +816,13 @@ func _spawne_gegner() -> void:
 	var groesse := float(art["groesse"]) / 34.0        # 34 px entsprechen etwa 1 m
 	var knoten := Node3D.new()
 	_wurzel_gegner.add_child(knoten)
+	## Anführer stehen deutlich größer da und tragen das Anführerabzeichen.
+	## Ohne den Größenunterschied sieht man in einer Welle von zwanzig
+	## Gegnern nicht, welcher der Anführer ist.
+	var chef: bool = bool(eintrag.get("anfuehrer", false))
 	var figur := Kreatur.baue(knoten, String(art.get("gestalt", "blob")), farbe,
-		0.72 * groesse + 0.34, int(art.get("rang", 0)), false)
+		(0.72 * groesse + 0.34) * (2.1 if chef else 1.0),
+		int(art.get("rang", 0)), chef)
 	# Flieger tragen einen schwachen Schein, damit man sie von Läufern
 	# unterscheidet, ohne auf die Flughöhe achten zu müssen.
 	if fliegt:
@@ -832,6 +843,14 @@ func _spawne_gegner() -> void:
 		"panzer": Spiel.panzerung(float(art.get("panzer", 0)), spiel.welle, faktor),
 		"name": art["name"],
 		"hoehe": 1.6 if fliegt else 0.0,
+		"anfuehrer": chef,
+		## Zustände. Alle beginnen bei null; was sie bedeuten, steht bei
+		## _wirke_nebenwirkung().
+		"brems": 0.0, "bremsT": 0.0,
+		"fesselT": 0.0,
+		"brand": 0.0, "brandT": 0.0,
+		"gift": 0.0, "giftT": 0.0,
+		"marke": 0.0, "markeT": 0.0,
 	})
 
 
@@ -851,10 +870,23 @@ var _schau_zaehler := 0
 func _schaubild_pruefen() -> void:
 	var ziel := OS.get_environment("POCKETBEAST_SCHAU")
 	var auto0 := OS.get_environment("POCKETBEAST_AUTO")
-	# Der Aufbau hing anfangs an der Schaubildprüfung — ohne POCKETBEAST_SCHAU
-	# lief sie sofort ins Leere, und der Selbstlauf startete nie eine Welle.
-	# Beide Schalter sind jetzt unabhängig.
-	if ziel.is_empty() and auto0.is_empty():
+	var spiel0 := OS.get_environment("POCKETBEAST_SPIEL")
+	## Jeder Prüfschalter muss für sich allein funktionieren.
+	##
+	## Der Aufbau hing zuerst an POCKETBEAST_SCHAU: Ohne Schaubild lief die
+	## Prüfung sofort ins Leere, und der Selbstlauf startete nie eine Welle.
+	## Das habe ich behoben — und denselben Fehler eine Ebene tiefer stehen
+	## lassen: POCKETBEAST_SPIEL wurde erst INNERHALB von _auto_aufbau()
+	## gelesen, und _auto_aufbau() lief nur bei gesetztem POCKETBEAST_AUTO.
+	##
+	## Ein Lauf mit POCKETBEAST_SPIEL allein tat deshalb nichts. Er stürzte
+	## nicht ab und meldete nichts — er saß bei 2,7 Prozent Rechenlast auf
+	## einer leeren Karte und wartete auf eine Eingabe, die nie kam. Zehn
+	## Minuten lang sah das aus wie ein hängender Selbstlauf.
+	##
+	## Zweimal derselbe Fehler heißt: Die Schalter dürfen sich nicht
+	## gegenseitig voraussetzen. Alle drei ziehen jetzt den Aufbau.
+	if ziel.is_empty() and auto0.is_empty() and spiel0.is_empty():
 		return
 	_schau_zaehler += 1
 	if ziel.is_empty():
@@ -1008,9 +1040,14 @@ func _takt(delta: float) -> void:
 			_spawne_gegner()
 			spawn_uhr = 0.85
 
-	# Gegner den Weg entlang
+	# Gegner den Weg entlang. Bremse mindert das Tempo, Fessel hält ganz an.
 	for g in gegner:
-		g["strecke"] += g["tempo"] * delta
+		var tempo: float = float(g["tempo"])
+		if float(g["fesselT"]) > 0.0:
+			tempo = 0.0
+		elif float(g["brems"]) > 0.0:
+			tempo *= 1.0 - float(g["brems"])
+		g["strecke"] += tempo * delta
 		var strecke: float = g["strecke"]
 		var p := Weg.punkt_bei(weg_punkte, strecke)
 		var wackel: float = g["wackel"]
@@ -1023,6 +1060,34 @@ func _takt(delta: float) -> void:
 			p.y += 0.42 + sin(zeit * 7.0 + wackel) * 0.08
 		var knoten: Node3D = g["knoten"]
 		knoten.position = p
+
+	## Zustände abbauen und zehren lassen.
+	##
+	## Brand und Gift sind beides Schaden über Zeit, aber sie verhalten sich
+	## verschieden: Brand nimmt bei jedem Treffer das Maximum, Gift summiert
+	## sich bis zum Vierfachen einer Schwade. Und Gift geht an der Panzerung
+	## vorbei — sonst wäre es wirkungslos, weil Panzerung je Schadensaufruf
+	## abgezogen wird und ein Zehntelschaden je Bild davon nichts übrig lässt.
+	for g in gegner:
+		if float(g["bremsT"]) > 0.0:
+			g["bremsT"] = float(g["bremsT"]) - delta
+		else:
+			g["brems"] = 0.0
+		if float(g["fesselT"]) > 0.0:
+			g["fesselT"] = float(g["fesselT"]) - delta
+		if float(g["markeT"]) > 0.0:
+			g["markeT"] = float(g["markeT"]) - delta
+		else:
+			g["marke"] = 0.0
+		if float(g["brandT"]) > 0.0:
+			g["brandT"] = float(g["brandT"]) - delta
+			var b := float(g["brand"]) * delta
+			g["leben"] = float(g["leben"]) - maxf(b * 0.06, b - maxf(0.0, float(g["panzer"])) * delta)
+		if float(g["giftT"]) > 0.0:
+			g["giftT"] = float(g["giftT"]) - delta
+			g["leben"] = float(g["leben"]) - float(g["gift"]) * delta
+		elif float(g["gift"]) > 0.0:
+			g["gift"] = maxf(0.0, float(g["gift"]) - float(g["gift"]) * 2.2 * delta)
 
 	# Wächter feuern auf den weitesten Gegner in Reichweite
 	for t in tuerme:
@@ -1047,12 +1112,55 @@ func _takt(delta: float) -> void:
 		koerper.rotation.y = atan2(richtung.x, richtung.z)
 		if t["abklingen"] <= 0.0:
 			t["abklingen"] = 1.0 / t["takt"]
+			var st: Dictionary = t.get("st", {})
 			var vorher: float = ziel["leben"]
-			ziel["leben"] -= _schaden(t, ziel)
+			_treffer(t, ziel, st, 1.0)
 			# Wer den letzten Treffer setzt, bekommt ihn angerechnet — das
 			# zählt für die Megaentwicklung
 			if vorher > 0.0 and ziel["leben"] <= 0.0:
 				t["erledigt"] = int(t.get("erledigt", 0)) + 1
+
+			## Fläche: Der Radius steht in Pixeln, wie alles aus daten.gd.
+			## Getroffen wird jeder weitere Gegner im Umkreis des Ziels, mit
+			## halber Wirkung — sonst wäre ein Flächenwächter in einer dichten
+			## Kolonne stärker als alles andere zusammen.
+			if st.has("flaeche"):
+				var r: float = float(st["flaeche"]) / Spiel.PIXEL_JE_METER
+				for o in gegner:
+					if o == ziel or float(o["leben"]) <= 0.0:
+						continue
+					var ok: Node3D = o["knoten"]
+					if ok.position.distance_to(zk.position) <= r:
+						_treffer(t, o, st, 0.5)
+
+			## Kette: springt auf die nächsten Gegner weiter, jeder Sprung
+			## schwächer. Anders als Fläche folgt sie den Gegnern statt einem
+			## Umkreis — dadurch wirkt sie an einer langen Kolonne, wo Fläche
+			## nur einen Klumpen erwischt.
+			if st.has("kette"):
+				var quelle: Vector3 = zk.position
+				var schon: Array = [ziel]
+				var kraft := 0.65
+				for _i in range(int(st["kette"])):
+					var naechster: Dictionary = {}
+					var kurz := 4.2
+					for o in gegner:
+						if o in schon or float(o["leben"]) <= 0.0:
+							continue
+						var ok2: Node3D = o["knoten"]
+						var dd := ok2.position.distance_to(quelle)
+						if dd < kurz:
+							kurz = dd
+							naechster = o
+					if naechster.is_empty():
+						break
+					_treffer(t, naechster, st, kraft)
+					var nk: Node3D = naechster["knoten"]
+					_blitz(quelle, nk.position, t["farbe"])
+					quelle = nk.position
+					schon.append(naechster)
+					kraft *= 0.7
+
 			_blitz(t["pos"] + Vector3.UP * 0.95, zk.position, t["farbe"])
 
 	# Aufräumen
@@ -1094,6 +1202,52 @@ func _takt(delta: float) -> void:
 ##
 ## Ein Rest bleibt immer: Ein Treffer, der gar nichts bewirkt, sieht wie ein
 ## Fehler aus, auch wenn er rechnerisch richtig ist.
+## Ein Treffer mit allem, was daran hängt.
+##
+## anteil ist die Abschwächung: 1,0 für den Haupttreffer, 0,5 für die Fläche,
+## fallend für jeden Kettensprung. Die Nebenwirkungen selbst werden NICHT
+## abgeschwächt — eine halb getroffene Bremse gibt es nicht, und ein Gegner am
+## Rand der Wolke ist genauso vergiftet wie einer in der Mitte.
+func _treffer(turm: Dictionary, ziel: Dictionary, st: Dictionary, anteil: float) -> void:
+	var d := _schaden(turm, ziel) * anteil
+	## Markierung erhöht allen Schaden auf dem Ziel — auch den fremder Wächter.
+	## Sie ist der Grund, warum ein Fee-Wächter neben einem Schläger mehr
+	## wert ist als ein zweiter Schläger.
+	if float(ziel.get("marke", 0.0)) > 0.0:
+		d *= 1.0 + float(ziel["marke"])
+	ziel["leben"] = float(ziel["leben"]) - d
+	_wirke_nebenwirkung(ziel, st)
+
+
+## Die Zustände anlegen, die ein Treffer hinterlässt.
+##
+## Bremse, Fessel, Brand und Marke nehmen jeweils das MAXIMUM: Zehnmal
+## getroffen ist so schlimm wie einmal, nur länger. Gift dagegen SUMMIERT
+## sich bis zum Vierfachen einer Schwade — das ist der ganze Unterschied
+## zwischen Marco Bongkopf und einem Brandstifter.
+func _wirke_nebenwirkung(ziel: Dictionary, st: Dictionary) -> void:
+	if st.has("bremse") and not bool(ziel["art"].get("zaeh", false)):
+		var b: Dictionary = st["bremse"]
+		ziel["brems"] = minf(0.8, maxf(float(ziel["brems"]), float(b["amt"])))
+		ziel["bremsT"] = maxf(float(ziel["bremsT"]), float(b["dur"]))
+	if st.has("fessel") and not bool(ziel["art"].get("zaeh", false)):
+		var f: Dictionary = st["fessel"]
+		if randf() < float(f["p"]):
+			ziel["fesselT"] = maxf(float(ziel["fesselT"]), float(f["dur"]))
+	if st.has("brand"):
+		var br: Dictionary = st["brand"]
+		ziel["brand"] = maxf(float(ziel["brand"]), float(br["dps"]))
+		ziel["brandT"] = maxf(float(ziel["brandT"]), float(br["dur"]))
+	if st.has("gift"):
+		var gi: Dictionary = st["gift"]
+		var eine := float(gi["dps"])
+		ziel["gift"] = minf(eine * 4.0, float(ziel["gift"]) + eine)
+		ziel["giftT"] = maxf(float(ziel["giftT"]), float(gi["dur"]))
+	if st.has("marke"):
+		ziel["marke"] = maxf(float(ziel["marke"]), float(st["marke"]))
+		ziel["markeT"] = 3.0
+
+
 func _schaden(turm: Dictionary, ziel: Dictionary) -> float:
 	return Spiel.schaden(
 		float(turm["schaden"]),
@@ -1103,7 +1257,22 @@ func _schaden(turm: Dictionary, ziel: Dictionary) -> float:
 		float(turm.get("durchschlag", 0.0)))
 
 
+## Wie viele Schussstrahlen gleichzeitig in der Welt liegen dürfen.
+##
+## Jeder Strahl ist ein eigener Knoten mit eigenem Material und einem Timer,
+## der ihn nach neun Hundertstel wieder abräumt. Das trägt, solange je Takt
+## eine Handvoll entsteht. Mit der Kette kamen bis zu drei weitere je Schuss
+## dazu, und der Selbstlauf rechnet fünfundzwanzig Takte je Bild — dann sind
+## es Hunderte Knoten je Bild, und Godot kommt mit dem Anlegen und Freigeben
+## nicht mehr nach.
+##
+## Der Deckel ist keine Sparmaßnahme, sondern eine Obergrenze gegen genau
+## diesen Fall: Was über sechzig hinausginge, sähe ohnehin niemand.
+const SCHUESSE_MAX := 60
+
 func _blitz(von: Vector3, nach: Vector3, farbe: Color) -> void:
+	if _wurzel_schuesse.get_child_count() >= SCHUESSE_MAX:
+		return
 	var strahl := MeshInstance3D.new()
 	var box := BoxMesh.new()
 	var d := von.distance_to(nach)

@@ -101,6 +101,7 @@ for (const t of spiel.TOWERS) {
     if (s.chain) felder.push(`"kette": ${s.chain}`);
     if (s.mark) felder.push(`"marke": ${wert(s.mark)}`);
     if (s.burn) felder.push(`"brand": ${wert({ dps: s.burn.dps, dur: s.burn.dur })}`);
+    if (s.gift) felder.push(`"gift": ${wert({ dps: s.gift.dps, dur: s.gift.dur })}`);
     if (s.slow) felder.push(`"bremse": ${wert({ amt: s.slow.amt, dur: s.slow.dur })}`);
     if (s.root) felder.push(`"fessel": ${wert({ p: s.root.p, dur: s.root.dur })}`);
     if (s.aura) felder.push(`"feld": ${wert({ dmg: s.aura.dmg, rng: s.aura.rng })}`);
@@ -108,12 +109,55 @@ for (const t of spiel.TOWERS) {
   });
   z("\t{");
   z(`\t\t"id": ${JSON.stringify(t.id)}, "typ": ${JSON.stringify(t.type)}, "gestalt": ${JSON.stringify(t.shape)},`);
-  z(`\t\t"luft": ${t.air ? "true" : "false"},${t.nurBei ? ` "nur_bei": ${JSON.stringify(t.nurBei)},` : ""}${t.legendaer ? " \"legendaer\": true," : ""}`);
+  z(`\t\t"luft": ${t.air ? "true" : "false"}, "stern": ${t.stern || 0},${t.nurBei ? ` "nur_bei": ${JSON.stringify(t.nurBei)},` : ""}${t.legendaer ? " \"legendaer\": true," : ""}`);
   z(`\t\t"beschreibung": ${JSON.stringify(t.blurb)},`);
   z("\t\t\"stufen\": [");
   for (const s of stufen) z(s);
   z("\t\t],");
   z("\t},");
+}
+z("]");
+z("");
+
+// ---------- Trainerpfad ----------
+/* Die Kurven der Talente lassen sich nicht als Zahl exportieren — sie sind
+   Funktionen. Exportiert werden deshalb ihre Bauteile: Art der Kurve, Schritt
+   beziehungsweise Grenze und Halbwert. Godot baut daraus dieselbe Kurve.
+
+   Der Umweg ist nötig, weil sonst zwei Fassungen zweier Formeln entstünden,
+   die sich unbemerkt auseinanderentwickeln. */
+z("## Alle acht Wellen ein Anfuehrer, und die Schlusswelle immer.");
+z("static func ist_anfuehrerwelle(w: int) -> bool:");
+z(`\treturn w > 0 and (w % 8 == 0 or w == ${spiel.WELLEN_JE_KARTE})`);
+z("");
+z("## Grenzen des Trainerpfads und der Aufstellung.");
+z(`const TALENT_RANG_MAX := ${spiel.TALENT_RANG_MAX || 100}`);
+z(`const AUFSTELLUNG_MAX := ${spiel.AUFSTELLUNG_MAX || 8}`);
+z(`const WAECHTER_JE_KARTE := ${spiel.WAECHTER_JE_KARTE || 45}`);
+z("");
+z("## Die zehn Zweige. \"gerade\" waechst je Rang um schritt, \"satt\"");
+z("## naehert sich grenze und erreicht sie nie: grenze * r / (r + halb).");
+z("const TALENTE := [");
+for (const t of spiel.TALENTS) {
+  /* Die Kurve wird an zwei Punkten abgetastet und daraus zurückgerechnet.
+     Bei einer Geraden ist wirkung(2) genau doppelt wirkung(1); weicht es ab,
+     ist es die sättigende Kurve. Das ist robuster, als die Bauteile im Spiel
+     zusätzlich abzulegen — dort stehen sie in der Kurve selbst. */
+  /* Der Grenzwert wird bei sehr großem Rang abgetastet. Ein erster Anlauf
+     nahm 100.000 und traf 899,82 statt 900 — die sättigende Kurve nähert
+     sich der Decke, erreicht sie aber nie, und bei hunderttausend fehlt noch
+     ein Fünftausendstel. Bei einer Milliarde liegt der Fehler unter der
+     Auflösung der Zahl. */
+  const w1 = t.wirkung(1), w2 = t.wirkung(2), w1000 = t.wirkung(1e9);
+  const gerade = Math.abs(w2 - 2 * w1) < 1e-9;
+  if (gerade) {
+    z(`\t{ "id": ${JSON.stringify(t.id)}, "name": ${JSON.stringify(t.name)}, "kurve": "gerade", "schritt": ${wert(w1)} },`);
+  } else {
+    /* halb aus w1 = grenze * 1/(1+halb)  →  halb = grenze/w1 - 1 */
+    const grenze = Math.round(w1000 * 1e6) / 1e6;
+    const halb = Math.round((grenze / w1 - 1) * 1e6) / 1e6;
+    z(`\t{ "id": ${JSON.stringify(t.id)}, "name": ${JSON.stringify(t.name)}, "kurve": "satt", "grenze": ${wert(grenze)}, "halb": ${wert(halb)} },`);
+  }
 }
 z("]");
 z("");

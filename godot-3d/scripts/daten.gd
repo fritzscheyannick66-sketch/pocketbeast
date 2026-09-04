@@ -54,7 +54,7 @@ static func wirksamkeit(angriff: String, ziel: String) -> float:
 const WAECHTER := [
 	{
 		"id": "fire", "typ": "fire", "gestalt": "cat",
-		"luft": true,
+		"luft": true, "stern": 0,
 		"beschreibung": "Schnelle Einzelziele, entzündet Gegner.",
 		"stufen": [
 			{ "name": "Zündling", "kosten": 90, "schaden": 12, "rate": 1.6, "reichweite": 86 },
@@ -64,7 +64,7 @@ const WAECHTER := [
 	},
 	{
 		"id": "water", "typ": "water", "gestalt": "drop",
-		"luft": true,
+		"luft": true, "stern": 0,
 		"beschreibung": "Flächenschaden, verlangsamt alles im Umkreis.",
 		"stufen": [
 			{ "name": "Tröpfling", "kosten": 110, "schaden": 14, "rate": 1, "reichweite": 140, "flaeche": 36, "bremse": { "amt": 0.2, "dur": 1.2 } },
@@ -74,7 +74,7 @@ const WAECHTER := [
 	},
 	{
 		"id": "grass", "typ": "grass", "gestalt": "sprout",
-		"luft": true,
+		"luft": true, "stern": 0,
 		"beschreibung": "Günstig und verlässlich, fesselt mit Ranken.",
 		"stufen": [
 			{ "name": "Keimling", "kosten": 65, "schaden": 10, "rate": 1.3, "reichweite": 104 },
@@ -84,7 +84,7 @@ const WAECHTER := [
 	},
 	{
 		"id": "electric", "typ": "electric", "gestalt": "fox",
-		"luft": true,
+		"luft": true, "stern": 0,
 		"beschreibung": "Feuert sehr schnell, Blitze springen weiter.",
 		"stufen": [
 			{ "name": "Blitzmilbe", "kosten": 100, "schaden": 7, "rate": 3.2, "reichweite": 121 },
@@ -94,7 +94,7 @@ const WAECHTER := [
 	},
 	{
 		"id": "rock", "typ": "rock", "gestalt": "ox",
-		"luft": false,
+		"luft": false, "stern": 20,
 		"beschreibung": "Wuchtige Erschütterung — trifft keine Flieger.",
 		"stufen": [
 			{ "name": "Kiesling", "kosten": 130, "schaden": 34, "rate": 0.55, "reichweite": 169, "flaeche": 52 },
@@ -104,7 +104,7 @@ const WAECHTER := [
 	},
 	{
 		"id": "psychic", "typ": "psychic", "gestalt": "owl",
-		"luft": true,
+		"luft": true, "stern": 220,
 		"beschreibung": "Stärkt benachbarte Wächter und markiert Ziele.",
 		"stufen": [
 			{ "name": "Traumflaum", "kosten": 150, "schaden": 9, "rate": 0.9, "reichweite": 180, "feld": { "dmg": 0.1, "rng": 0.08 } },
@@ -114,7 +114,7 @@ const WAECHTER := [
 	},
 	{
 		"id": "ice", "typ": "ice", "gestalt": "zottel",
-		"luft": true,
+		"luft": true, "stern": 35,
 		"beschreibung": "Friert Gegner ein — die stärkste Verlangsamung.",
 		"stufen": [
 			{ "name": "Frostfell", "kosten": 105, "schaden": 9, "rate": 1.1, "reichweite": 147, "flaeche": 30, "bremse": { "amt": 0.3, "dur": 1.6 } },
@@ -124,7 +124,7 @@ const WAECHTER := [
 	},
 	{
 		"id": "steel", "typ": "steel", "gestalt": "bolzen",
-		"luft": false,
+		"luft": false, "stern": 80,
 		"beschreibung": "Schwere Treffer, durchschlägt Panzerung — bodengebunden.",
 		"stufen": [
 			{ "name": "Nietling", "kosten": 140, "schaden": 40, "rate": 0.7, "reichweite": 92, "durchschlag": 6 },
@@ -134,7 +134,7 @@ const WAECHTER := [
 	},
 	{
 		"id": "fairy", "typ": "fairy", "gestalt": "wisp",
-		"luft": true, "nur_bei": "tag",
+		"luft": true, "stern": 160, "nur_bei": "tag",
 		"beschreibung": "Markiert Ziele und bricht Unlicht — entwickelt sich nur am Tag.",
 		"stufen": [
 			{ "name": "Schimmerchen", "kosten": 120, "schaden": 11, "rate": 1.5, "reichweite": 129, "marke": 0.1 },
@@ -144,7 +144,7 @@ const WAECHTER := [
 	},
 	{
 		"id": "dark", "typ": "dark", "gestalt": "eye",
-		"luft": true, "nur_bei": "nacht",
+		"luft": true, "stern": 110, "nur_bei": "nacht",
 		"beschreibung": "Schlägt hart aus dem Dunkel — entwickelt sich nur nachts.",
 		"stufen": [
 			{ "name": "Schattling", "kosten": 125, "schaden": 26, "rate": 0.95, "reichweite": 111 },
@@ -154,7 +154,7 @@ const WAECHTER := [
 	},
 	{
 		"id": "wind", "typ": "wind", "gestalt": "falke",
-		"luft": true,
+		"luft": true, "stern": 55,
 		"beschreibung": "Feuert unaufhörlich über große Weite und findet dabei jede Lücke im Panzer.",
 		"stufen": [
 			{ "name": "Windling", "kosten": 105, "schaden": 6, "rate": 4.2, "reichweite": 250, "durchschlag": 4 },
@@ -164,17 +164,17 @@ const WAECHTER := [
 	},
 	{
 		"id": "marco", "typ": "grass", "gestalt": "marco",
-		"luft": true,
+		"luft": true, "stern": 300,
 		"beschreibung": "Pustet Rauch: bremst und vergiftet. Kaum eigener Schaden.",
 		"stufen": [
-			{ "name": "Marco Bongkopf", "kosten": 135, "schaden": 4, "rate": 1, "reichweite": 132, "flaeche": 40, "bremse": { "amt": 0.22, "dur": 1.8 } },
-			{ "name": "Marco Blaudunst", "kosten": 200, "schaden": 8, "rate": 1.1, "reichweite": 158, "flaeche": 54, "bremse": { "amt": 0.34, "dur": 2.2 } },
-			{ "name": "Marco Nebelfürst", "kosten": 345, "schaden": 15, "rate": 1.2, "reichweite": 184, "flaeche": 70, "bremse": { "amt": 0.46, "dur": 2.8 } },
+			{ "name": "Marco Bongkopf", "kosten": 135, "schaden": 4, "rate": 1, "reichweite": 132, "flaeche": 40, "gift": { "dps": 5, "dur": 4 }, "bremse": { "amt": 0.22, "dur": 1.8 } },
+			{ "name": "Marco Blaudunst", "kosten": 200, "schaden": 8, "rate": 1.1, "reichweite": 158, "flaeche": 54, "gift": { "dps": 11, "dur": 5 }, "bremse": { "amt": 0.34, "dur": 2.2 } },
+			{ "name": "Marco Nebelfürst", "kosten": 345, "schaden": 15, "rate": 1.2, "reichweite": 184, "flaeche": 70, "gift": { "dps": 23, "dur": 6 }, "bremse": { "amt": 0.46, "dur": 2.8 } },
 		],
 	},
 	{
 		"id": "legend", "typ": "legend", "gestalt": "thron",
-		"luft": true, "legendaer": true,
+		"luft": true, "stern": 0, "legendaer": true,
 		"beschreibung": "Kennt weder Schwäche noch Vorteil — trifft alles gleich hart.",
 		"stufen": [
 			{ "name": "Dämmerhüter", "kosten": 420, "schaden": 70, "rate": 1.2, "reichweite": 194, "flaeche": 40, "durchschlag": 12 },
@@ -182,6 +182,30 @@ const WAECHTER := [
 			{ "name": "Ewigwacht", "kosten": 980, "schaden": 265, "rate": 1.5, "reichweite": 270, "flaeche": 74, "durchschlag": 42, "kette": 3, "brand": { "dps": 52, "dur": 3.5 } },
 		],
 	},
+]
+
+## Alle acht Wellen ein Anfuehrer, und die Schlusswelle immer.
+static func ist_anfuehrerwelle(w: int) -> bool:
+	return w > 0 and (w % 8 == 0 or w == 100)
+
+## Grenzen des Trainerpfads und der Aufstellung.
+const TALENT_RANG_MAX := 100
+const AUFSTELLUNG_MAX := 8
+const WAECHTER_JE_KARTE := 45
+
+## Die zehn Zweige. "gerade" waechst je Rang um schritt, "satt"
+## naehert sich grenze und erreicht sie nie: grenze * r / (r + halb).
+const TALENTE := [
+	{ "id": "vorrat", "name": "Proviantbeutel", "kurve": "satt", "grenze": 900.0, "halb": 20 },
+	{ "id": "kraft", "name": "Schlagkraft", "kurve": "gerade", "schritt": 0.04 },
+	{ "id": "weit", "name": "Weitblick", "kurve": "satt", "grenze": 0.6, "halb": 25 },
+	{ "id": "zaeh", "name": "Zähigkeit", "kurve": "satt", "grenze": 40.0, "halb": 25.0 },
+	{ "id": "durch", "name": "Panzerbrecher", "kurve": "gerade", "schritt": 3 },
+	{ "id": "erst", "name": "Erstschlag", "kurve": "satt", "grenze": 4, "halb": 12 },
+	{ "id": "lehre", "name": "Lehrmeister", "kurve": "satt", "grenze": 0.35, "halb": 8 },
+	{ "id": "handel", "name": "Handelsgeschick", "kurve": "satt", "grenze": 0.35, "halb": 4 },
+	{ "id": "zins", "name": "Zinseszins", "kurve": "satt", "grenze": 0.25, "halb": 10 },
+	{ "id": "kopfgeld", "name": "Kopfgeld", "kurve": "satt", "grenze": 1.2, "halb": 14 },
 ]
 
 ## Gewöhnliche Gegnerarten.
