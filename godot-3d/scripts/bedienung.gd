@@ -124,8 +124,23 @@ func _kachel(eltern: Node, beschriftung: String, farbe: Color) -> Label:
 ## ------------------------------------------------------------
 ## Wächterladen
 ## ------------------------------------------------------------
-func _baue_laden() -> void:
+## Der Laden hängt an Freischaltung und Aufstellung, also an einem
+## Spielstand, den es beim Bau der Oberfläche noch nicht gibt. Er wird
+## deshalb beim Rundenbeginn neu aufgebaut — vorher standen dort alle
+## dreizehn Familien, auch die verschlossenen.
+var _laden_aussen: PanelContainer
+
+func baue_laden_neu(spiel: RefCounted) -> void:
+	if _laden_aussen != null and is_instance_valid(_laden_aussen):
+		_laden_aussen.queue_free()
+	_karten.clear()
+	_gewaehlt = ""
+	_baue_laden(spiel)
+
+
+func _baue_laden(spiel: RefCounted = null) -> void:
 	var aussen := PanelContainer.new()
+	_laden_aussen = aussen
 	aussen.add_theme_stylebox_override("panel", _stil(GRUND))
 	aussen.anchor_left = 0.0
 	aussen.anchor_top = 1.0
@@ -146,6 +161,11 @@ func _baue_laden() -> void:
 	for def in Daten.WAECHTER:
 		# Der legendäre Wächter erscheint erst, wenn eine Karte gehalten wurde
 		if def.get("legendaer", false):
+			continue
+		## Verschlossene und nicht aufgestellte Familien bleiben draußen. Wer
+		## nichts freigeschaltet hat, sieht die vier Starter — und nicht eine
+		## Reihe von dreizehn Knöpfen, von denen neun nichts tun.
+		if spiel != null and not spiel.setzbar(String(def["id"])):
 			continue
 		var id: String = def["id"]
 		var st: Dictionary = def["stufen"][0]

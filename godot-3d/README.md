@@ -18,7 +18,7 @@ Godot 4.7 öffnen → *Import* → diesen Ordner wählen → *Run* (F5).
 | `1`–`9` | Wächter wählen, dann auf eine freie Fläche klicken |
 | Klick auf einen Wächter | anwählen, dann Entwickeln / Training / Mega / Entlassen |
 | `Leertaste` | nächste Welle rufen |
-| `M` | nächste Karte (lädt neu) |
+| `M` oder `Tab` | Menü: Route wählen, Aufstellung, Trainerpfad |
 | `E` | Endlosmodus, sobald eine Route gehalten ist |
 | `Esc` | Auswahl aufheben |
 
@@ -44,6 +44,9 @@ Godot 4.7 öffnen → *Import* → diesen Ordner wählen → *Run* (F5).
   Kurvenformen wie im Browserspiel — geprüft, dass beide bei Rang 50
   dieselben Werte liefern.
 - **Freischaltung**: vier Familien von Anfang an, sieben über Sterne.
+- **Menü** mit `M` oder `Tab`: Kartenwahl mit Sternen, Aufstellung und
+  Trainerpfad. Es wird bei jedem Öffnen neu aufgebaut — verschwenderisch und
+  hier richtig, weil ein Neuaufbau nicht veralten kann.
 - Gelände mit Höhen, eingesenktem Weg, Bewuchs, Licht und Schatten.
 
 Gemessen mit dem Selbstlauf (siehe unten), neun Wächter auf Stufe 0:
@@ -57,9 +60,7 @@ mit Wirkungen    18 Wellen, 315 erledigt,  2 Durchbrüche, 22 von 24 Leben
 
 Gegenüber dem Browserspiel: Wetter, Tag und Nacht, Sonderfelder (Wasser,
 Vulkan, Erhöhung), Segnungen, Anführerfähigkeiten, Hain der Ahnen, Statistik,
-Bestiarium, Klang — und die **Bedienoberfläche** für das, was jetzt darunter
-schon läuft: Trainerpfad, Aufstellung und Sterne haben noch kein Menü. Die
-Logik steht, sie ist nur nicht zu bedienen.
+Bestiarium und Klang.
 
 ## Prüfen ohne hinzusehen
 

@@ -20,6 +20,7 @@ const Weg = preload("res://scripts/weg.gd")
 const Pflanzen = preload("res://scripts/pflanzen.gd")
 const Daten = preload("res://scripts/daten.gd")
 const Kreatur = preload("res://scripts/kreatur.gd")
+const Menue = preload("res://scripts/menue.gd")
 const Spiel = preload("res://scripts/spiel.gd")
 const Bedienung = preload("res://scripts/bedienung.gd")
 
@@ -47,6 +48,7 @@ var durchgebrochen := 0
 ## Welche Karte gespielt wird — bestimmt den Schwierigkeitsfaktor.
 var spiel = Spiel.new()
 var bedienung: CanvasLayer
+var menue: CanvasLayer
 var kamera: Camera3D
 
 ## Was gerade zum Bauen gewählt ist, und wo der Zeiger hindeutet.
@@ -157,6 +159,15 @@ func _ready() -> void:
 	bedienung.mega.connect(_auf_mega)
 	bedienung.entlassen.connect(_auf_entlassen)
 	bedienung.zeige(spiel)
+	bedienung.baue_laden_neu(spiel)
+
+	## Das Menü. Es hält Kartenwahl, Trainerpfad und Aufstellung — alles, was
+	## eine Runde überdauert. Ohne es liefe der ganze Fortschritt unter der
+	## Oberfläche und wäre nicht auszugeben.
+	menue = Menue.new()
+	add_child(menue)
+	menue.runde_gestartet.connect(_auf_menuestart)
+	menue.oeffne(spiel, karte_index)
 
 	print("PocketBeast 3D — ", Daten.KARTEN[karte_index]["name"],
 		"   ", Daten.WAECHTER.size(), " Wächterfamilien, ",
@@ -467,7 +478,13 @@ func _unhandled_input(ereignis: InputEvent) -> void:
 			_auf_wellenruf()
 			return
 		if taste == KEY_M:
-			_naechste_karte()
+			## M öffnet das Menü, statt blind zur nächsten Karte zu springen.
+			## Der alte Weg lud die Szene neu und zeigte irgendeine Route —
+			## man wusste vorher nicht, welche, und konnte nichts einstellen.
+			menue.oeffne(spiel, karte_index)
+			return
+		if taste == KEY_TAB:
+			menue.oeffne(spiel, karte_index)
 			return
 		if taste == KEY_E and spiel.gewonnen:
 			spiel.endlos = true
@@ -483,9 +500,12 @@ func _unhandled_input(ereignis: InputEvent) -> void:
 		# Zifferntasten wählen die Wächter der Reihe nach
 		if taste >= KEY_1 and taste <= KEY_9:
 			var i := taste - KEY_1
+			## Nur die Familien, die hier auch setzbar sind — sonst zeigt
+			## Taste 5 auf einen verschlossenen Wächter, während im Laden an
+			## fünfter Stelle ein anderer steht.
 			var liste: Array = []
 			for d in Daten.WAECHTER:
-				if not d.get("legendaer", false):
+				if not d.get("legendaer", false) and spiel.setzbar(String(d["id"])):
 					liste.append(d)
 			if i < liste.size():
 				_auf_auswahl(liste[i]["id"])
@@ -494,6 +514,36 @@ func _unhandled_input(ereignis: InputEvent) -> void:
 	if ereignis is InputEventMouseButton and ereignis.pressed \
 			and ereignis.button_index == MOUSE_BUTTON_LEFT:
 		_versuche_bauen()
+
+
+## Eine Runde aus dem Menü heraus beginnen.
+##
+## Ist es dieselbe Karte, genügt ein Neustart des Spielstands; eine andere
+## Karte braucht die Szene neu, weil Gelände, Weg und Bewuchs beim Aufbau
+## entstehen und nicht nachträglich umgeformt werden.
+func _auf_menuestart(karte: int) -> void:
+	if karte != karte_index:
+		## Der Kartenindex reist über die Metadaten des Szenenbaums. Der Baum
+		## überlebt reload_current_scene(), die Szene nicht — deshalb kann die
+		## neue Szene ihn beim Aufbau wieder auslesen.
+		var baum := get_tree()
+		baum.set_meta("pocketbeast_karte", karte)
+		baum.reload_current_scene()
+		return
+	for g in gegner:
+		var kn: Node3D = g["knoten"]
+		kn.queue_free()
+	gegner.clear()
+	for t in tuerme:
+		var wz: Node3D = t["knoten"]
+		wz.queue_free()
+	tuerme.clear()
+	belegt.clear()
+	_sperre_wegkacheln()
+	spiel.starte(karte_index)
+	bedienung.baue_laden_neu(spiel)
+	bedienung.zeige(spiel)
+	bedienung.setze_hinweis("Neue Runde — stelle Wächter auf und ruf die erste Welle")
 
 
 ## Welche Kachel liegt unter dem Mauszeiger?
