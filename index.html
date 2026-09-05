@@ -3395,16 +3395,69 @@ const TARGET_MODES = [
   ["first", "Erster"], ["last", "Letzter"], ["strong", "Stärkster"], ["close", "Nächster"],
 ];
 
-function dprJetzt() { return Math.min(2, window.devicePixelRatio || 1); }
+/* Wie viele echte Pixel je Spieleinheit gezeichnet werden.
+
+   Hier stand `Math.min(2, devicePixelRatio)`, und die Zeichenfläche bekam
+   immer W × 2 = 2240 Pixel Breite — unabhängig davon, wie breit sie
+   tatsächlich ANGEZEIGT wird.
+
+   Auf dem Rechner stimmt das ungefähr: Das Feld ist dort etwa 1120 Pixel
+   breit. Auf dem Handy ist es 345 Pixel breit, und gemessen ergab das:
+
+     Anzeige      345 Pixel
+     Zeichenfläche 2240 × 1344 Pixel
+
+   Das Spiel füllte drei Millionen Pixel je Bild, um sie auf 345 herunter-
+   zuskalieren — das Zweiundvierzigfache dessen, was das Display zeigen kann.
+   Auf einem Telefon, dessen Grafikeinheit vor allem an der Füllrate hängt,
+   ist das der Unterschied zwischen flüssig und hakelig.
+
+   Jetzt richtet sich die Auflösung nach der Anzeige. Die Obergrenze von 2
+   verhindert Übertreibung auf sehr feinen Bildschirmen, die Untergrenze von
+   0,55 verhindert Matsch auf sehr kleinen. */
+let zeichenSkala = Math.min(2, window.devicePixelRatio || 1);
+
+function dprJetzt() { return zeichenSkala; }
+
+function berechneSkala() {
+  const breite = (cv.getBoundingClientRect().width) || W;
+  const geraet = window.devicePixelRatio || 1;
+  const roh = (breite * geraet) / W;
+  return Math.max(0.55, Math.min(2, Math.round(roh * 20) / 20));
+}
 
 function fitCanvas() {
-  const dpr = dprJetzt();
-  cv.width = W * dpr; cv.height = H * dpr;
+  const neu = berechneSkala();
+  /* Nur bei echter Änderung neu aufbauen. Die Zwischenspeicher für Kulisse,
+     Kreaturen und Wächter sind auf die Skala gebacken — ein Wechsel muss sie
+     verwerfen, aber jedes resize-Ereignis würde sie sonst grundlos
+     wegwerfen, und Handys feuern resize schon beim Ein- und Ausblenden der
+     Adressleiste. */
+  const geaendert = Math.abs(neu - zeichenSkala) > 0.001
+    || cv.width !== Math.round(W * neu);
+  zeichenSkala = neu;
+  cv.width = Math.round(W * neu);
+  cv.height = Math.round(H * neu);
   cv.style.aspectRatio = W + " / " + H;
-  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ctx.setTransform(neu, 0, 0, neu, 0, 0);
   ctx.imageSmoothingEnabled = true;
+  if (geaendert) {
+    bgCache = null;
+    /* Auch die Kreatur-, Wächter- und Pflanzenbilder hängen an der Skala:
+       Sie werden bei dprJetzt() gerendert und blieben sonst in der alten
+       Auflösung liegen — beim Drehen des Geräts wären sie plötzlich matschig
+       oder unnötig fein. */
+    if (typeof bilderLeeren === "function") bilderLeeren();
+    floraBilder = new Map(); floraBilderKarte = -1;
+    /* Auch der Bewuchs hängt an der Anzeigebreite — beim Drehen des Geräts
+       wird er neu gewürfelt, sonst behielte ein quer gehaltenes Handy die
+       ausgedünnte Fassung. */
+    decorCache = null;
+    lichtLage = null;
+  }
 }
 window.addEventListener("resize", fitCanvas);
+window.addEventListener("orientationchange", fitCanvas);
 
 /* ============================================================
    Wellen
@@ -5457,10 +5510,27 @@ function applyStatus(e, st, quelle) {
     const eine = st.gift.dps * (1 + boon("burn") * .4);
     e.gift = Math.min(eine * 4, (e.gift || 0) + eine);
     e.giftT = Math.max(e.giftT || 0, st.gift.dur);
+    /* Wer die Schwade gelegt hat, bekommt den Abschuss angerechnet.
+
+       Ohne diese Zeile wird ein Gegner, der am Gift stirbt, NIEMANDEM
+       gutgeschrieben — damage() bekam null als Quelle. Für Marco Bongkopf,
+       dessen ganze Wirkung im Gift liegt, hieß das: Er erreicht die
+       Abschussschwelle der Megaentwicklung nie und kann sie nicht vollziehen.
+
+       Angerechnet wird der zuletzt Auslösende. Bei einem Stapel aus mehreren
+       Wächtern ist das eine Vereinfachung — aber jede feinere Aufteilung
+       müsste je Gegner Buch führen, und ein halber Abschuss lässt sich nicht
+       zählen. */
+    if (quelle) e.giftVon = quelle;
   }
   if (st.burn) {
     e.burn = Math.max(e.burn || 0, st.burn.dps * (1 + boon("burn") * .6));
     e.burnT = Math.max(e.burnT || 0, st.burn.dur);
+    /* Dasselbe für den Brand. Feuer und Unlicht verloren dadurch bisher jeden
+       Abschuss, der am Nachbrennen starb — nur fiel es nicht auf, weil beide
+       genug unmittelbaren Schaden machen, um die Schwelle trotzdem zu
+       erreichen. */
+    if (quelle) e.brandVon = quelle;
   }
   if (st.slow) {
     e.wetT = Math.max(e.wetT || 0, st.slow.dur * 1.6);
@@ -5542,7 +5612,8 @@ function spawnEnemy(s, hp, spd, bounty, boss, d, isSplit) {
     /* Gegner des Heimtyps sind auf dieser Karte ebenfalls zu Hause. Ohne das
        wäre der Heimvorteil ein reines Geschenk statt einer Eigenheit. */
     heimstark: heimTyp() === s.type,
-    burn: 0, burnT: 0, gift: 0, giftT: 0, slow: 0, slowT: 0, rootT: 0, mark: 0, markT: 0, wetT: 0,
+    burn: 0, burnT: 0, brandVon: null, gift: 0, giftT: 0, giftVon: null,
+    slow: 0, slowT: 0, rootT: 0, mark: 0, markT: 0, wetT: 0,
     shield: 0, shieldMax: 0, shieldT: 0, abT: 0, comboT: 0,
     wob: Math.random() * 9, dead: false, dir: 1, walk: 0, isSplit: !!isSplit,
     off: (Math.random() - .5) * TILE * (boss ? .2 : .46),
@@ -5567,13 +5638,13 @@ function update(dt) {
 
   for (const e of G.enemies) {
     if (e.dead) continue;
-    if (e.burnT > 0) { e.burnT -= dt; damage(e, e.burn * dt, "fire", null); if (e.dead) continue; }
+    if (e.burnT > 0) { e.burnT -= dt; damage(e, e.burn * dt, "fire", e.brandVon || null); if (e.dead) continue; }
     /* Gift zehrt als Pflanzenschaden und klingt ab, wenn die Zeit ausläuft —
        nicht schlagartig, sondern indem der Stapel zurückfällt. Ein Gegner,
        der aus der Wolke läuft, ist nicht sofort gesund. */
     if (e.giftT > 0) {
       e.giftT -= dt;
-      damage(e, (e.gift || 0) * dt, "grass", null, true);
+      damage(e, (e.gift || 0) * dt, "grass", e.giftVon || null, true);
       if (e.dead) continue;
     } else if (e.gift) {
       e.gift = Math.max(0, e.gift - e.gift * 2.2 * dt);
@@ -6384,6 +6455,16 @@ function drawGroundTexture(g) {
   }
 }
 
+/* Wie dicht der Bewuchs steht, gemessen an der Anzeigebreite.
+
+   Eins auf dem Rechner, rund ein Halb auf dem Handy. Die Untergrenze von
+   0,45 verhindert, dass eine Karte kahl wirkt — ab da fehlt die Landschaft
+   und nicht nur ihr Detail. */
+function dekoFaktor() {
+  const breite = (cv && cv.getBoundingClientRect().width) || W;
+  return Math.max(0.45, Math.min(1, breite / 760));
+}
+
 function buildDecor() {
   const m = G.map;
   const rnd = mulberry(G.mapIdx * 7717 + 13);
@@ -6504,7 +6585,22 @@ function buildDecor() {
     );
     const randBonus = 1 + Math.max(0, 1 - randNaehe) * 0.85;
     const dd = d * randBonus;
-    const count = dd > 1.45 ? 4 : dd > 1.15 ? 3 : dd > .88 ? 2 : (rnd() > .55 ? 1 : 0);
+    /* Bewuchsdichte nach Anzeigegröße.
+
+       Der Bewuchs wird jedes Bild neu tiefensortiert und gezeichnet —
+       gemessen 447 Stück und damit 45 Prozent der Bildzeit. Auf einem
+       Telefon, das die Karte 345 statt 1120 Pixel breit zeigt, ist jede
+       Pflanze drei bis fünf Pixel groß; die Hälfte davon ist schlicht nicht
+       zu erkennen.
+
+       Der Faktor hält die Dichte je SICHTBARER Fläche etwa gleich, statt je
+       Spielfeld. Die Karte sieht damit auf dem Handy so voll aus wie auf dem
+       Rechner — sie kostet nur nicht dasselbe. */
+    const roh = dd > 1.45 ? 4 : dd > 1.15 ? 3 : dd > .88 ? 2 : (rnd() > .55 ? 1 : 0);
+    const dichte = dekoFaktor();
+    let count = Math.floor(roh * dichte);
+    // Der Rest entscheidet sich zufällig, sonst verschwänden ganze Arten
+    if (rnd() < (roh * dichte) - count) count++;
     for (let i = 0; i < count; i++) {
       // in der Ballung überwiegt die Leitart, am Rand mischt es sich auf
       let k = (art && rnd() < .58 + d * .2) ? art : kinds[Math.floor(rnd() * kinds.length)];
@@ -7127,10 +7223,14 @@ function setzeFlora(g, it, m, fol) {
 let bgCache = null;
 
 function getBackdrop() {
-  if (bgCache && bgCache.map === G.mapIdx && bgCache.dpr === (window.devicePixelRatio || 1)) return bgCache.cv;
+  /* An dieselbe Skala gebunden wie die Zeichenfläche. Vorher stand hier
+     devicePixelRatio, während die Fläche mit min(2, dpr) rechnete — auf
+     einem Gerät mit dpr 3 wurde der Zwischenspeicher deshalb bei jedem Bild
+     für ungültig gehalten und die ganze Kulisse neu gebaut. */
+  if (bgCache && bgCache.map === G.mapIdx && bgCache.dpr === dprJetzt()) return bgCache.cv;
   if (!decorCache || decorCache.map !== G.mapIdx) buildDecor();
   const m = G.map;
-  const dpr = Math.min(2, window.devicePixelRatio || 1);
+  const dpr = dprJetzt();
   const c = document.createElement("canvas");
   c.width = W * dpr; c.height = H * dpr;
   const g = c.getContext("2d");
@@ -7195,7 +7295,7 @@ function getBackdrop() {
      aufrecht gezeichnet und in die Tiefensortierung einbezogen. */
   zeichneTiefe(g, m);
 
-  bgCache = { map: G.mapIdx, cv: c, dpr: window.devicePixelRatio || 1 };
+  bgCache = { map: G.mapIdx, cv: c, dpr: dprJetzt() };
   return c;
 }
 
