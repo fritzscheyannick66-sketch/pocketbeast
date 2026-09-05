@@ -389,6 +389,32 @@ canvas{display:block;width:100%;height:auto;touch-action:manipulation}
 .dot{width:7px;height:7px;border-radius:99px;background:currentColor;flex:none}
 
 .empty{color:var(--muted);font-size:12.5px;line-height:1.5}
+
+/* Der Tutorialhinweis. Er schwebt über allem, aber er FÄNGT KEINE TIPPS ab —
+   pointer-events greift nur auf dem Überspringen-Knopf. Ein Hinweis, der
+   erklärt, wohin man tippen soll, und dabei selbst den Tipp schluckt, wäre
+   der schlimmste Fall. */
+.tutorial{
+  position:fixed; z-index:60; pointer-events:none;
+  background:rgba(13,20,26,.96); backdrop-filter:blur(6px);
+  border:1px solid var(--amber-dim); border-radius:12px;
+  padding:10px 12px 12px; box-shadow:0 8px 30px rgba(0,0,0,.55);
+  animation:tutauf .22s ease-out;
+}
+@keyframes tutauf{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+.tutkopf{font-family:var(--f-mono);font-size:9px;letter-spacing:.14em;
+  text-transform:uppercase;color:var(--amber);margin-bottom:4px}
+.tuttext{font-size:13px;line-height:1.45;color:var(--ink)}
+.tutzu{pointer-events:auto; margin-top:8px; background:none; border:none;
+  color:var(--muted); font-family:var(--f-mono); font-size:10px;
+  letter-spacing:.1em; text-transform:uppercase; cursor:pointer; padding:2px 0}
+.tutzu:hover{color:var(--ink)}
+
+/* Das Ziel des aktuellen Schritts bekommt einen Ring. Ohne ihn muss man den
+   Text lesen UND suchen; mit ihm genügt das Hinsehen. */
+.tutziel{outline:2px solid var(--amber); outline-offset:2px; border-radius:12px;
+  animation:tutpuls 1.4s ease-in-out infinite}
+@keyframes tutpuls{0%,100%{outline-color:rgba(240,168,60,.85)}50%{outline-color:rgba(240,168,60,.28)}}
 #panel-sel.active{border-color:var(--amber-dim);box-shadow:0 0 0 1px rgba(240,168,60,.18)}
 
 /* Auf schmalen Geräten ist die Auswahl eine Leiste am unteren Bildrand statt
@@ -610,6 +636,7 @@ table.eff th{color:var(--muted);font-weight:700;font-size:9.5px;letter-spacing:.
   <p class="foot">Eigenständige Kreaturen, eigene Regeln — kein Bezug zu bestehenden Marken. Tastatur: <b>Leertaste</b> Welle · <b>P</b> Pause · <b>1–8</b> Wächter · <b>U</b> entwickeln · <b>V</b> entlassen · <b>Esc</b> Abwählen</p>
 </div>
 
+<div class="tutorial" id="tutorial" hidden></div>
 <div class="veil" id="veil" hidden><div class="sheet" id="sheet"></div></div>
 <script>
 "use strict";
@@ -9110,6 +9137,178 @@ function addLog(html) {
   $("log").innerHTML = logLines.map(l => `<div>${l}</div>`).join("");
 }
 let bannerT = null;
+/* ============================================================
+   Spielbares Tutorial
+   ============================================================
+
+   Bis hierher öffnete der erste Start ein Hilfefenster mit acht Absätzen.
+   Das liest niemand, der spielen will — und wer es liest, hat danach
+   trotzdem noch nie einen Wächter gesetzt.
+
+   Das Tutorial führt stattdessen durch die ersten Handgriffe: Es sagt einen
+   Satz, wartet, bis der Handgriff GETAN ist, und geht dann weiter. Nichts
+   wird blockiert; wer den Weg von allein findet, überspringt die Schritte
+   dabei automatisch, weil die Bedingung schon erfüllt ist.
+
+   Die Reihenfolge folgt dem, was man wirklich zuerst braucht — nicht dem,
+   was sich am besten erklären lässt: setzen, rufen, entwickeln, Typen. Die
+   Wirtschaft kommt zuletzt, weil sie erst weh tut, wenn man sie versteht.
+
+   Warum jeder Schritt eine Prüfung hat und keinen Weiter-Knopf: Ein
+   Weiter-Knopf misst, ob jemand gelesen hat. Die Prüfung misst, ob er es
+   kann. */
+/* Ist ein Bedienelement gerade im Bild? Auf dem Handy liegt der große
+   Wächterladen weit unten und die schwebende Leiste direkt unter dem Feld —
+   ein Hinweis muss auf das zeigen, was der Spieler SIEHT, nicht auf das,
+   was in der Baumstruktur zuerst kommt. */
+function imBild(el) {
+  if (!el || el.hidden) return false;
+  const b = el.getBoundingClientRect();
+  return b.width > 0 && b.top < window.innerHeight - 40 && b.bottom > 40;
+}
+function ladenZiel() {
+  const leiste = $("feldshop");
+  return imBild(leiste) ? leiste : ($("shop") || leiste);
+}
+
+const TUTORIAL = [
+  {
+    id: "waehlen",
+    text: "Tippe unten auf einen Wächter, um ihn zu wählen.",
+    ziel: ladenZiel,
+    fertig: () => !!G.place || G.towers.length > 0,
+  },
+  {
+    id: "setzen",
+    text: "Jetzt auf eine freie Fläche neben dem Weg tippen. Grün heißt: hier geht es.",
+    ziel: () => $("board"),
+    fertig: () => G.towers.length > 0,
+  },
+  {
+    id: "rufen",
+    text: "Deine Wache steht. Ruf die erste Welle — oben rechts über dem Feld.",
+    ziel: () => $("b-wave"),
+    fertig: () => G.sent >= 1,
+  },
+  {
+    id: "waechter",
+    text: "Tippe deinen Wächter auf dem Feld an. Dann siehst du seine Werte.",
+    ziel: () => $("board"),
+    fertig: () => !!G.sel,
+  },
+  {
+    id: "entwickeln",
+    text: "Entwickeln macht ihn stärker als ein zweiter daneben — aber nur an einer Stelle.",
+    ziel: () => $("feldknopf"),
+    fertig: () => G.towers.some(t => t.tier > 0),
+  },
+  {
+    id: "typen",
+    text: "Jedes Element schlägt manche Wilden doppelt und prallt an anderen ab. "
+        + "Rechts steht, was als Nächstes kommt.",
+    ziel: () => $("panel-wave"),
+    fertig: () => G.sent >= 3,
+  },
+  {
+    id: "beeren",
+    text: "Beeren sind knapp. Wer alles verbaut, kann nichts mehr entwickeln — "
+        + "und Entwickeln trägt weiter als Bauen.",
+    ziel: () => $("s-gold") || ladenZiel(),
+    fertig: () => G.sent >= 5,
+  },
+];
+
+let tutSchritt = -1;
+let tutZeit = 0;
+
+/* Das Tutorial läuft nur beim allerersten Mal, und nur, solange nichts
+   Wichtigeres im Bild ist. Ein Hinweis über einem Segnungsdialog wäre kein
+   Hinweis, sondern ein Hindernis. */
+function tutorialAktiv() {
+  return !save.tutFertig && G.running && !G.over && !veilOffen();
+}
+
+function tutorialStart() {
+  if (save.tutFertig) return;
+  tutSchritt = 0;
+  tutZeit = 0;
+}
+
+function tutorialAus() {
+  save.tutFertig = true;
+  writeSave();
+  tutSchritt = -1;
+  const el = $("tutorial");
+  if (el) el.hidden = true;
+}
+
+function tutorialTakt(dt) {
+  const el = $("tutorial");
+  if (!el) return;
+  if (tutSchritt < 0 || !tutorialAktiv()) { el.hidden = true; return; }
+
+  /* Schritte, deren Bedingung schon erfüllt ist, werden übersprungen —
+     ohne Schleifengrenze liefe das bei einem erfahrenen Spieler durch alle
+     sieben auf einmal, was ein Aufblitzen ergäbe. Einer je Bild genügt. */
+  const s = TUTORIAL[tutSchritt];
+  if (!s) { tutorialAus(); return; }
+  if (s.fertig()) {
+    tutSchritt++;
+    tutZeit = 0;
+    if (tutSchritt >= TUTORIAL.length) { tutorialAus(); return; }
+    sfxErfolg();
+    return;
+  }
+
+  tutZeit += dt;
+  const ziel = s.ziel ? s.ziel() : null;
+  el.hidden = false;
+  el.innerHTML = `<div class="tutkopf">Schritt ${tutSchritt + 1} von ${TUTORIAL.length}</div>`
+    + `<div class="tuttext">${s.text}</div>`
+    + `<button class="tutzu" id="b-tutzu" title="Tutorial beenden">Überspringen</button>`;
+  const zu = $("b-tutzu");
+  if (zu) zu.onclick = (ev) => { ev.stopPropagation(); tutorialAus(); };
+
+  /* Der Hinweis sitzt am Ziel, nicht an einer festen Stelle. Ein Kasten, der
+     immer unten links klebt, zeigt auf nichts. */
+  if (ziel && ziel.getBoundingClientRect) {
+    const b = ziel.getBoundingClientRect();
+    if (b.width > 0) {
+      const breite = Math.min(300, window.innerWidth - 24);
+      el.style.width = breite + "px";
+      /* Die Höhe erst MESSEN, nachdem der Text steht.
+
+         Ein erster Anlauf rechnete mit angenommenen 76 Pixeln. Der längste
+         Schritt braucht aber drei Zeilen und kommt auf über hundert — der
+         Kasten legte sich damit über die Wächterleiste, also über genau das
+         Bedienelement, auf das er zeigt. Derselbe Fehler wie beim Feldknopf:
+         eine angenommene Größe statt der wirklichen. */
+      const hoehe = el.offsetHeight;
+      let x = b.left + b.width / 2 - breite / 2;
+      x = Math.max(12, Math.min(window.innerWidth - breite - 12, x));
+      let y = b.top - hoehe - 12;
+      /* Passt er oben nicht, kommt er unter das Ziel — und wenn auch das
+         nicht passt, an den unteren Rand. Ein Kasten, der halb aus dem Bild
+         ragt, ist schlimmer als einer an der falschen Stelle. */
+      if (y < 8) {
+        y = b.bottom + 12;
+        if (y + hoehe > window.innerHeight - 8)
+          y = Math.max(8, window.innerHeight - hoehe - 8);
+      }
+      el.style.left = x + "px";
+      el.style.top = y + "px";
+      ziel.classList.add("tutziel");
+      for (const o of document.querySelectorAll(".tutziel"))
+        if (o !== ziel) o.classList.remove("tutziel");
+    }
+  }
+}
+
+function veilOffen() {
+  const v = $("veil");
+  return !!v && !v.hidden;
+}
+
 function banner(txt) {
   const b = $("banner");
   b.textContent = txt; b.classList.add("show");
@@ -9487,7 +9686,10 @@ function wireMenu() {
   });
   $("b-start").addEventListener("click", () => {
     audioInit(); closeVeil(); starteRunde(menuMap);
-    if (!save.tut) { save.tut = true; writeSave(); showHelp(); }
+    /* Beim allerersten Start führt das Tutorial durch die Handgriffe, statt
+       ein Hilfefenster mit acht Absätzen zu öffnen. Die Hilfe bleibt über das
+       Fragezeichen erreichbar — sie ist ein Nachschlagewerk, kein Einstieg. */
+    if (!save.tut) { save.tut = true; writeSave(); tutorialStart(); }
   });
   if ($("b-resume")) $("b-resume").addEventListener("click", () => { closeVeil(); G.paused = false; $("b-pause").textContent = "Pause"; });
   $("b-codex2").addEventListener("click", showCodex);
@@ -9937,6 +10139,17 @@ function loop(now) {
   }
   if (G.map) draw();
   if (G.running && G.waveActive) updateWaveLive();
+  /* Das Tutorial läuft AUSSERHALB der Pausenprüfung.
+
+     Zuerst hing es im Spieltakt, und das war falsch: Wer beim ersten Mal
+     pausiert, um in Ruhe zu lesen, hätte damit genau den Hinweis eingefroren,
+     den er lesen will. Der Hinweis gehört zur Oberfläche, nicht zur
+     Spielwelt.
+
+     Auch die Position muss jedes Bild neu gesetzt werden — der Kasten hängt
+     am Ziel, und das Ziel wandert, wenn sich das Fenster dreht oder die
+     Auswahlleiste aufgeht. */
+  if (tutSchritt >= 0) tutorialTakt(raw);
   requestAnimationFrame(loop);
 }
 
