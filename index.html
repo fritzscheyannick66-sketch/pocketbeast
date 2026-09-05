@@ -1582,9 +1582,26 @@ const save = { points: 0, spent: 0, ranks: {}, cleared: {}, best: 0, run: null, 
   stat: {}, bestlauf: {}, erfolge: {}, gesehen: {} };
 function loadSave() {
   try {
-    const raw = localStorage.getItem(SAVE_KEY);
-    if (!raw) return;
-    const o = JSON.parse(raw);
+    let raw = localStorage.getItem(SAVE_KEY);
+    /* Fehlt der Hauptschlüssel oder ist er unlesbar, greift das Netz. Ein
+       leerer Spielstand bei vorhandener Sicherung wäre der Fall, für den es
+       sie gibt. */
+    let o = null;
+    try { o = raw ? JSON.parse(raw) : null; } catch (e3) { o = null; }
+    if (!o || typeof o !== "object") {
+      const netz = localStorage.getItem(SAVE_KEY_NETZ);
+      if (netz) {
+        try { o = JSON.parse(netz); } catch (e4) { o = null; }
+        /* Sofort auch wieder unter den Hauptschlüssel schreiben. Sonst
+           stünde die Sicherung allein da, und ein zweiter Verlust träfe die
+           letzte Kopie. */
+        if (o) {
+          console.info("Spielstand aus der Sicherung wiederhergestellt.");
+          try { localStorage.setItem(SAVE_KEY, netz); } catch (e5) {}
+        }
+      }
+    }
+    if (!o) return;
     if (o && typeof o === "object") Object.assign(save, o);
     if (!save.ranks) save.ranks = {};
     if (!save.cleared) save.cleared = {};
@@ -1596,8 +1613,36 @@ function loadSave() {
     if (!(save.tempo >= 1 && save.tempo <= 3)) save.tempo = 1;
   } catch (e) { /* Speicher nicht verfügbar — Spiel läuft trotzdem */ }
 }
+/* Ein zweiter Schlüssel als Sicherheitsnetz.
+
+   Der Anlass: Ein einziges localStorage.removeItem(SAVE_KEY) löschte einen
+   gewachsenen Fortschritt, und es gab nichts, woraus er sich hätte
+   zurückholen lassen. Derselbe Fall tritt ein, wenn jemand "Websitedaten
+   löschen" wählt, um etwas anderes loszuwerden.
+
+   Das Netz hilft nicht gegen alles — wer den ganzen Speicher leert, nimmt
+   beide Schlüssel mit. Es hilft gegen den häufigeren Fall: EIN Schlüssel
+   verschwindet, wird überschrieben oder unlesbar.
+
+   Geschrieben wird der Zweitstand nur, wenn der Fortschritt gewachsen ist.
+   Sonst überschriebe eine zurückgesetzte Runde die gute Kopie. */
+const SAVE_KEY_NETZ = "wildwacht.v1.netz";
+
+function fortschrittswert(o) {
+  if (!o) return -1;
+  let st = 0;
+  for (const k in (o.sterne || {})) st += o.sterne[k] || 0;
+  return st * 1000 + (o.points || 0);
+}
+
 function writeSave() {
   try { localStorage.setItem(SAVE_KEY, JSON.stringify(save)); } catch (e) {}
+  try {
+    let alt = null;
+    try { alt = JSON.parse(localStorage.getItem(SAVE_KEY_NETZ) || "null"); } catch (e2) {}
+    if (fortschrittswert(save) >= fortschrittswert(alt))
+      localStorage.setItem(SAVE_KEY_NETZ, JSON.stringify(save));
+  } catch (e) {}
 }
 function rank(id) { return save.ranks[id] || 0; }
 function talentPointsLeft() { return save.points - save.spent; }
@@ -9275,7 +9320,10 @@ function menuHTML() {
     Rang 50 schon 1.275, Rang 100 volle 5.050. Alle zehn Zweige ganz
     auszubauen kostet 50.500 — und genau darauf ist die letzte Route ausgelegt.
     ${save.points ? `Insgesamt verdient: ${save.points}, davon ${save.spent} ausgegeben.` : ""}
-    <button class="btn ghost sm" id="b-reset" style="margin-left:6px">Fortschritt zurücksetzen</button></p>
+    <button class="btn ghost sm" id="b-sichern" style="margin-left:6px">Spielstand sichern</button>
+    <button class="btn ghost sm" id="b-laden" style="margin-left:4px">Spielstand einlesen</button>
+    <button class="btn ghost sm" id="b-reset" style="margin-left:4px">Fortschritt zurücksetzen</button></p>
+    <p class="empty" id="standhinweis" style="margin-top:4px"></p>
   </section>
 
   ${save.run ? `<section><h2 style="margin-bottom:8px">Gespeicherte Runde</h2>
@@ -9306,7 +9354,57 @@ function wireMenu() {
       recalcAuras(); renderSel();
     });
   });
+  /* Spielstand sichern und einlesen.
+
+     Der Anlass war ein verlorener Fortschritt: Ein einziges
+     localStorage.removeItem() löscht Sterne, Trainerpunkte und Ränge
+     unwiederbringlich, und es gab nichts, woraus sich das
+     wiederherstellen ließe. Ein Spiel, dessen ganzer Fortschritt an einem
+     Browserschlüssel hängt, den ein geleerter Cache mitnimmt, verliert ihn
+     früher oder später.
+
+     Gesichert wird als Text im Zwischenspeicher statt als Datei: Das geht
+     ohne Dateidialog, lässt sich in eine Notiz kleben und funktioniert auch
+     dort, wo Downloads unterbunden sind. */
+  const standHinweis = (txt) => {
+    const el = $("standhinweis");
+    if (el) el.textContent = txt;
+  };
+  if ($("b-sichern")) $("b-sichern").addEventListener("click", async () => {
+    const text = JSON.stringify(save);
+    try {
+      await navigator.clipboard.writeText(text);
+      standHinweis("Spielstand in der Zwischenablage — irgendwo hineinkopieren und aufbewahren.");
+    } catch (e) {
+      /* Ohne Zwischenablagerecht bleibt der Weg über ein Textfeld, das der
+         Spieler selbst markiert. Ein stiller Fehlschlag wäre hier das
+         Schlimmste: Man glaubte gesichert zu haben. */
+      window.prompt("Diesen Text kopieren und aufbewahren:", text);
+      standHinweis("Zwischenablage nicht verfügbar — Text im Fenster kopieren.");
+    }
+  });
+  if ($("b-laden")) $("b-laden").addEventListener("click", () => {
+    const text = window.prompt("Gesicherten Spielstand einfügen:");
+    if (!text) return;
+    try {
+      const o = JSON.parse(text);
+      if (!o || typeof o !== "object" || !("points" in o))
+        throw new Error("keine Spielstandsdaten");
+      Object.assign(save, o);
+      if (!save.ranks) save.ranks = {};
+      if (!save.sterne) save.sterne = {};
+      writeSave();
+      standHinweis("Spielstand eingelesen.");
+      openVeil(menuHTML()); wireMenu();
+    } catch (e) {
+      standHinweis("Das war kein Spielstand — nichts geändert.");
+    }
+  });
   $("b-reset").addEventListener("click", () => {
+    /* Rückfrage, und vorher die Sicherung anbieten. Der Knopf stand neben
+       harmlosen und war einen Fehlklick von allem entfernt. */
+    if (!window.confirm("Trainerpunkte, Ränge und gemeisterte Routen werden gelöscht. "
+        + "Sterne bleiben. Vorher sichern?\n\nAbbrechen drücken, um erst zu sichern.")) return;
     save.points = 0; save.spent = 0; save.ranks = {}; save.cleared = {}; save.best = 0;
     writeSave(); openVeil(menuHTML()); wireMenu();
   });
