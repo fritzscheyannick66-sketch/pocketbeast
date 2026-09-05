@@ -154,8 +154,20 @@ canvas{display:block;width:100%;height:auto;touch-action:manipulation}
      Inhalt, "100/100" braucht 63 — die Sternekachel lief rechts aus dem
      Bild. Ein Raster mit Mindestbreite bricht stattdessen um, sobald es
      eng wird. Zwei volle Zeilen sind lesbar, eine abgeschnittene nicht. */
-  .stats{width:100%;display:grid;grid-template-columns:repeat(auto-fit,minmax(92px,1fr));gap:6px}
-  .stat{flex:none;min-width:0}
+  /* Fünf Kacheln in EINE Zeile. Mit 92 Pixeln Mindestbreite brachen sie auf
+     375 Pixeln in zwei Zeilen um, und zusammen mit Titel und Drehhinweis
+     gingen 380 der 812 Pixel Bildhöhe verloren, bevor das Spielfeld anfing.
+     Auf einem Handy ist das die Hälfte des Bildschirms für Zahlen, die man
+     im Blick behalten, aber nicht lesen muss wie einen Fließtext. */
+  .stats{width:100%;display:grid;grid-template-columns:repeat(5,1fr);gap:4px}
+  .stat{flex:none;min-width:0;padding:4px 5px}
+  .stat .k{font-size:7.5px;letter-spacing:.04em}
+  .stat .v{font-size:13px}
+  .brand h1{font-size:17px}
+  .topbar{gap:6px}
+  /* Der Drehhinweis stand als eigene Zeile mit 34 Pixeln Höhe im Weg. Als
+     schmales Band darüber sagt er dasselbe und kostet die Hälfte. */
+  .drehhinweis{margin-top:2px;padding:3px 8px;font-size:8.5px}
 }
 
 /* Hochkant ist das Feld zwangsläufig klein. Ein dezenter Hinweis, dass
@@ -378,6 +390,38 @@ canvas{display:block;width:100%;height:auto;touch-action:manipulation}
 
 .empty{color:var(--muted);font-size:12.5px;line-height:1.5}
 #panel-sel.active{border-color:var(--amber-dim);box-shadow:0 0 0 1px rgba(240,168,60,.18)}
+
+/* Auf schmalen Geräten ist die Auswahl eine Leiste am unteren Bildrand statt
+   ein Abschnitt weiter unten im Dokument.
+
+   Der Unterschied ist nicht kosmetisch: Solange sie im Dokumentfluss lag,
+   musste man scrollen, um sie zu sehen — und wer scrollt, sieht das Feld
+   nicht mehr, während die Welle läuft. Eingeblendet wird sie nur, wenn
+   wirklich ein Wächter gewählt ist; sonst nähme sie dauerhaft ein Viertel
+   des Bildschirms.
+
+   Die eigene Höhenbegrenzung mit Bildlauf ist Absicht: Ein Wächter auf
+   Endstufe zeigt mehr Zeilen als einer auf Stufe 1, und ohne Deckel wüchse
+   die Leiste über das halbe Bild. */
+@media (max-width:1080px){
+  #panel-sel{
+    position:fixed; left:0; right:0; bottom:0; z-index:40;
+    margin:0; border-radius:14px 14px 0 0;
+    border-bottom:none;
+    max-height:46vh; overflow-y:auto;
+    background:var(--panel);
+    box-shadow:0 -8px 28px rgba(0,0,0,.5);
+    transform:translateY(101%);
+    transition:transform .18s ease-out;
+    padding-bottom:calc(12px + env(safe-area-inset-bottom, 0px));
+  }
+  #panel-sel.active{transform:translateY(0)}
+  /* Ohne den Riegel liegt die Leiste über der untersten Karte des Ladens. */
+  #panel-sel::before{
+    content:""; display:block; width:38px; height:4px; border-radius:99px;
+    background:var(--line); margin:-4px auto 8px;
+  }
+}
 @keyframes nudge{0%,100%{transform:translateX(0)}25%{transform:translateX(-4px)}75%{transform:translateX(4px)}}
 .stat.warn-flash{animation:nudge .28s ease}
 .stat.warn-flash .v{color:var(--bad)!important}
@@ -8706,7 +8750,6 @@ function feldKnopf() {
   const cv = $("board");
   const b = cv.getBoundingClientRect();
   const sx = b.width / W, sy = b.height / H;
-  el.style.left = Math.max(56, Math.min(b.width - 56, t.x * sx)) + "px";
   /* Über der Figur — außer sie steht so weit oben, dass der Knopf gegen die
      schwebende Leiste stieße. Dann darunter. Ein Knopf, der auf "Welle
      starten" liegt, wird irgendwann statt dessen gedrückt. */
@@ -8746,6 +8789,15 @@ function feldKnopf() {
     });
   }
   el.hidden = false;
+  /* Waagerecht erst JETZT setzen, nachdem der Inhalt steht.
+
+     Vorher wurde auf feste 56 Pixel vom Rand geklemmt — die halbe Breite
+     eines gedachten Knopfes. "Entwickeln · 105" ist aber rund 150 Pixel
+     breit, und auf einem 375 Pixel schmalen Handy hing er damit zur Hälfte
+     außerhalb des Feldes. Die echte Breite kennt man erst, wenn der Text
+     drinsteht. */
+  const halb = el.offsetWidth / 2 + 6;
+  el.style.left = Math.max(halb, Math.min(b.width - halb, t.x * sx)) + "px";
 }
 
 function renderSel() {
@@ -8754,9 +8806,17 @@ function renderSel() {
   const t = G.sel;
   const pan = $("panel-sel");
   if (pan) pan.classList.toggle("active", !!t);
-  if (t && pan && window.innerWidth <= 1080 && lastSelKey !== t.c + ":" + t.r) {
-    try { pan.scrollIntoView({ behavior: "smooth", block: "nearest" }); } catch (e) {}
-  }
+  /* Hier stand ein scrollIntoView(): Bei jeder Auswahl unter 1080 Pixeln
+     Breite sprang die Seite zur Wächtertafel hinunter. Gedacht war es als
+     Hilfe — die Tafel liegt auf dem Handy unter dem Spielfeld, und ohne
+     Scrollen sah man sie nicht.
+
+     Gemessen war es das Gegenteil einer Hilfe: Man verliert bei jedem Tipp
+     auf einen Wächter das Feld aus dem Blick, während die Welle weiterläuft.
+
+     Die Tafel kommt jetzt zum Spieler statt umgekehrt — auf schmalen Geräten
+     liegt sie als Leiste am unteren Bildrand, fest im Sichtfeld. Sehen kann
+     man sie damit ohne einen einzigen Bildlauf. */
   lastSelKey = t ? t.c + ":" + t.r : null;
   if (!t) {
     box.innerHTML = G.place
