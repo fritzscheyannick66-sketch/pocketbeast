@@ -5634,6 +5634,25 @@ function update(dt) {
   G.time += dt;
   SND.frame = 0;
   if (G.shake > 0) G.shake = Math.max(0, G.shake - dt * 34);
+  /* Melden, wenn ein Wächter die Megaentwicklung erreicht.
+
+     Das Sternzeichen auf dem Feld zeigt den Zustand, aber nicht den Moment —
+     und der Moment ist der, in dem man handeln würde. Wer gerade auf die
+     andere Seite der Karte schaut, verpasst ihn sonst und merkt es erst
+     Wellen später.
+
+     Je Wächter nur einmal: Ohne das Merkmal meldete es sich in jedem Bild
+     erneut, und die Anzeige stünde dauerhaft im Bild. */
+  for (const t of G.towers) {
+    if (t.megaGemeldet || t.mega) continue;
+    if (!megaBereit(t)) continue;
+    t.megaGemeldet = true;
+    banner("★ " + tierOf(t).name + " ist bereit für die Megaentwicklung");
+    float(t.x, t.y - TILE * .5, "★ MEGA BEREIT", "#FFD86E", 1.8);
+    sfxErfolg();
+    addLog(`<b>★ ${tierOf(t).name}</b> hat die Bedingungen der Megaentwicklung erfüllt `
+      + `— ${MEGA_KOSTEN} Beeren.`);
+  }
   spawnFromQueue();
 
   for (const e of G.enemies) {
@@ -5972,6 +5991,18 @@ function draw() {
 
   // Alles, was auf dem Boden steht — nach Tiefe sortiert
   zeichneStehendes(g, m);
+  /* Die Megazeichen in einem eigenen Durchgang, NACH allem Stehenden.
+
+     Zuerst wurden sie zusammen mit dem Wächter gezeichnet — und waren
+     unsichtbar. Gemessen: sechs Aufrufe, sechs Füllungen, und an der Stelle,
+     wo der Stern landen sollte, war die hellste Farbe grün. Alles, was in der
+     Tiefensortierung nach dem Wächter kommt, malt darüber: Bewuchs, andere
+     Wächter, Gegner.
+
+     Ein Statuszeichen darf nicht von Gras verdeckt werden. Es gehört über
+     die Szene, nicht hinein. */
+  for (const t of G.towers)
+    if (megaBereit(t)) aufrecht(g, t.x, t.y, () => megaZeichen(g, t));
 
   // Auflösende Besiegte
   for (const p of G.poofs) {
@@ -8304,6 +8335,61 @@ function waechterBild(t, col, gr, blick) {
   b = { cv: c, bw, bh, fx: fx2, fy: fy2 };
   waechterBilder.set(schluessel, b);
   return b;
+}
+
+/* Das Zeichen über einem Wächter, der die Megaentwicklung erreicht hat.
+
+   Der Fortschritt dorthin stand bisher nur in der Auswahltafel — man musste
+   also jeden Wächter einzeln antippen, um zu sehen, ob einer soweit ist. Bei
+   fünfundvierzig Wächtern tut das niemand, und die stärkste Entwicklung des
+   Spiels blieb liegen, ohne dass irgendetwas darauf hinwies.
+
+   Ein Stern über dem Kopf, der langsam pulsiert und sanft steigt und fällt.
+   Bewusst kräftig: Auf dem Handy ist eine Wächterfigur siebzehn Pixel groß,
+   und ein dezenter Hinweis wäre dort keiner. Er verschwindet, sobald die
+   Entwicklung vollzogen ist.
+
+   Gezeichnet wird er INNERHALB von aufrecht(), also mit der Figur zusammen
+   aufgerichtet — sonst läge er schräg in der Bodenebene und sähe aus, als
+   klebte er im Gras. */
+function megaZeichen(g, t) {
+  if (!megaBereit(t)) return;
+  /* In WELTKOORDINATEN zeichnen, nicht relativ zum Ursprung.
+
+     aufrecht() verschiebt den Ursprung NICHT auf die Figur — es dreht die
+     Stauchung um einen Punkt herum zurück und stellt den Ursprung danach
+     wieder her. Wer darin bei (0, −32) zeichnet, landet in der linken oberen
+     Ecke der Karte und nicht über dem Wächter.
+
+     Gemessen: null Goldpixel über allen Wächtern, obwohl die Funktion bei
+     jedem Bild lief. Der Fehler war unsichtbar, weil die Sterne alle
+     übereinander außerhalb des Blickfelds lagen. */
+  const puls = 0.5 + 0.5 * Math.sin(G.time * 3.4 + t.x * 0.03);
+  const heben = Math.sin(G.time * 2.1 + t.x * 0.05) * 2.2;
+  const cx = t.x;
+  const y = t.y - TILE * 0.56 + heben;
+  const r = TILE * 0.17 * (0.88 + puls * 0.18);
+
+  // Schein dahinter, damit der Stern auch auf hellem Grund trägt
+  const gr = g.createRadialGradient(cx, y, 0, cx, y, r * 2.6);
+  gr.addColorStop(0, `rgba(255,214,110,${0.34 + puls * 0.24})`);
+  gr.addColorStop(1, "rgba(255,214,110,0)");
+  g.fillStyle = gr;
+  g.beginPath(); g.arc(cx, y, r * 2.6, 0, 7); g.fill();
+
+  // Fünfzackiger Stern
+  g.beginPath();
+  for (let i = 0; i < 10; i++) {
+    const a = -Math.PI / 2 + i * Math.PI / 5;
+    const rr = i % 2 === 0 ? r : r * 0.44;
+    const px = cx + Math.cos(a) * rr, py = y + Math.sin(a) * rr;
+    if (i === 0) g.moveTo(px, py); else g.lineTo(px, py);
+  }
+  g.closePath();
+  g.fillStyle = "#FFD86E";
+  g.strokeStyle = "rgba(60,36,0,.75)";
+  g.lineWidth = Math.max(1, r * 0.16);
+  g.fill(); g.stroke();
 }
 
 function drawTower(g, t) {
