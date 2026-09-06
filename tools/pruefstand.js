@@ -212,7 +212,7 @@ function ladeSpiel(datei, umbau) {
   AUFSTELLUNG_MAX, WAECHTER_JE_KARTE, aufstellungFuer, aufstellung, waechterFrei,
   karteHatWasserAuf,
   sterneGesamt,
-  FELD_VULKAN_BONUS, FELD_KRAFT_BONUS, FELD_HOEHE_BONUS,
+  FELD_VULKAN_BONUS, FELD_KRAFT_BONUS, FELD_HOEHE_BONUS, FELD_HOEHE_TYPEN,
   heimTyp, istHeimWaechter, HEIM_WAECHTER_SCHADEN, legendaerDef,
   beerenAbrechnen, BEEREN_JE_PUNKT, BEEREN_PUNKTE_MAX,
 };`;

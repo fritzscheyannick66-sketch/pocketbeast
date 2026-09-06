@@ -44,6 +44,11 @@ Godot 4.7 öffnen → *Import* → diesen Ordner wählen → *Run* (F5).
   Kurvenformen wie im Browserspiel — geprüft, dass beide bei Rang 50
   dieselben Werte liefern.
 - **Freischaltung**: vier Familien von Anfang an, sieben über Sterne.
+- **Sonderfelder**: Wasserstellen (nur Wasser-Wächter, und die nirgends
+  sonst), Vulkanschlote (nur Feuer, +18 % Schaden und Reichweite),
+  Kraftfelder (+30 % Reichweite) und Erhöhungen (+32 % für Gestein und Wind,
+  ein Drittel für alle anderen). Der See wächst als zusammenhängende Fläche,
+  die übrigen liegen verstreut und berühren einander nicht.
 - **Menü** mit `M` oder `Tab`: Kartenwahl mit Sternen, Aufstellung und
   Trainerpfad. Es wird bei jedem Öffnen neu aufgebaut — verschwenderisch und
   hier richtig, weil ein Neuaufbau nicht veralten kann.
@@ -58,9 +63,8 @@ mit Wirkungen    18 Wellen, 315 erledigt,  2 Durchbrüche, 22 von 24 Leben
 
 ## Was noch fehlt
 
-Gegenüber dem Browserspiel: Wetter, Tag und Nacht, Sonderfelder (Wasser,
-Vulkan, Erhöhung), Segnungen, Anführerfähigkeiten, Hain der Ahnen, Statistik,
-Bestiarium und Klang.
+Gegenüber dem Browserspiel: Wetter, Tag und Nacht, Segnungen,
+Anführerfähigkeiten, Hain der Ahnen, Statistik, Bestiarium und Klang.
 
 ## Prüfen ohne hinzusehen
 

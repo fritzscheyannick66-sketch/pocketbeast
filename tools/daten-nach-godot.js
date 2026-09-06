@@ -130,6 +130,12 @@ z("## Alle acht Wellen ein Anfuehrer, und die Schlusswelle immer.");
 z("static func ist_anfuehrerwelle(w: int) -> bool:");
 z(`\treturn w > 0 and (w % 8 == 0 or w == ${spiel.WELLEN_JE_KARTE})`);
 z("");
+z("## Wirkung der Sonderfelder. Dieselben Zahlen wie im Browserspiel.");
+z(`const FELD_KRAFT_BONUS := ${spiel.FELD_KRAFT_BONUS}`);
+z(`const FELD_VULKAN_BONUS := ${spiel.FELD_VULKAN_BONUS}`);
+z(`const FELD_HOEHE_BONUS := ${spiel.FELD_HOEHE_BONUS}`);
+z(`const FELD_HOEHE_TYPEN := [${(spiel.FELD_HOEHE_TYPEN || []).map((t) => JSON.stringify(t)).join(", ")}]`);
+z("");
 z("## Grenzen des Trainerpfads und der Aufstellung.");
 z(`const TALENT_RANG_MAX := ${spiel.TALENT_RANG_MAX || 100}`);
 z(`const AUFSTELLUNG_MAX := ${spiel.AUFSTELLUNG_MAX || 8}`);
@@ -238,6 +244,19 @@ for (const m of spiel.MAPS) {
      Ohne sie liefen in Godot wieder alle vierundvierzig Arten überall,
      und die beiden Fassungen zeigten verschiedene Spiele. */
   z(`\t\t"wilde": [${(m.wilde || []).map((t) => JSON.stringify(t)).join(", ")}],`);
+  /* Sonderfelder. Die Einträge sind Arrays wie ["wasser", 7, "see", [7,7]]:
+     Art, Anzahl, Form und ein Wunschort. In GDScript werden daraus
+     Wörterbücher — dort ist ein gemischtes Array aus Text, Zahl und
+     Koordinate nur mit Typprüfungen zu lesen. */
+  const sf = (m.sonderfelder || []).map((f) => {
+    const art = Array.isArray(f) ? f[0] : f;
+    const n2 = Array.isArray(f) ? (f[1] || 1) : 1;
+    const form = Array.isArray(f) && f[2] ? `, "form": ${JSON.stringify(f[2])}` : "";
+    const ort = Array.isArray(f) && Array.isArray(f[3])
+      ? `, "ort": Vector2i(${f[3][0]}, ${f[3][1]})` : "";
+    return `{ "art": ${JSON.stringify(art)}, "anzahl": ${n2}${form}${ort} }`;
+  });
+  z(`\t\t"sonderfelder": [${sf.join(", ")}],`);
   z(`\t\t"boden": [Color("${m.ground[0]}"), Color("${m.ground[1]}")],`);
   z(`\t\t"weg": Color("${m.path}"), "wegkante": Color("${m.pathEdge}"),`);
   z(`\t\t"laub": Color("${m.foliage}"), "himmel": [Color("${(m.himmel||["#7FA8C4"])[0]}"), Color("${(m.himmel||["#BFD4D0"])[1]}")],`);

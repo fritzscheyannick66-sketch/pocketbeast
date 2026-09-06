@@ -145,10 +145,16 @@ func _ready() -> void:
 	_baue_licht()
 	_baue_kamera()
 	_baue_welt()
-	_baue_bewuchs()
+	## Reihenfolge: erst den Weg sperren, dann die Sonderfelder auslegen, DANN
+	## den Bewuchs. Vorher wuchs er zuerst — und damit standen Tannen mitten
+	## im See und Büsche auf dem Vulkanschlot. Ein Sonderfeld, das unter
+	## Bewuchs liegt, ist keines: Man sieht nicht, dass die Stelle besonders
+	## ist, und der Bewuchs verdeckt genau das Merkmal.
 	_sperre_wegkacheln()
-
 	spiel.starte(karte_index)
+	_lege_sonderfelder()
+	_zeige_sonderfelder()
+	_baue_bewuchs()
 	bedienung = Bedienung.new()
 	add_child(bedienung)
 	bedienung.waechter_gewaehlt.connect(_auf_auswahl)
@@ -167,7 +173,13 @@ func _ready() -> void:
 	menue = Menue.new()
 	add_child(menue)
 	menue.runde_gestartet.connect(_auf_menuestart)
-	menue.oeffne(spiel, karte_index)
+	## Beim Start steht die Routenwahl offen — das ist für einen Spieler
+	## richtig. Für die Prüfschalter nicht: Sie legen ein Bild ab oder spielen
+	## selbst, und ein Menü davor zeigt nur das Menü.
+	if OS.get_environment("POCKETBEAST_SCHAU").is_empty() \
+			and OS.get_environment("POCKETBEAST_AUTO").is_empty() \
+			and OS.get_environment("POCKETBEAST_SPIEL").is_empty():
+		menue.oeffne(spiel, karte_index)
 
 	print("PocketBeast 3D — ", Daten.KARTEN[karte_index]["name"],
 		"   ", Daten.WAECHTER.size(), " Wächterfamilien, ",
@@ -193,6 +205,74 @@ func _sperre_wegkacheln() -> void:
 				if Vector2(mitte.x - p.x, mitte.z - p.z).length() < Gelaende.KACHEL * 0.85:
 					belegt[nachbar] = "weg"
 		d += schritt
+
+
+## Sonderfelder auslegen. Die Regeln stehen in spiel.gd; hier kommt nur
+## dazu, WELCHE Kacheln überhaupt in Frage kommen und wie weit sie vom Weg
+## liegen — das weiß nur die Welt.
+func _lege_sonderfelder() -> void:
+	var frei: Array = []
+	var naehe: Dictionary = {}
+	for r in range(Gelaende.ZEILEN):
+		for c in range(Gelaende.SPALTEN):
+			var k := Vector2i(c, r)
+			if belegt.has(k):
+				continue
+			frei.append(k)
+			naehe[k] = _abstand_zum_weg(_kachel_zu_welt(k))
+	spiel.lege_felder(frei, naehe)
+
+
+## Die Felder sichtbar machen.
+##
+## Ohne Anzeige wäre die Regel "Wasser-Wächter nur auf Wasserstellen" eine
+## Fehlermeldung statt einer Entscheidung: Man erführe erst beim
+## vergeblichen Klick, dass es die Stelle nicht ist.
+##
+## Wasser bekommt eine ruhige Fläche, der Vulkanschlot eine glühende, das
+## Kraftfeld einen leuchtenden Ring, die Erhöhung einen flachen Sockel.
+var _wurzel_felder := Node3D.new()
+
+func _zeige_sonderfelder() -> void:
+	if _wurzel_felder.get_parent() == null:
+		add_child(_wurzel_felder)
+	for kind in _wurzel_felder.get_children():
+		kind.queue_free()
+	for k in spiel.felder:
+		var art := String(spiel.felder[k])
+		var p := _kachel_zu_welt(k)
+		var flaeche := MeshInstance3D.new()
+		var netz := BoxMesh.new()
+		var mat := StandardMaterial3D.new()
+		match art:
+			"wasser":
+				netz.size = Vector3(Gelaende.KACHEL * 0.98, 0.10, Gelaende.KACHEL * 0.98)
+				mat.albedo_color = Color(0.24, 0.46, 0.68).srgb_to_linear()
+				mat.metallic = 0.4
+				mat.roughness = 0.15
+				p.y -= 0.10
+			"vulkan":
+				netz.size = Vector3(Gelaende.KACHEL * 0.86, 0.16, Gelaende.KACHEL * 0.86)
+				mat.albedo_color = Color(0.30, 0.10, 0.06).srgb_to_linear()
+				mat.emission_enabled = true
+				mat.emission = Color(1.0, 0.42, 0.12).srgb_to_linear()
+				mat.emission_energy_multiplier = 1.6
+			"kraft":
+				netz.size = Vector3(Gelaende.KACHEL * 0.80, 0.06, Gelaende.KACHEL * 0.80)
+				mat.albedo_color = Color(0.42, 0.30, 0.62).srgb_to_linear()
+				mat.emission_enabled = true
+				mat.emission = Color(0.68, 0.48, 1.0).srgb_to_linear()
+				mat.emission_energy_multiplier = 1.1
+			_:
+				## Erhöhung: ein flacher Sockel, auf dem der Wächter dann auch
+				## sichtbar höher steht.
+				netz.size = Vector3(Gelaende.KACHEL * 0.92, 0.34, Gelaende.KACHEL * 0.92)
+				mat.albedo_color = Color(0.44, 0.40, 0.34).srgb_to_linear()
+				p.y += 0.17
+		flaeche.mesh = netz
+		flaeche.material_override = mat
+		flaeche.position = p
+		_wurzel_felder.add_child(flaeche)
 
 
 func _welt_zu_kachel(p: Vector3) -> Vector2i:
@@ -361,6 +441,11 @@ func _baue_bewuchs() -> void:
 		var nah := _abstand_zum_weg(p)
 		if nah < Weg.BREITE + 1.0:
 			continue
+		## Sonderfelder bleiben frei. Eine Tanne mitten im See sieht nicht nur
+		## falsch aus — sie verdeckt, dass die Stelle besonders ist, und genau
+		## darauf beruht die Entscheidung, wen man dorthin stellt.
+		if not spiel.feld_art(_welt_zu_kachel(p)).is_empty():
+			continue
 
 		# Dichte aus der Nähe zum nächsten Ballungszentrum
 		var d_zentrum := 999.0
@@ -429,6 +514,10 @@ func _baue_bewuchs() -> void:
 		var p := Vector3(x, 0, z)
 		var nah := _abstand_zum_weg(p)
 		if nah < Weg.BREITE + 0.15:
+			continue
+		## Auch das Gras hält sich von den Sonderfeldern fern — sechzehntausend
+		## Halme, von denen ein Teil im Wasser stünde.
+		if not spiel.feld_art(_welt_zu_kachel(p)).is_empty():
 			continue
 		var y := Gelaende.hoehe_bei(x, z, nah)
 		gras_plaetze.append(Vector3(x, y, z))
@@ -584,6 +673,13 @@ func _versuche_bauen() -> void:
 
 	if not _kachel_frei(k):
 		bedienung.setze_hinweis("Hier ist kein Platz — der Weg oder ein Wächter belegt die Stelle")
+		return
+	if not spiel.darf_hier(gewaehlt, k):
+		var art := spiel.feld_art(k)
+		bedienung.setze_hinweis(
+			"Auf Vulkanschloten nur Feuer-Wächter" if art == "vulkan"
+			else ("Wasser-Wächter nur auf Wasserstellen" if art != "wasser"
+				else "Auf Wasserstellen nur Wasser-Wächter"))
 		return
 	var kosten := spiel.baukosten(gewaehlt)
 	if spiel.beeren < kosten:
@@ -793,11 +889,19 @@ func _setze_waechter(id: String, stufe: int, pos: Vector3, kachel: Vector2i = Ve
 	var st: Dictionary = def["stufen"][clampi(stufe, 0, 2)]
 	var typ: String = def["typ"]
 	var farbe: Color = Daten.TYPEN[typ]["farbe"]
+	## Sonderfeld und Trainerpfad wirken auf Reichweite und Schaden.
+	##
+	## Ohne diese beiden Faktoren wäre ein Kraftfeld nur ein leuchtender Ring
+	## und der Trainerpfad eine Zahlenreihe im Menü — beides sichtbar, beides
+	## folgenlos.
+	var f_reich := spiel.feld_reichweite(def, kachel) * (1.0 + spiel.talent("weit"))
+	var f_schaden := spiel.feld_schaden(kachel) * (1.0 + spiel.talent("kraft"))
 	var t := _setze_turm(pos, farbe,
-		float(st["reichweite"]) / Spiel.PIXEL_JE_METER,
+		float(st["reichweite"]) / Spiel.PIXEL_JE_METER * f_reich,
 		float(st["rate"]),
-		float(st["schaden"]),
-		typ, def["luft"], float(st.get("durchschlag", 0)),
+		float(st["schaden"]) * f_schaden,
+		typ, def["luft"],
+		float(st.get("durchschlag", 0)) + spiel.talent("durch"),
 		String(def.get("gestalt", "blob")), stufe)
 	t["id"] = id
 	t["stufe"] = stufe

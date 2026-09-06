@@ -337,6 +337,155 @@ func wellen_punkte(w: int) -> int:
 
 
 ## ============================================================
+## Sonderfelder
+## ============================================================
+##
+## Vier Arten, die einen Bauplatz von einem anderen unterscheiden:
+##
+##   wasser  Nur Wasser-Wächter dürfen darauf — und nirgends sonst hin.
+##           Das macht die Familie zu einem Standortproblem statt zu einer
+##           freien Wahl.
+##   vulkan  Nur Feuer-Wächter, dafür +18 % Schaden UND Reichweite.
+##   kraft   +30 % Reichweite für jeden.
+##   hoehe   +32 % Reichweite für Gestein und Wind, ein Drittel davon für
+##           alle anderen.
+##
+## Ohne sie war in der 3D-Fassung jeder Platz gleich viel wert und der
+## Wasser-Wächter überall setzbar — die Karte hatte keine Topografie, nur
+## eine Route.
+##
+## Die Felder hängen an der Kartennummer, nicht am Zufall: Eine Route soll
+## wiedererkennbar sein und nicht bei jedem Start anders aussehen.
+
+var felder: Dictionary = {}     ## Vector2i -> Art
+
+
+func feld_art(k: Vector2i) -> String:
+	return String(felder.get(k, ""))
+
+
+## Darf diese Familie auf dieses Feld?
+func darf_hier(id: String, k: Vector2i) -> bool:
+	var def := waechter_def(id)
+	if def.is_empty():
+		return false
+	var art := feld_art(k)
+	if art == "vulkan":
+		return String(def["typ"]) == "fire"
+	if String(def["typ"]) == "water":
+		return art == "wasser"
+	return art != "wasser"
+
+
+## Was das Feld unter einem Wächter an seiner Reichweite ändert.
+func feld_reichweite(def: Dictionary, k: Vector2i) -> float:
+	var art := feld_art(k)
+	if art == "kraft":
+		return 1.0 + Daten.FELD_KRAFT_BONUS
+	if art == "vulkan":
+		return 1.0 + Daten.FELD_VULKAN_BONUS
+	if art == "hoehe":
+		var voll: bool = String(def["typ"]) in Daten.FELD_HOEHE_TYPEN
+		return 1.0 + Daten.FELD_HOEHE_BONUS * (1.0 if voll else 0.33)
+	return 1.0
+
+
+## Und an seinem Schaden. Nur der Vulkanschlot wirkt hier — und nur auf
+## Feuer, weil sonst niemand darauf stehen darf.
+func feld_schaden(k: Vector2i) -> float:
+	return 1.0 + Daten.FELD_VULKAN_BONUS if feld_art(k) == "vulkan" else 1.0
+
+
+## Die Felder einer Karte auslegen.
+##
+## `frei` sind die bebaubaren Kacheln, `naehe` sagt für jede, wie weit sie
+## vom Weg liegt. Nur was nah genug am Weg liegt, kommt in Frage — ein
+## Kraftfeld in der Ecke, auf der nie jemand baut, ist kein Sonderfeld,
+## sondern Dekoration.
+func lege_felder(frei: Array, naehe: Dictionary) -> void:
+	felder = {}
+	var karte: Dictionary = Daten.KARTEN[karte_idx]
+	var liste: Array = karte.get("sonderfelder", [])
+	if liste.is_empty():
+		return
+
+	## Fester Zufall aus der Kartennummer — dieselbe Karte, dieselben Felder.
+	var wuerfel := RandomNumberGenerator.new()
+	wuerfel.seed = karte_idx * 7717 + 13
+
+	var tauglich: Array = []
+	for k: Vector2i in frei:
+		if float(naehe.get(k, 999.0)) < 6.0:
+			tauglich.append(k)
+	if tauglich.is_empty():
+		return
+	## Mischen, damit die Auswahl nicht dem Rasterlauf folgt und alle
+	## Sonderfelder in derselben Ecke landen.
+	for i in range(tauglich.size() - 1, 0, -1):
+		var j := wuerfel.randi_range(0, i)
+		var tmp = tauglich[i]
+		tauglich[i] = tauglich[j]
+		tauglich[j] = tmp
+
+	for eintrag in liste:
+		var art := String(eintrag["art"])
+		var anzahl := int(eintrag["anzahl"])
+		if String(eintrag.get("form", "")) == "see":
+			_lege_see(art, anzahl, tauglich, eintrag.get("ort", Vector2i(-1, -1)))
+		else:
+			_lege_verstreut(art, anzahl, tauglich)
+
+
+## Verstreute Einzelfelder, die einander nicht berühren — sonst entstehen
+## Nester, und ein Nest aus sechs Kraftfeldern ist ein Bauplatz, kein
+## Gelände.
+func _lege_verstreut(art: String, anzahl: int, tauglich: Array) -> void:
+	var gesetzt := 0
+	for k: Vector2i in tauglich:
+		if gesetzt >= anzahl:
+			break
+		if felder.has(k):
+			continue
+		var nachbar := false
+		for dc: int in [-1, 0, 1]:
+			for dr: int in [-1, 0, 1]:
+				if felder.has(Vector2i(int(k.x) + dc, int(k.y) + dr)):
+					nachbar = true
+		if nachbar:
+			continue
+		felder[k] = art
+		gesetzt += 1
+
+
+## Ein zusammenhängender See statt verstreuter Tümpel. Für Wasser ist das
+## Auseinanderhalten genau falsch — die Fläche wächst deshalb von einem
+## Startfeld aus immer weiter an einen schon gesetzten Rand.
+func _lege_see(art: String, anzahl: int, tauglich: Array, wunsch: Vector2i) -> void:
+	var start := wunsch
+	if not tauglich.has(start):
+		start = tauglich[0]
+	felder[start] = art
+	var rand: Array = [start]
+	var gesetzt := 1
+	while gesetzt < anzahl and not rand.is_empty():
+		var von: Vector2i = rand[0]
+		var gewachsen := false
+		## Ausdrücklich typisiert: Werte aus einem Array-Literal sind für
+		## GDScript Variant, und := kann daraus keinen Typ ableiten.
+		for d: Vector2i in [Vector2i(1, 0), Vector2i(-1, 0), Vector2i(0, 1), Vector2i(0, -1)]:
+			var k: Vector2i = von + d
+			if felder.has(k) or not tauglich.has(k):
+				continue
+			felder[k] = art
+			rand.append(k)
+			gesetzt += 1
+			gewachsen = true
+			break
+		if not gewachsen:
+			rand.pop_front()
+
+
+## ============================================================
 ## Trainerpfad und Freischaltung
 ## ============================================================
 
