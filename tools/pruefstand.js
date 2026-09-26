@@ -202,7 +202,7 @@ function ladeSpiel(datei, umbau) {
   megaBereit, megaEntwickeln, megaStand, darfEntwickeln,
   canPlace, feldArt, darfHier, baueFelder,
   tierOf, statDmg, statRange, towerValue, sellValue, recalcAuras,
-  istNacht, nachtAnteil, boon, rank,
+  istNacht, nachtAnteil, boon, rank, ZYKLUS,
   TALENTS, talCost, talentPointsLeft,
   sterne, sternVergeben, legendaerFrei,
   save, offerBoon, takeBoon,

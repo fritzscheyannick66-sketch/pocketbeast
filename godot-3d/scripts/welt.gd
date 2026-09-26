@@ -207,6 +207,46 @@ func _sperre_wegkacheln() -> void:
 		d += schritt
 
 
+## Wie viele Wellen noch bis zum Wechsel von Tag zu Nacht.
+##
+## Ein "geht gerade nicht" ohne Angabe, wann es geht, ist eine Sackgasse: Man
+## weiß nicht, ob man zwei Wellen wartet oder die Route falsch aufgestellt hat.
+func _wellen_bis_wechsel() -> int:
+	var w: int = maxi(1, spiel.welle)
+	return Daten.ZYKLUS - ((w - 1) % Daten.ZYKLUS)
+
+
+## Licht nach Tageszeit setzen.
+##
+## Nachts sinkt die Sonne, wird kühler und schwächer, und das Umgebungslicht
+## geht ins Blaue. Die Nacht wird bewusst nicht so dunkel, dass man das
+## Gelände nicht mehr liest — sie soll die Stimmung ändern, nicht das Spiel
+## erschweren. Erschwert wird ohnehin genug: Fee und Unlicht sind je vier
+## Wellen lang nicht ausbaubar.
+var _sonne: DirectionalLight3D
+var _himmelmat: ProceduralSkyMaterial
+var _nacht_ist := -1.0
+
+func _setze_tageszeit() -> void:
+	if _sonne == null:
+		return
+	var a: float = spiel.nacht_anteil()
+	if absf(a - _nacht_ist) < 0.01:
+		return
+	_nacht_ist = a
+	_sonne.light_energy = lerpf(1.55, 0.42, a)
+	_sonne.light_color = Color(1.0, 0.94, 0.82).lerp(Color(0.62, 0.72, 1.0), a)
+	_sonne.rotation_degrees = Vector3(lerpf(-52.0, -22.0, a), lerpf(-38.0, 26.0, a), 0.0)
+	var umgebung := get_viewport().world_3d.environment
+	if umgebung != null:
+		umgebung.ambient_light_energy = lerpf(1.0, 0.55, a)
+		umgebung.ambient_light_color = Color(0.72, 0.80, 0.92).lerp(Color(0.22, 0.28, 0.48), a)
+	if _himmelmat != null:
+		_himmelmat.sky_top_color = Color(0.26, 0.42, 0.62).lerp(Color(0.03, 0.05, 0.13), a)
+		_himmelmat.sky_horizon_color = Color(0.62, 0.72, 0.80).lerp(Color(0.10, 0.13, 0.26), a)
+		_himmelmat.ground_horizon_color = Color(0.48, 0.52, 0.48).lerp(Color(0.08, 0.10, 0.16), a)
+
+
 ## Sonderfelder auslegen. Die Regeln stehen in spiel.gd; hier kommt nur
 ## dazu, WELCHE Kacheln überhaupt in Frage kommen und wie weit sie vom Weg
 ## liegen — das weiß nur die Welt.
@@ -364,6 +404,7 @@ func _baue_licht() -> void:
 	sonne.shadow_bias = 0.06
 	sonne.shadow_normal_bias = 2.5
 	add_child(sonne)
+	_sonne = sonne
 
 
 ## Schräge Draufsicht: flach genug, dass Körper Höhe zeigen, steil genug,
@@ -752,6 +793,10 @@ func _auf_ausbau() -> void:
 	var stufe: int = int(t["stufe"])
 	var kosten: int = spiel.ausbaukosten(String(t["id"]), stufe)
 	if kosten < 0 or spiel.beeren < kosten:
+		return
+	if not spiel.darf_entwickeln(String(t["id"])):
+		bedienung.setze_hinweis("Entwickelt sich nur bei %s — noch %d Wellen"
+			% ["Nacht" if not spiel.ist_nacht() else "Tag", _wellen_bis_wechsel()])
 		return
 	spiel.beeren -= kosten
 	t["stufe"] = stufe + 1

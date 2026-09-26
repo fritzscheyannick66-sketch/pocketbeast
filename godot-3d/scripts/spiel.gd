@@ -140,7 +140,9 @@ func mega_bereit(turm: Dictionary) -> bool:
 		return false
 	if int(turm.get("training", 0)) < MEGA_TRAINING:
 		return false
-	return true
+	## Auch die Megaentwicklung hängt an der Tageszeit — sonst käme die Fee
+	## nachts über einen Umweg doch an ihre vierte Stufe.
+	return darf_entwickeln(String(turm.get("id", "")))
 
 
 ## Die Werte der Megaentwicklung, abgeleitet aus der Endstufe.
@@ -334,6 +336,44 @@ func wellen_punkte(w: int) -> int:
 	var faktor := 1.0 + float(karte_idx) * 0.2
 	var roh := grund * 6 if Daten.ist_anfuehrerwelle(w) else grund
 	return int(round(float(roh) * faktor))
+
+
+## ============================================================
+## Tag und Nacht
+## ============================================================
+##
+## Vier Wellen hell, vier dunkel, dann von vorn. Das ist keine Deko: Die Fee
+## entwickelt sich nur bei Tag, der Unlicht-Wächter nur bei Nacht. Wer beide
+## aufgestellt hat, muss den Ausbau über den Zyklus verteilen statt alles
+## sofort zu kaufen.
+##
+## In der 3D-Fassung fehlte das — dort waren beide Familien jederzeit
+## ausbaubar, und die Eigenheit, die sie von den anderen unterscheidet,
+## existierte nicht.
+
+func ist_nacht() -> bool:
+	return Daten.ist_nacht(maxi(1, welle))
+
+
+## Wie tief die Nacht gerade ist: 0 heller Tag, 1 tiefe Nacht.
+## Die letzte Welle einer Hälfte blendet hinüber, damit der Wechsel nicht
+## hart einsetzt.
+func nacht_anteil() -> float:
+	var w := maxi(1, welle)
+	var in_haelfte := (w - 1) % Daten.ZYKLUS
+	var nacht := Daten.ist_nacht(w)
+	if in_haelfte == Daten.ZYKLUS - 1:
+		return 0.5 if nacht else 0.5
+	return 1.0 if nacht else 0.0
+
+
+## Darf dieser Wächter gerade entwickelt werden?
+func darf_entwickeln(id: String) -> bool:
+	var def := waechter_def(id)
+	var b := String(def.get("nur_bei", ""))
+	if b.is_empty():
+		return true
+	return ist_nacht() if b == "nacht" else not ist_nacht()
 
 
 ## ============================================================

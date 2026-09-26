@@ -506,6 +506,10 @@ canvas{display:block;width:100%;height:auto;touch-action:manipulation}
 
 .helpgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 @media (max-width:640px){.helpgrid{grid-template-columns:1fr}}
+.wolkefeld{background:var(--panel-2,#12202b);border:1px solid var(--line);border-radius:8px;
+  color:var(--ink);font:400 13px/1.2 var(--f-body,inherit);padding:9px 11px;min-width:190px}
+.wolkefeld.kurz{min-width:110px;letter-spacing:.24em;font-family:var(--f-mono);text-align:center}
+.wolkefeld:focus{outline:none;border-color:var(--amber-dim)}
 .card[data-zu="1"]{opacity:.42;filter:grayscale(.7);cursor:not-allowed}
 .card[data-zu="1"] .cost{color:#F5C542}
 .talents{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:8px}
@@ -638,6 +642,7 @@ table.eff th{color:var(--muted);font-weight:700;font-size:9.5px;letter-spacing:.
 
 <div class="tutorial" id="tutorial" hidden></div>
 <div class="veil" id="veil" hidden><div class="sheet" id="sheet"></div></div>
+<script src="cloud-config.js"></script>
 <script>
 "use strict";
 /* ============================================================
@@ -1704,6 +1709,227 @@ function fortschrittswert(o) {
   let st = 0;
   for (const k in (o.sterne || {})) st += o.sterne[k] || 0;
   return st * 1000 + (o.points || 0);
+}
+
+/* ============================================================
+   Die Spielstandwolke
+   ============================================================
+
+   Anmeldung per E-Mail und ein Spielstand, der auf jedem Gerät derselbe ist.
+
+   ZWEI GRUNDSÄTZE, die alles andere bestimmen:
+
+   Erstens: Das Spiel läuft OHNE die Wolke vollständig. Wer sich nie anmeldet,
+   merkt nichts davon; wer angemeldet ist und offline gerät, spielt weiter und
+   gleicht später ab. Ein Spiel, das ohne Netz nicht startet, ist schlechter
+   als eines ohne Anmeldung.
+
+   Zweitens: Der Browser bleibt die führende Kopie WÄHREND einer Runde. Die
+   Wolke wird nach gehaltenen Wellen beschrieben und beim Anmelden gelesen —
+   nicht ständig. Jede Welle ein Netzaufruf wäre auf dem Handy spürbar und im
+   Funkloch ein Ärgernis.
+
+   WARUM ZAHLENCODE STATT ANKLICKBAREM LINK
+
+   Ein Magic-Link öffnet die Mail-App, und die öffnet ihn im
+   Standardbrowser. Wer in Chrome spielt, aber Safari als Standard hat, ist
+   danach in Safari angemeldet und in Chrome nicht. Auf dem Handy ist das kein
+   Randfall, sondern der Normalfall. Ein sechsstelliger Code kommt dort an, wo
+   gespielt wird.
+
+   WAS HIER NICHT STEHT
+
+   Kein Passwort — es gibt keines. Und kein geheimer Schlüssel: Der Wert in
+   cloud-config.js ist der öffentliche anon-Schlüssel, der für sich genommen
+   nichts erlaubt. Dass jeder nur seinen eigenen Stand sieht, entscheidet die
+   Datenbank über ihre Zeilenregeln, nicht der Browser. Ein Schutz, der im
+   Browser liegt, ist keiner.
+   ============================================================ */
+const WOLKE = {
+  sitzung: null,      // { token, refresh, ablauf, email, id }
+  zustand: "aus",     // aus | abgemeldet | angemeldet | fehler
+  meldung: "",
+  schreibt: false,
+};
+const WOLKE_SITZUNG_KEY = "wildwacht.wolke";
+
+function wolkeBereit() {
+  const k = window.POCKETBEAST_WOLKE;
+  return !!(k && k.url && k.key);
+}
+
+/* Ein Aufruf an Supabase. Alles läuft über fetch statt über deren
+   Programmbibliothek: Das Spiel kommt ohne eine einzige fremde Datei aus, und
+   das soll so bleiben — eine Bibliothek von einem fremden Server ist eine
+   Abhängigkeit, die ausfallen, sich ändern oder mitlesen kann. */
+async function wolkeRuf(pfad, opt) {
+  opt = opt || {};
+  const k = window.POCKETBEAST_WOLKE;
+  const kopf = {
+    "apikey": k.key,
+    "Content-Type": "application/json",
+  };
+  if (opt.mitToken && WOLKE.sitzung) kopf["Authorization"] = "Bearer " + WOLKE.sitzung.token;
+  else kopf["Authorization"] = "Bearer " + k.key;
+  if (opt.kopf) Object.assign(kopf, opt.kopf);
+  const antwort = await fetch(k.url.replace(/\/+$/, "") + pfad, {
+    method: opt.method || "GET",
+    headers: kopf,
+    body: opt.body ? JSON.stringify(opt.body) : undefined,
+  });
+  let daten = null;
+  try { daten = await antwort.json(); } catch (e) { daten = null; }
+  if (!antwort.ok) {
+    const grund = (daten && (daten.msg || daten.message || daten.error_description)) || ("Fehler " + antwort.status);
+    throw new Error(grund);
+  }
+  return daten;
+}
+
+/* Code anfordern. create_user erlaubt, dass sich jemand beim ersten Mal
+   gleich anmeldet, ohne vorher ein Konto anzulegen — für ein Spiel ist eine
+   getrennte Registrierung eine Hürde ohne Gegenwert. */
+async function wolkeCodeAnfordern(email) {
+  await wolkeRuf("/auth/v1/otp", {
+    method: "POST",
+    body: { email: email, create_user: true },
+  });
+}
+
+async function wolkeAnmelden(email, code) {
+  const d = await wolkeRuf("/auth/v1/verify", {
+    method: "POST",
+    body: { email: email, token: code, type: "email" },
+  });
+  WOLKE.sitzung = {
+    token: d.access_token,
+    refresh: d.refresh_token,
+    ablauf: Date.now() + (d.expires_in || 3600) * 1000,
+    email: (d.user && d.user.email) || email,
+    id: d.user && d.user.id,
+  };
+  wolkeSitzungSichern();
+  WOLKE.zustand = "angemeldet";
+}
+
+/* Der Zugangstoken läuft nach einer Stunde ab. Eine Runde über hundert
+   Wellen dauert länger — ohne Erneuerung schlüge das erste Sichern danach
+   fehl, und zwar genau dann, wenn am meisten zu verlieren ist. */
+async function wolkeFrischen() {
+  if (!WOLKE.sitzung) return false;
+  if (Date.now() < WOLKE.sitzung.ablauf - 60000) return true;
+  try {
+    const d = await wolkeRuf("/auth/v1/token?grant_type=refresh_token", {
+      method: "POST",
+      body: { refresh_token: WOLKE.sitzung.refresh },
+    });
+    WOLKE.sitzung.token = d.access_token;
+    WOLKE.sitzung.refresh = d.refresh_token || WOLKE.sitzung.refresh;
+    WOLKE.sitzung.ablauf = Date.now() + (d.expires_in || 3600) * 1000;
+    wolkeSitzungSichern();
+    return true;
+  } catch (e) {
+    /* Abgelaufen und nicht erneuerbar: abmelden statt still weiterlaufen.
+       Ein Spiel, das "gespeichert" meldet und nichts speichert, ist schlimmer
+       als eines, das sagt: du bist abgemeldet. */
+    wolkeAbmelden();
+    return false;
+  }
+}
+
+function wolkeSitzungSichern() {
+  try { localStorage.setItem(WOLKE_SITZUNG_KEY, JSON.stringify(WOLKE.sitzung)); } catch (e) {}
+}
+
+function wolkeSitzungLaden() {
+  if (!wolkeBereit()) { WOLKE.zustand = "aus"; return; }
+  try {
+    const roh = localStorage.getItem(WOLKE_SITZUNG_KEY);
+    if (roh) WOLKE.sitzung = JSON.parse(roh);
+  } catch (e) { WOLKE.sitzung = null; }
+  WOLKE.zustand = WOLKE.sitzung ? "angemeldet" : "abgemeldet";
+}
+
+function wolkeAbmelden() {
+  WOLKE.sitzung = null;
+  WOLKE.zustand = wolkeBereit() ? "abgemeldet" : "aus";
+  try { localStorage.removeItem(WOLKE_SITZUNG_KEY); } catch (e) {}
+}
+
+/* Den eigenen Stand holen. Die Zeilenregeln der Datenbank sorgen dafür, dass
+   hier nur der eigene kommt — die Abfrage muss das nicht einschränken, und
+   wenn sie es täte, wäre das keine Sicherheit, sondern Höflichkeit. */
+async function wolkeHolen() {
+  if (!await wolkeFrischen()) return null;
+  const d = await wolkeRuf("/rest/v1/staende?select=stand,geaendert", { mitToken: true });
+  return (Array.isArray(d) && d.length) ? d[0] : null;
+}
+
+async function wolkeSchieben() {
+  if (!WOLKE.sitzung || WOLKE.schreibt) return false;
+  if (!await wolkeFrischen()) return false;
+  WOLKE.schreibt = true;
+  try {
+    await wolkeRuf("/rest/v1/staende", {
+      method: "POST",
+      mitToken: true,
+      kopf: { "Prefer": "resolution=merge-duplicates" },
+      body: [{
+        spieler: WOLKE.sitzung.id,
+        stand: save,
+        geaendert: new Date().toISOString(),
+      }],
+    });
+    return true;
+  } catch (e) {
+    WOLKE.meldung = "Nicht gesichert: " + e.message;
+    return false;
+  } finally {
+    WOLKE.schreibt = false;
+  }
+}
+
+/* Abgleich beim Anmelden.
+
+   Zwei Stände, einer im Browser und einer in der Wolke. Welcher gilt?
+
+   Nicht der neuere — "zuletzt gespeichert" ist das falsche Maß. Wer auf einem
+   frischen Gerät anmeldet, hat dort einen leeren Stand, der jünger ist als
+   der gewachsene in der Wolke; nach Zeitstempel würde er ihn überschreiben.
+
+   Es gewinnt der WEITERE, gemessen an Sternen und Trainerpunkten. Fortschritt
+   kann man verlieren, aber nicht aus Versehen gewinnen — deshalb ist er das
+   verlässlichere Maß. */
+async function wolkeAbgleichen() {
+  const fern = await wolkeHolen();
+  const hier = fortschrittswert(save);
+  const dort = fern && fern.stand ? fortschrittswert(fern.stand) : -1;
+  if (dort > hier) {
+    Object.assign(save, fern.stand);
+    if (!save.ranks) save.ranks = {};
+    if (!save.sterne) save.sterne = {};
+    writeSave();
+    return "geholt";
+  }
+  if (hier > dort) {
+    await wolkeSchieben();
+    return "geschoben";
+  }
+  return "gleich";
+}
+
+/* Nach einer gehaltenen Welle sichern — aber nicht bei jeder.
+
+   Hundert Wellen wären hundert Netzaufrufe. Auf dem Handy kostet jeder davon
+   Funk und Strom, und der Gewinn ist gering: Was zwischen zwei Sicherungen
+   liegt, sind ein paar Wellen, und die stehen ohnehin im Browser. */
+let wolkeLetztesSchieben = 0;
+function wolkeVielleichtSichern(sofort) {
+  if (!WOLKE.sitzung) return;
+  const jetzt = Date.now();
+  if (!sofort && jetzt - wolkeLetztesSchieben < 45000) return;
+  wolkeLetztesSchieben = jetzt;
+  wolkeSchieben();
 }
 
 function writeSave() {
@@ -4151,6 +4377,7 @@ function endWave() {
     }
   }
   if (G.endless && G.wave > (save.endless || 0)) { save.endless = G.wave; writeSave(); }
+  wolkeVielleichtSichern(false);
   erfolgePruefen();
   if (!G.endless && G.wave >= G.maxWave) return victory();
   sfxWaveClear();
@@ -9743,6 +9970,32 @@ function menuHTML() {
     </section>`;
   })()}
 
+  ${wolkeBereit() ? `<section>
+    <h2 style="margin-bottom:8px">Spielstand über Geräte hinweg</h2>
+    ${WOLKE.sitzung
+      ? `<p class="empty">Angemeldet als <b style="color:var(--ink)">${WOLKE.sitzung.email}</b>.
+          Dein Fortschritt wird nach gehaltenen Wellen gesichert und steht auf jedem Gerät bereit.
+          ${WOLKE.meldung ? `<br><span style="color:var(--bad)">${WOLKE.meldung}</span>` : ""}</p>
+         <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px">
+           <button class="btn ghost sm" id="b-wolke-jetzt">Jetzt sichern</button>
+           <button class="btn ghost sm" id="b-wolke-holen">Aus der Wolke holen</button>
+           <button class="btn ghost sm" id="b-wolke-ab">Abmelden</button>
+         </div>`
+      : `<p class="empty">Melde dich mit deiner E-Mail an, dann liegt dein Fortschritt nicht nur in diesem Browser.
+          Kein Passwort — du bekommst einen sechsstelligen Code zugeschickt.</p>
+         <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;align-items:center">
+           <input id="wolke-mail" type="email" inputmode="email" autocomplete="email"
+             placeholder="deine@adresse.de" class="wolkefeld">
+           <button class="btn sm" id="b-wolke-code">Code anfordern</button>
+         </div>
+         <div id="wolke-codezeile" hidden style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;align-items:center">
+           <input id="wolke-code" inputmode="numeric" autocomplete="one-time-code" maxlength="8"
+             placeholder="123456" class="wolkefeld kurz">
+           <button class="btn primary sm" id="b-wolke-an">Anmelden</button>
+         </div>
+         <p class="empty" id="wolke-status" style="margin-top:6px"></p>`}
+  </section>` : ""}
+
   <section>
     <h2 style="margin-bottom:8px">Trainerpfad — ${left} Punkt${left === 1 ? "" : "e"} frei</h2>
     <div class="talents" id="talents">${TALENTS.map(t => {
@@ -9857,6 +10110,71 @@ function wireMenu() {
     audioInit(); closeVeil();
     if (!resumeRun()) starteRunde(menuMap);
   });
+  /* Anmeldung. Jeder Schritt sagt, was gerade passiert — ein Knopf, der
+     nichts sichtbar tut, während im Hintergrund eine Mail verschickt wird,
+     lässt einen zweimal drücken. */
+  const wolkeStatus = (txt, schlecht) => {
+    const el = $("wolke-status");
+    if (!el) return;
+    el.textContent = txt;
+    el.style.color = schlecht ? "var(--bad)" : "var(--muted)";
+  };
+  if ($("b-wolke-code")) $("b-wolke-code").addEventListener("click", async () => {
+    const mail = ($("wolke-mail").value || "").trim();
+    if (!mail || mail.indexOf("@") < 1) { wolkeStatus("Bitte eine E-Mail-Adresse eingeben.", true); return; }
+    $("b-wolke-code").disabled = true;
+    wolkeStatus("Code wird verschickt …");
+    try {
+      await wolkeCodeAnfordern(mail);
+      $("wolke-codezeile").hidden = false;
+      wolkeStatus("Code unterwegs an " + mail + ". Er gilt eine Stunde.");
+      const f = $("wolke-code"); if (f) f.focus();
+    } catch (e) {
+      wolkeStatus("Hat nicht geklappt: " + e.message, true);
+    } finally {
+      $("b-wolke-code").disabled = false;
+    }
+  });
+  if ($("b-wolke-an")) $("b-wolke-an").addEventListener("click", async () => {
+    const mail = ($("wolke-mail").value || "").trim();
+    const code = ($("wolke-code").value || "").trim();
+    if (!code) { wolkeStatus("Bitte den Code aus der E-Mail eintragen.", true); return; }
+    $("b-wolke-an").disabled = true;
+    wolkeStatus("Wird geprüft …");
+    try {
+      await wolkeAnmelden(mail, code);
+      const was = await wolkeAbgleichen();
+      openVeil(menuHTML()); wireMenu();
+      banner(was === "geholt" ? "Spielstand aus der Wolke geholt"
+           : was === "geschoben" ? "Spielstand in die Wolke gesichert"
+           : "Angemeldet");
+      sfxErfolg();
+    } catch (e) {
+      wolkeStatus("Anmeldung fehlgeschlagen: " + e.message, true);
+      $("b-wolke-an").disabled = false;
+    }
+  });
+  if ($("b-wolke-ab")) $("b-wolke-ab").addEventListener("click", () => {
+    wolkeAbmelden();
+    openVeil(menuHTML()); wireMenu();
+  });
+  if ($("b-wolke-jetzt")) $("b-wolke-jetzt").addEventListener("click", async () => {
+    WOLKE.meldung = "";
+    const ok = await wolkeSchieben();
+    banner(ok ? "In der Wolke gesichert" : "Sichern fehlgeschlagen");
+    openVeil(menuHTML()); wireMenu();
+  });
+  if ($("b-wolke-holen")) $("b-wolke-holen").addEventListener("click", async () => {
+    /* Rückfrage, weil das den Stand im Browser ersetzen KANN. Der Abgleich
+       nimmt zwar den weiteren, aber wer den Knopf drückt, erwartet eine
+       Änderung — und sollte wissen, welche. */
+    const was = await wolkeAbgleichen();
+    banner(was === "geholt" ? "Aus der Wolke geholt"
+         : was === "geschoben" ? "Deiner war weiter — in die Wolke gesichert"
+         : "Beide gleich weit");
+    openVeil(menuHTML()); wireMenu();
+  });
+
   document.querySelectorAll("#aufstellung .tal").forEach(el => {
     el.addEventListener("click", () => {
       const id = el.dataset.id;
@@ -10154,6 +10472,7 @@ function gameOver() {
      zeigt der Verlustbildschirm dorthin und nicht auf "Nochmal". */
   const offen = talentPointsLeft();
   clearRun(); sfxLose();
+  wolkeVielleichtSichern(true);
   const bb = $("bossbar"); if (bb) bb.hidden = true;
   if (G.score > (save.best || 0)) { save.best = G.score; }
   writeSave();
@@ -10179,6 +10498,7 @@ function gameOver() {
 function victory() {
   G.over = true; G.running = false; G.waveActive = false;
   clearRun(); sfxWin();
+  wolkeVielleichtSichern(true);
   const bb = $("bossbar"); if (bb) bb.hidden = true;
   save.cleared[G.mapIdx] = true;
   /* Der Siegbonus wächst mit der Route mit — sonst wäre die Böenkuppe für
@@ -10343,6 +10663,17 @@ function loop(now) {
    Start
    ============================================================ */
 loadSave();
+/* Sitzung wiederherstellen und im Hintergrund abgleichen.
+
+   Bewusst OHNE await: Das Spiel soll starten, auch wenn die Wolke langsam
+   oder unerreichbar ist. Wer im Zug spielt, wartet sonst auf einen
+   Netzaufruf, der ihn nichts angeht. */
+wolkeSitzungLaden();
+if (WOLKE.sitzung) {
+  wolkeAbgleichen()
+    .then(was => { if (was === "geholt") banner("Spielstand aus der Wolke geholt"); })
+    .catch(e => { WOLKE.meldung = "Wolke nicht erreichbar: " + e.message; });
+}
 SND.on = save.sound !== false;
 autoKnopf();
 $("b-sound").textContent = SND.on ? "Ton an" : "Ton aus";

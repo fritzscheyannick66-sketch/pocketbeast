@@ -8,7 +8,7 @@ extends RefCounted
 ## Wer hier etwas ändert, verliert es beim nächsten Lauf. Die Werte
 ## gehören ins Browserspiel; diese Datei zieht nach.
 ##
-## Stand: 2026-09-06
+## Stand: 2026-09-20
 ##
 
 ## Elementfarben. Dieselben Hexwerte wie im Browserspiel, damit ein
@@ -187,6 +187,13 @@ const WAECHTER := [
 ## Alle acht Wellen ein Anfuehrer, und die Schlusswelle immer.
 static func ist_anfuehrerwelle(w: int) -> bool:
 	return w > 0 and (w % 8 == 0 or w == 100)
+
+## Wellen je Tageshälfte. Vier hell, vier dunkel, dann von vorn.
+const ZYKLUS := 4
+
+## Ist diese Welle eine Nachtwelle?
+static func ist_nacht(w: int) -> bool:
+	return int(floor(float(maxi(1, w) - 1) / float(ZYKLUS))) % 2 == 1
 
 ## Wirkung der Sonderfelder. Dieselben Zahlen wie im Browserspiel.
 const FELD_KRAFT_BONUS := 0.3
